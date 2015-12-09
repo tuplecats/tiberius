@@ -6,7 +6,8 @@ use packets::*;
 use ::Result as TdsResult;
 
 enum ClientState {
-    PreLogin
+    Initial,
+    PreloginPerformed
 }
 
 pub struct Client<S: Write> {
@@ -27,7 +28,7 @@ impl<S: Read + Write> Client<S> {
     pub /*dbg*/ fn new(str: S) -> Client<S> {
         Client {
             stream: str,
-            state: ClientState::PreLogin,
+            state: ClientState::Initial,
             last_packet_id: 0
         }
     }
@@ -49,6 +50,7 @@ impl<S: Read + Write> Client<S> {
         ])));
         let mut response_packet = try!(self.read_packet());
         println!("{:?}", response_packet);
+        self.state = ClientState::PreloginPerformed;
         let login_packet = Login7::new();
         try!(self.send_packet(PacketData::Login(login_packet)));
         response_packet = try!(self.read_packet());
@@ -58,8 +60,11 @@ impl<S: Read + Write> Client<S> {
     pub fn read_packet(&mut self) -> TdsResult<Packet> {
         let mut packet = try!(self.stream.read_packet());
         match self.state {
-            ClientState::PreLogin => {
+            ClientState::Initial => {
                 try!(packet.parse_as_prelogin());
+            },
+            ClientState::PreloginPerformed => {
+                try!(packet.parse_as_token_stream());
             }
         }
         Ok(packet)

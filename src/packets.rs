@@ -5,7 +5,7 @@ use ::{Result, TdsError, TdsProtocolError};
 
 use byteorder::{LittleEndian, BigEndian, ReadBytesExt, WriteBytesExt};
 use chrono::{Offset, Local};
-use encoding::{Encoding, EncoderTrap};
+use encoding::{Encoding, EncoderTrap, DecoderTrap};
 use encoding::all::UTF_16LE;
 use num::FromPrimitive;
 
@@ -47,6 +47,20 @@ impl<W: Write> WriteUtf16 for W {
     }
 }
 
+#[doc(hidden)]
+trait ReadUsVarchar {
+    fn read_us_varchar(&mut self) -> Result<String>;
+}
+
+impl<R: Read> ReadUsVarchar for R {
+    fn read_us_varchar(&mut self) -> Result<String> {
+        let len = try!(self.read_u16::<LittleEndian>()) * 2;
+        let mut bytes: Vec<u8> = vec![0; len as usize];
+        assert_eq!(try!(self.read(&mut bytes[..])), len as usize);
+        Ok(try!(UTF_16LE.decode(&bytes, DecoderTrap::Strict)))
+    }
+}
+
 /// The types a packet header can contain, as specified by 2.2.3.1.1
 
 #[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
@@ -80,6 +94,14 @@ pub enum PacketStatus
     ResetConnectionSkipTransaction = 16
 }
 
+#[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
+#[repr(u8)]
+pub enum MessageTypeToken
+{
+    EnvChange = 0xE3,
+    Error = 0xAA,
+    LoginAck = 0xAD
+}
 
 /// 8-byte packet headers as described in 2.2.3.
 #[derive(Debug)]
@@ -127,6 +149,26 @@ macro_rules! extract_raw_data {
     })
 }
 
+macro_rules! read_packet_data {
+    ($_self:expr,$read_fn:ident,$from_fn:ident,$msg:expr) => ({
+        let read_data = try!($_self.$read_fn());
+        try!(FromPrimitive::$from_fn(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
+    });
+    ($_self:expr,$read_fn:ident,$read_gen:ty,$from_fn:ident,$msg:expr) => ({
+        let read_data = try!($_self.$read_fn::<$read_gen>());
+        try!(FromPrimitive::$from_fn(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
+    })
+}
+
+macro_rules! write_login_offset {
+    ($cursor:expr, $pos:expr, $len:expr) => (write_login_offset!($cursor, $pos, $len, $len));
+    ($cursor:expr, $pos:expr, $len:expr, $data_len:expr) => ({
+        try!($cursor.write_u16::<LittleEndian>($pos));
+        try!($cursor.write_u16::<LittleEndian>($len));
+        $pos += $data_len;
+    });
+}
+
 impl Packet {
     pub fn parse_as_prelogin(&mut self) -> Result<()> {
         assert_eq!(self.header.ptype, PacketType::TabularResult);
@@ -154,26 +196,26 @@ impl Packet {
         self.data = PacketData::PreLogin(token_pairs);
         Ok(())
     }
-}
 
-macro_rules! read_packet_data {
-    ($_self:expr,$read_fn:ident,$from_fn:ident,$msg:expr) => ({
-        let read_data = try!($_self.$read_fn());
-        try!(FromPrimitive::$from_fn(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
-    });
-    ($_self:expr,$read_fn:ident,$read_gen:ty,$from_fn:ident,$msg:expr) => ({
-        let read_data = try!($_self.$read_fn::<$read_gen>());
-        try!(FromPrimitive::$from_fn(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
-    })
-}
+    pub fn parse_as_token_stream(&mut self) -> Result<()> {
+        let packet_data = extract_raw_data!(self);
+        let mut cursor = Cursor::new(packet_data);
 
-macro_rules! write_login_offset {
-    ($cursor:expr, $pos:expr, $len:expr) => (write_login_offset!($cursor, $pos, $len, $len));
-    ($cursor:expr, $pos:expr, $len:expr, $data_len:expr) => ({
-        try!($cursor.write_u16::<LittleEndian>($pos));
-        try!($cursor.write_u16::<LittleEndian>($len));
-        $pos += $data_len;
-    });
+        let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
+        match token_type {
+            MessageTypeToken::Error => {
+                let length = try!(cursor.read_u16::<LittleEndian>());
+                let error_num = try!(cursor.read_u32::<LittleEndian>());
+                let state = try!(cursor.read_u8());
+                let class = try!(cursor.read_u8());
+                let msg = try!(cursor.read_us_varchar());
+
+                println!("error: {}", msg);
+            },
+            _ => panic!("token {:?} not supported yet", token_type)
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -245,7 +287,7 @@ impl Login7 {
             server_name: "localhost".to_owned(), //TODO
             library_name: LIB_NAME.to_owned(),
             language: "".to_owned(),
-            default_db: "tmpdb".to_owned(),
+            default_db: "tempdb".to_owned(),
             client_id: [1, 2, 3, 4, 5, 6]
         }
     }
