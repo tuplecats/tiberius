@@ -48,16 +48,30 @@ impl<W: Write> WriteUtf16 for W {
 }
 
 #[doc(hidden)]
-trait ReadUsVarchar {
+trait ReadCharStream {
+    fn read_varchar(&mut self, length: usize) -> Result<String>;
     fn read_us_varchar(&mut self) -> Result<String>;
+    fn read_b_varchar(&mut self) -> Result<String>;
 }
 
-impl<R: Read> ReadUsVarchar for R {
-    fn read_us_varchar(&mut self) -> Result<String> {
-        let len = try!(self.read_u16::<LittleEndian>()) * 2;
-        let mut bytes: Vec<u8> = vec![0; len as usize];
-        assert_eq!(try!(self.read(&mut bytes[..])), len as usize);
+impl<R: Read> ReadCharStream for R {
+    fn read_varchar(&mut self, length: usize) -> Result<String> {
+        let length = length * 2;
+        let mut bytes: Vec<u8> = vec![0; length];
+        assert_eq!(try!(self.read(&mut bytes[..])), length);
         Ok(try!(UTF_16LE.decode(&bytes, DecoderTrap::Strict)))
+    }
+
+    #[inline]
+    fn read_us_varchar(&mut self) -> Result<String> {
+        let len = try!(self.read_u16::<LittleEndian>()) as usize;
+        self.read_varchar(len)
+    }
+
+    #[inline]
+    fn read_b_varchar(&mut self) -> Result<String> {
+        let len = try!(self.read_u8()) as usize;
+        self.read_varchar(len)
     }
 }
 
@@ -198,22 +212,28 @@ impl Packet {
     }
 
     pub fn parse_as_token_stream(&mut self) -> Result<()> {
-        let packet_data = extract_raw_data!(self);
-        let mut cursor = Cursor::new(packet_data);
+        let mut streams: Vec<TokenStream> = vec![];
+        {
+            let packet_data = extract_raw_data!(self);
+            let mut cursor = Cursor::new(packet_data);
 
-        let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
-        match token_type {
-            MessageTypeToken::Error => {
-                let length = try!(cursor.read_u16::<LittleEndian>());
-                let error_num = try!(cursor.read_u32::<LittleEndian>());
-                let state = try!(cursor.read_u8());
-                let class = try!(cursor.read_u8());
-                let msg = try!(cursor.read_us_varchar());
-
-                println!("error: {}", msg);
-            },
-            _ => panic!("token {:?} not supported yet", token_type)
+            while cursor.position() < self.header.length as u64 {
+                let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
+                match token_type {
+                    MessageTypeToken::Error => {
+                        let err = try!(TokenStreamError::decode(&mut cursor));
+                        streams.push(TokenStream::Error(err));
+                    },
+                    MessageTypeToken::LoginAck => {
+                        let ack = try!(TokenStreamLoginAck::decode(&mut cursor));
+                        streams.push(TokenStream::LoginAck(ack));
+                    }
+                    _ => panic!("token {:?} not supported yet", token_type)
+                }
+            }
+            assert_eq!(cursor.position(), self.header.length as u64);
         }
+        self.data = PacketData::TokenStream(streams);
         Ok(())
     }
 }
@@ -226,7 +246,8 @@ pub enum PacketData
     /// as specified in 2.2.6.5
     PreLogin(Vec<OptionTokenPair>),
     /// as specified by 2.2.6.4
-    Login(Login7)
+    Login(Login7),
+    TokenStream(Vec<TokenStream>)
 }
 
 /// Login7 Packet as specified by 2.2.6.4
@@ -401,7 +422,8 @@ impl<W: Write> WritePacket for W
                 cursor.set_position(0);
                 try!(cursor.write_u32::<LittleEndian>(data_pos as u32));
                 buf = cursor.into_inner();
-            }
+            },
+            _ => panic!("Writing of {:?} not supported!", packet.data)
         }
         // write packet header, length is 8 [header-size, preallocated] + length of the packet data
         packet.header.length = 8 + buf.len() as u16;
@@ -528,5 +550,76 @@ impl<W: Write> WriteOptionToken for W {
             OptionTokenPair::Terminator => {}
         };
         Ok(())
+    }
+}
+
+trait DecodeTokenStream {
+    fn decode<T: Read>(cursor: &mut T) -> Result<Self> where Self: Sized;
+}
+
+#[derive(Debug)]
+enum TokenStream {
+    Error(TokenStreamError),
+    LoginAck(TokenStreamLoginAck)
+}
+
+/// The token stream "ERROR" as described by 2.2.7.9
+#[derive(Debug)]
+struct TokenStreamError {
+    /// ErrorCode
+    code: u32,
+    /// ErrorState (describing code)
+    state: u8,
+    /// The class (severity) of the error
+    class: u8,
+    /// The error message
+    message: String,
+    server_name: String,
+    proc_name: String,
+    line_number: u32
+}
+
+impl DecodeTokenStream for TokenStreamError {
+    fn decode<T: Read>(cursor: &mut T) -> Result<TokenStreamError> {
+        let length = try!(cursor.read_u16::<LittleEndian>());
+
+        Ok(TokenStreamError {
+            code: try!(cursor.read_u32::<LittleEndian>()),
+            state: try!(cursor.read_u8()),
+            class: try!(cursor.read_u8()),
+            message: try!(cursor.read_us_varchar()),
+            server_name: try!(cursor.read_b_varchar()),
+            proc_name: try!(cursor.read_b_varchar()),
+            line_number: try!(cursor.read_u32::<LittleEndian>())
+        })
+    }
+}
+
+/// The login acknowledgement token stream "LOGINACK" as described by 2.2.7.13
+#[derive(Debug)]
+struct TokenStreamLoginAck {
+    interface: u8,
+    tds_version: u32,
+    /// The name of the server
+    prog_name: String,
+    major_version: u8,
+    minor_version: u8,
+    build_num_high: u8,
+    build_num_low: u8
+}
+
+impl DecodeTokenStream for TokenStreamLoginAck {
+    fn decode<T: Read>(cursor: &mut T) -> Result<TokenStreamLoginAck> {
+        let length = try!(cursor.read_u16::<LittleEndian>());
+
+        Ok(TokenStreamLoginAck {
+            interface: try!(cursor.read_u8()),
+            tds_version: try!(cursor.read_u32::<LittleEndian>()),
+            prog_name: try!(cursor.read_b_varchar()),
+            major_version: try!(cursor.read_u8()),
+            minor_version: try!(cursor.read_u8()),
+            build_num_high: try!(cursor.read_u8()),
+            build_num_low: try!(cursor.read_u8())
+        })
     }
 }
