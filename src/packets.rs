@@ -1,3 +1,4 @@
+use std::convert::AsRef;
 use std::io;
 use std::io::prelude::*;
 use std::io::Cursor;
@@ -108,15 +109,6 @@ pub enum PacketStatus
     ResetConnectionSkipTransaction = 16
 }
 
-#[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
-#[repr(u8)]
-pub enum MessageTypeToken
-{
-    EnvChange = 0xE3,
-    Error = 0xAA,
-    LoginAck = 0xAD
-}
-
 /// 8-byte packet headers as described in 2.2.3.
 #[derive(Debug)]
 pub struct PacketHeader
@@ -217,21 +209,25 @@ impl Packet {
             let packet_data = extract_raw_data!(self);
             let mut cursor = Cursor::new(packet_data);
 
-            while cursor.position() < self.header.length as u64 {
+            while cursor.position() < packet_data.len() as u64 {
                 let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
                 match token_type {
                     MessageTypeToken::Error => {
-                        let err = try!(TokenStreamError::decode(&mut cursor));
-                        streams.push(TokenStream::Error(err));
+                        streams.push(TokenStream::Error(try!(TokenStreamError::decode(&mut cursor))));
                     },
                     MessageTypeToken::LoginAck => {
-                        let ack = try!(TokenStreamLoginAck::decode(&mut cursor));
-                        streams.push(TokenStream::LoginAck(ack));
+                        streams.push(TokenStream::LoginAck(try!(TokenStreamLoginAck::decode(&mut cursor))));
+                    },
+                    MessageTypeToken::EnvChange => {
+                        streams.push(TokenStream::EnvChange(try!(TokenStreamEnvChange::decode(&mut cursor))));
+                    },
+                    MessageTypeToken::Done => {
+                        streams.push(TokenStream::Done(try!(TokenStreamDone::decode(&mut cursor))));
                     }
-                    _ => panic!("token {:?} not supported yet", token_type)
+                    //_ => panic!("token {:?} not supported yet", token_type)
                 }
             }
-            assert_eq!(cursor.position(), self.header.length as u64);
+            assert_eq!(cursor.position(), packet_data.len() as u64);
         }
         self.data = PacketData::TokenStream(streams);
         Ok(())
@@ -553,14 +549,105 @@ impl<W: Write> WriteOptionToken for W {
     }
 }
 
+#[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
+#[repr(u8)]
+pub enum MessageTypeToken
+{
+    Done = 0xFD,
+    EnvChange = 0xE3,
+    Error = 0xAA,
+    LoginAck = 0xAD
+}
+
 trait DecodeTokenStream {
-    fn decode<T: Read>(cursor: &mut T) -> Result<Self> where Self: Sized;
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<Self> where Self: Sized;
 }
 
 #[derive(Debug)]
 enum TokenStream {
     Error(TokenStreamError),
-    LoginAck(TokenStreamLoginAck)
+    LoginAck(TokenStreamLoginAck),
+    EnvChange(TokenStreamEnvChange),
+    Done(TokenStreamDone)
+}
+
+/// The token stream "DONE" as described by 2.2.7.5
+#[derive(Debug)]
+struct TokenStreamDone {
+    /// A combination of flags defined in TokenStreamDoneStatus
+    status: u16,
+    cur_cmd: u16,
+    done_row_count: u64
+}
+
+#[repr(u16)]
+enum TokenStreamDoneStatus {
+    DoneFinal = 0x00,
+    DoneMore = 0x01,
+    DoneError = 0x02,
+    DoneInxact = 0x04,
+    DoneCount = 0x10,
+    DoneAttn = 0x20,
+    DoneSrvErr = 0x100
+}
+
+impl DecodeTokenStream for TokenStreamDone {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<TokenStreamDone> {
+        Ok(TokenStreamDone {
+            status: try!(cursor.read_u16::<LittleEndian>()),
+            cur_cmd: try!(cursor.read_u16::<LittleEndian>()),
+            done_row_count: try!(cursor.read_u64::<LittleEndian>())
+        })
+    }
+}
+
+/// The environment change token stream "ENVCHANGE" as described by 2.2.7.8
+#[derive(Debug)]
+enum TokenStreamEnvChange {
+    /// Change of database from old_value to new_value
+    Database(String, Option<String>),
+    PacketSize(String, Option<String>)
+}
+
+#[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
+#[repr(u8)]
+enum EnvChangeType {
+    Database = 1,
+    Language = 2,
+    CharacterSet = 3,
+    PacketSize = 4,
+    /// Unicode data sorting local id
+    UnicodeDataSortLID = 5,
+    /// Unicode data sorting comparison flags
+    UnicodeDataSortLCF = 6,
+    SqlCollation = 7,
+    BeginTransaction = 8,
+    CommitTransaction = 9,
+    RollbackTransaction = 10,
+    EnlistDTCTransaction = 11,
+    DefectTransaction = 12,
+    /// Real Time Log Shipping
+    Rtls = 13,
+    PromoteTransaction = 15,
+    TransactionManagerAddr= 16,
+    TransactionEnded = 17,
+    /// RESETCONNECTION/RESETCONNECTIONSKIPTRAN Completion Acknowledgement
+    ResetConnectionAck= 18,
+    /// Sends back name of user instance started per login request
+    SessStartUserInst = 19,
+    RoutingInformation = 20
+}
+
+impl DecodeTokenStream for TokenStreamEnvChange {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<TokenStreamEnvChange> {
+        let start_pos = cursor.position();
+        let end_pos = start_pos + try!(cursor.read_u16::<LittleEndian>()) as u64;
+        let token_type: EnvChangeType = read_packet_data!(cursor, read_u8, from_u8, "unknown envchange token type '0x{:x}'");
+        Ok(match token_type {
+            EnvChangeType::PacketSize => TokenStreamEnvChange::PacketSize(try!(cursor.read_b_varchar()), if cursor.position() < end_pos { Some(try!(cursor.read_b_varchar())) } else { None }),
+            _ => panic!("unsupported envchange token: 0x{:x}", token_type as u8)
+        })
+    }
 }
 
 /// The token stream "ERROR" as described by 2.2.7.9
@@ -580,7 +667,7 @@ struct TokenStreamError {
 }
 
 impl DecodeTokenStream for TokenStreamError {
-    fn decode<T: Read>(cursor: &mut T) -> Result<TokenStreamError> {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<TokenStreamError> {
         let length = try!(cursor.read_u16::<LittleEndian>());
 
         Ok(TokenStreamError {
@@ -609,7 +696,7 @@ struct TokenStreamLoginAck {
 }
 
 impl DecodeTokenStream for TokenStreamLoginAck {
-    fn decode<T: Read>(cursor: &mut T) -> Result<TokenStreamLoginAck> {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<TokenStreamLoginAck> {
         let length = try!(cursor.read_u16::<LittleEndian>());
 
         Ok(TokenStreamLoginAck {

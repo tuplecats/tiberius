@@ -54,6 +54,7 @@ impl<S: Read + Write> Client<S> {
         let login_packet = Login7::new();
         try!(self.send_packet(PacketData::Login(login_packet)));
         response_packet = try!(self.read_packet());
+        println!("{:?}", response_packet);
         Ok(())
     }
 
