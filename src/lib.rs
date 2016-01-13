@@ -14,6 +14,9 @@ use client::Client;
 mod packets;
 mod client;
 
+/// An error returned by the SQL-server
+pub type ServerError = packets::TokenStreamError;
+
 #[derive(Debug)]
 pub enum TdsProtocolError {
     InvalidValue(String)
@@ -24,6 +27,8 @@ pub enum TdsError {
     ProtocolError(TdsProtocolError),
     UnexpectedEOF,
     IoError(io::Error),
+    /// An error returned by the SQL-server
+    ServerError(ServerError),
     Other(String)
 }
 
@@ -63,7 +68,8 @@ fn main()
     //let mut cl = Client::new(test);
     let mut cl = Client::connect_tcp("127.0.0.1", 1433).unwrap();
     cl.initialize_connection().unwrap();
-    cl.exec("INSERT INTO [test].[dbo].[test](test) VALUES('hello2');");
+    let rows = cl.exec("INSERT INTO [test].[dbo].[test](test) VALUES('hello2');").unwrap();
+    println!("rows: {:?}", rows);
     //let mut buffer = [0; 4096];
     //cl.stream.read(&mut buffer).unwrap();
     //println!("{:?}", buffer.to_vec());

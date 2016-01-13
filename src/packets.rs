@@ -670,7 +670,7 @@ trait DecodeTokenStream {
 }
 
 #[derive(Debug)]
-enum TokenStream {
+pub enum TokenStream {
     Error(TokenStreamError),
     LoginAck(TokenStreamLoginAck),
     EnvChange(TokenStreamEnvChange),
@@ -679,15 +679,15 @@ enum TokenStream {
 
 /// The token stream "DONE" as described by 2.2.7.5
 #[derive(Debug)]
-struct TokenStreamDone {
+pub struct TokenStreamDone {
     /// A combination of flags defined in TokenStreamDoneStatus
-    status: u16,
-    cur_cmd: u16,
-    done_row_count: u64
+    pub status: u16,
+    pub cur_cmd: u16,
+    pub done_row_count: u64
 }
 
 #[repr(u16)]
-enum TokenStreamDoneStatus {
+pub enum TokenStreamDoneStatus {
     DoneFinal = 0x00,
     DoneMore = 0x01,
     DoneError = 0x02,
@@ -761,19 +761,19 @@ impl DecodeTokenStream for TokenStreamEnvChange {
 }
 
 /// The token stream "ERROR" as described by 2.2.7.9
-#[derive(Debug)]
-struct TokenStreamError {
+#[derive(Clone, Debug)]
+pub struct TokenStreamError {
     /// ErrorCode
-    code: u32,
+    pub code: u32,
     /// ErrorState (describing code)
-    state: u8,
+    pub state: u8,
     /// The class (severity) of the error
-    class: u8,
+    pub class: u8,
     /// The error message
-    message: String,
-    server_name: String,
-    proc_name: String,
-    line_number: u32
+    pub message: String,
+    pub server_name: String,
+    pub proc_name: String,
+    pub line_number: u32
 }
 
 impl DecodeTokenStream for TokenStreamError {

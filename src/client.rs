@@ -3,7 +3,7 @@ use std::io;
 use std::net::TcpStream;
 
 use packets::*;
-use ::TdsResult;
+use ::{TdsResult, TdsError};
 
 #[derive(Debug, PartialEq)]
 enum ClientState {
@@ -67,13 +67,31 @@ impl<S: Read + Write> Client<S> {
         Ok(())
     }
 
-    // Executes a SQL statement
-    pub fn exec(&mut self, sql: &str) -> TdsResult<()> {
+    /// Execute an SQL statement
+    /// returns the amount of affected rows
+    pub fn exec(&mut self, sql: &str) -> TdsResult<usize> {
         assert_eq!(self.state, ClientState::Ready);
         try!(self.send_packet(PacketData::SqlBatch(sql)));
-        let p = self.read_packet();
-        println!("{:?}", p);
-        Ok(())
+        let p = try!(self.read_packet());
+        match p.data {
+            PacketData::TokenStream(ref tokens) => {
+                for token in tokens {
+                    match *token {
+                        TokenStream::Error(ref err) => {
+                            return Err(TdsError::ServerError(err.clone()))
+                        },
+                        TokenStream::Done(ref done_token) => {
+                            assert_eq!(done_token.status, TokenStreamDoneStatus::DoneCount as u16);
+                            return Ok(done_token.done_row_count as usize)
+                        },
+                        _ => return Err(TdsError::Other(format!("exec: unexpected TOKEN {:?}", token)))
+                    }
+                }
+            }
+            , _ => ()
+        }
+
+        return Err(TdsError::Other(format!("exec: Unexpected packet {:?}", p)))
     }
 
     pub fn read_packet(&mut self) -> TdsResult<Packet> {
