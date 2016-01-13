@@ -1,11 +1,7 @@
-#![feature(custom_derive, plugin)]
-#![plugin(num_macros)]
-
 extern crate byteorder;
 extern crate chrono;
 extern crate encoding;
 extern crate net2;
-extern crate num;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
@@ -24,14 +20,14 @@ pub enum TdsProtocolError {
 }
 
 #[derive(Debug)]
-enum TdsError {
+pub enum TdsError {
     ProtocolError(TdsProtocolError),
     UnexpectedEOF,
     IoError(io::Error),
     Other(String)
 }
 
-type Result<T> = std::result::Result<T, TdsError>;
+pub type TdsResult<T> = std::result::Result<T, TdsError>;
 
 impl From<io::Error> for TdsError {
     fn from(err: io::Error) -> TdsError {
@@ -67,6 +63,7 @@ fn main()
     //let mut cl = Client::new(test);
     let mut cl = Client::connect_tcp("127.0.0.1", 1433).unwrap();
     cl.initialize_connection().unwrap();
+    cl.exec("INSERT INTO [test].[dbo].[test](test) VALUES('hello2');");
     //let mut buffer = [0; 4096];
     //cl.stream.read(&mut buffer).unwrap();
     //println!("{:?}", buffer.to_vec());

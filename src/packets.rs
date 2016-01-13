@@ -2,13 +2,13 @@ use std::convert::AsRef;
 use std::io;
 use std::io::prelude::*;
 use std::io::Cursor;
-use ::{Result, TdsError, TdsProtocolError};
+use ::{TdsResult, TdsError, TdsProtocolError};
 
 use byteorder::{LittleEndian, BigEndian, ReadBytesExt, WriteBytesExt};
+//TODO: make chrono optional
 use chrono::{Offset, Local};
 use encoding::{Encoding, EncoderTrap, DecoderTrap};
 use encoding::all::UTF_16LE;
-use num::FromPrimitive;
 
 static LIB_NAME: &'static str = "tiberius";
 
@@ -26,22 +26,22 @@ impl<W: Write> WriteCStr for W {
 
 #[doc(hidden)]
 pub trait ReadPacket {
-    fn read_packet(&mut self) -> Result<Packet>;
+    fn read_packet(&mut self) -> TdsResult<Packet>;
 }
 
 #[doc(hidden)]
 pub trait WritePacket {
-    fn write_packet(&mut self, packet: &mut Packet) -> Result<()>;
+    fn write_packet(&mut self, packet: &mut Packet) -> TdsResult<()>;
 }
 
 #[doc(hidden)]
 trait WriteUtf16 {
-    fn write_as_utf16(&mut self, s: &str) -> Result<usize>;
+    fn write_as_utf16(&mut self, s: &str) -> TdsResult<usize>;
 }
 
 impl<W: Write> WriteUtf16 for W {
     /// Writes a UTF-16 string with double null terminator
-    fn write_as_utf16(&mut self, s: &str) -> Result<usize> {
+    fn write_as_utf16(&mut self, s: &str) -> TdsResult<usize> {
         let bytes = try!(UTF_16LE.encode(s, EncoderTrap::Strict));
         try!(self.write_all(&bytes));
         Ok(bytes.len())
@@ -50,13 +50,13 @@ impl<W: Write> WriteUtf16 for W {
 
 #[doc(hidden)]
 trait ReadCharStream {
-    fn read_varchar(&mut self, length: usize) -> Result<String>;
-    fn read_us_varchar(&mut self) -> Result<String>;
-    fn read_b_varchar(&mut self) -> Result<String>;
+    fn read_varchar(&mut self, length: usize) -> TdsResult<String>;
+    fn read_us_varchar(&mut self) -> TdsResult<String>;
+    fn read_b_varchar(&mut self) -> TdsResult<String>;
 }
 
 impl<R: Read> ReadCharStream for R {
-    fn read_varchar(&mut self, length: usize) -> Result<String> {
+    fn read_varchar(&mut self, length: usize) -> TdsResult<String> {
         let length = length * 2;
         let mut bytes: Vec<u8> = vec![0; length];
         assert_eq!(try!(self.read(&mut bytes[..])), length);
@@ -64,21 +64,60 @@ impl<R: Read> ReadCharStream for R {
     }
 
     #[inline]
-    fn read_us_varchar(&mut self) -> Result<String> {
+    fn read_us_varchar(&mut self) -> TdsResult<String> {
         let len = try!(self.read_u16::<LittleEndian>()) as usize;
         self.read_varchar(len)
     }
 
     #[inline]
-    fn read_b_varchar(&mut self) -> Result<String> {
+    fn read_b_varchar(&mut self) -> TdsResult<String> {
         let len = try!(self.read_u8()) as usize;
         self.read_varchar(len)
     }
 }
 
 /// The types a packet header can contain, as specified by 2.2.3.1.1
+trait FromPrimitive<T>: Sized {
+    fn from(i: T) -> Option<Self>;
+}
 
-#[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
+macro_rules! impl_from_primitive_ty {
+    ($($ty:ident),*) => {
+        $(
+        impl FromPrimitive<$ty> for $ty {
+            #[inline]
+            fn from(i: $ty) -> Option<$ty> {
+                Some(i)
+            }
+        }
+        )*
+    }
+}
+impl_from_primitive_ty!(u8, u16);
+
+macro_rules! impl_from_primitive {
+    ($name: ident, $($field: ident),*) => {
+        impl FromPrimitive<u8> for $name {
+            fn from(i: u8) -> Option<$name> {
+                match i {
+                    $( x if x == $name::$field as u8 => Some($name::$field), )*
+                    _ => None
+                }
+            }
+        }
+
+        impl FromPrimitive<u16> for $name {
+            fn from(i: u16) -> Option<$name> {
+                match i {
+                    $( x if x == $name::$field as u16 => Some($name::$field), )*
+                    _ => None
+                }
+            }
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum PacketType
 {
@@ -96,9 +135,11 @@ pub enum PacketType
     SSPI          = 17,
     PreLogin      = 18
 }
+impl_from_primitive!(PacketType, Unknown, SqlBatch, RPC, TabularResult, Attention, BulkLoadData, FedAuthToken,
+    TransactionManagerReq, Login, SSPI, PreLogin);
 
 /// 2.2.3.1.2
-#[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum PacketStatus
 {
@@ -108,6 +149,7 @@ pub enum PacketStatus
     ResetConnection = 8,
     ResetConnectionSkipTransaction = 16
 }
+impl_from_primitive!(PacketStatus, NormalMessage, EndOfMessage, IgnoreEvent, ResetConnection, ResetConnectionSkipTransaction);
 
 /// 8-byte packet headers as described in 2.2.3.
 #[derive(Debug)]
@@ -140,10 +182,61 @@ impl PacketHeader {
 }
 
 #[derive(Debug)]
-pub struct Packet
+pub struct Packet<'a>
 {
     pub header: PacketHeader,
-    pub data: PacketData
+    pub data: PacketData<'a>
+}
+
+#[derive(Debug)]
+pub enum PacketDataHeader {
+    Transaction(PacketDataHeaderTransaction)
+}
+
+/// headers for a specific (packet-)data type 2.2.5.3
+#[derive(Debug)]
+#[repr(u16)]
+pub enum PacketDataHeaderType {
+    QueryNotifications = 1,
+    TransactionDescriptor = 2,
+    TraceActivity = 3
+}
+
+#[derive(Debug)]
+pub struct PacketDataHeaderTransaction {
+    transaction_descriptor: u64,
+    outstanding_requests: u32,
+}
+
+trait WriteDataHeader<T> {
+    fn write_data_header(&mut self, data: &T) -> TdsResult<()>;
+}
+
+impl<W: Write> WriteDataHeader<PacketDataHeaderTransaction> for W {
+    fn write_data_header(&mut self, data: &PacketDataHeaderTransaction) -> TdsResult<()>
+    {
+        try!(self.write_u64::<LittleEndian>(data.transaction_descriptor));
+        try!(self.write_u32::<LittleEndian>(data.outstanding_requests));
+        Ok(())
+    }
+}
+
+impl<W: Write> WriteDataHeader<PacketDataHeader> for W {
+    fn write_data_header(&mut self, data: &PacketDataHeader) -> TdsResult<()> {
+        let mut buf = vec![];
+        let header_type = match data {
+            &PacketDataHeader::Transaction(ref tx_header) => {
+                try!(buf.write_data_header(tx_header));
+                PacketDataHeaderType::TransactionDescriptor
+            }
+        };
+        try!(self.write_u32::<LittleEndian>(buf.len() as u32 + 10));
+        try!(self.write_u32::<LittleEndian>(buf.len() as u32 + 6));
+        try!(self.write_u16::<LittleEndian>(header_type as u16));
+        try!(self.write_all(&buf));
+
+        Ok(())
+    }
 }
 
 macro_rules! extract_raw_data {
@@ -158,11 +251,11 @@ macro_rules! extract_raw_data {
 macro_rules! read_packet_data {
     ($_self:expr,$read_fn:ident,$from_fn:ident,$msg:expr) => ({
         let read_data = try!($_self.$read_fn());
-        try!(FromPrimitive::$from_fn(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
+        try!(FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
     });
     ($_self:expr,$read_fn:ident,$read_gen:ty,$from_fn:ident,$msg:expr) => ({
         let read_data = try!($_self.$read_fn::<$read_gen>());
-        try!(FromPrimitive::$from_fn(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
+        try!(FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
     })
 }
 
@@ -175,8 +268,8 @@ macro_rules! write_login_offset {
     });
 }
 
-impl Packet {
-    pub fn parse_as_prelogin(&mut self) -> Result<()> {
+impl<'a> Packet<'a> {
+    pub fn parse_as_prelogin(&mut self) -> TdsResult<()> {
         assert_eq!(self.header.ptype, PacketType::TabularResult);
         assert_eq!(self.header.status, PacketStatus::EndOfMessage);
         let mut token_pairs: Vec<OptionTokenPair> = Vec::new();
@@ -188,7 +281,7 @@ impl Packet {
             let mut token;
 
             let initial_pos = cursor.position();
-            
+
             while { token = try!(cursor.read_u8()); token != terminator }
             {
                 let data_offset = try!(cursor.read_u16::<BigEndian>());
@@ -203,7 +296,7 @@ impl Packet {
         Ok(())
     }
 
-    pub fn parse_as_token_stream(&mut self) -> Result<()> {
+    pub fn parse_as_token_stream(&mut self) -> TdsResult<()> {
         let mut streams: Vec<TokenStream> = vec![];
         {
             let packet_data = extract_raw_data!(self);
@@ -235,7 +328,7 @@ impl Packet {
 }
 
 #[derive(Debug)]
-pub enum PacketData
+pub enum PacketData<'a>
 {
     None,
     RawData(Vec<u8>),
@@ -243,6 +336,8 @@ pub enum PacketData
     PreLogin(Vec<OptionTokenPair>),
     /// as specified by 2.2.6.4
     Login(Login7),
+    /// as specified in 2.2.6.7
+    SqlBatch(&'a str),
     TokenStream(Vec<TokenStream>)
 }
 
@@ -312,7 +407,7 @@ impl Login7 {
 
 impl<R: Read> ReadPacket for R
 {
-    fn read_packet(&mut self) -> Result<Packet> {
+    fn read_packet(&mut self) -> TdsResult<Packet> {
         let mut header = PacketHeader::new();
         header.ptype = read_packet_data!(self, read_u8, from_u8, "header: unknown packet type {}");
         header.status = read_packet_data!(self, read_u8, from_u8, "header: unknown status {}");
@@ -331,12 +426,21 @@ impl<R: Read> ReadPacket for R
 
 impl<W: Write> WritePacket for W
 {
-   fn write_packet(&mut self, packet: &mut Packet) -> Result<()> {
+   fn write_packet(&mut self, packet: &mut Packet) -> TdsResult<()> {
         // prealloc header size so we can return the packet as a whole [including header]
         let mut buf = vec![];
 
         match packet.data {
-            PacketData::None | PacketData::RawData(_) => { panic!("Writing none, should not happen"); },
+            PacketData::SqlBatch(sql_) => {
+                packet.header.status = PacketStatus::EndOfMessage;
+                packet.header.ptype = PacketType::SqlBatch;
+
+                buf.write_data_header(&PacketDataHeader::Transaction(PacketDataHeaderTransaction {
+                    outstanding_requests: 1,
+                    transaction_descriptor: 0
+                }));
+                try!(buf.write_as_utf16(sql_));
+            },
             PacketData::PreLogin(ref token_vec) => {
                 let mut cursor = Cursor::new(buf);
                 packet.header.status = PacketStatus::EndOfMessage;
@@ -379,7 +483,7 @@ impl<W: Write> WritePacket for W
                 let data_start: u16 = cursor.position() as u16 + (13 * 4) + 6;
                 let mut data_pos = data_start;
 
-                for (i, val) in [&login7.hostname, &login7.username, &login7.password, &login7.app_name, &login7.server_name, 
+                for (i, val) in [&login7.hostname, &login7.username, &login7.password, &login7.app_name, &login7.server_name,
                     &login7.library_name, &login7.language, &login7.default_db].iter().enumerate() {
                     let old_pos = cursor.position();
                     cursor.set_position(data_pos as u64);
@@ -437,7 +541,7 @@ impl<W: Write> WritePacket for W
     }
 }
 
-#[derive(Copy, Clone, Debug, NumFromPrimitive)]
+#[derive(Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum EncryptionSetting
 {
@@ -446,6 +550,7 @@ pub enum EncryptionSetting
     EncryptNotSupported = 2,
     EncryptRequired = 3
 }
+impl_from_primitive!(EncryptionSetting, EncryptOff, EncryptOn, EncryptNotSupported, EncryptRequired);
 
 #[derive(Debug)]
 pub enum OptionTokenPair
@@ -480,7 +585,7 @@ impl OptionTokenPair {
 }
 
 trait ReadOptionToken {
-    fn read_option_token(&mut self, token: u8, max_len: u16) -> Result<OptionTokenPair>;
+    fn read_option_token(&mut self, token: u8, max_len: u16) -> TdsResult<OptionTokenPair>;
 }
 
 trait WriteOptionToken {
@@ -488,12 +593,12 @@ trait WriteOptionToken {
 }
 
 impl<R: BufRead> ReadOptionToken for R {
-    fn read_option_token(&mut self, token: u8, max_len: u16) -> Result<OptionTokenPair> {
+    fn read_option_token(&mut self, token: u8, max_len: u16) -> TdsResult<OptionTokenPair> {
         Ok(match token {
             0 => OptionTokenPair::Version(try!(self.read_u32::<BigEndian>()), try!(self.read_u16::<BigEndian>())),
             1 => {
                 let read_data = try!(self.read_u8());
-                OptionTokenPair::Encryption(try!(FromPrimitive::from_u8(read_data).ok_or(TdsProtocolError::InvalidValue(format!("prelogin: could not parse encryption: {}", read_data)))))
+                OptionTokenPair::Encryption(try!(FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!("prelogin: could not parse encryption: {}", read_data)))))
             },
             2 => {
                 let mut buf = vec![0 as u8; max_len as usize - 1];
@@ -549,7 +654,7 @@ impl<W: Write> WriteOptionToken for W {
     }
 }
 
-#[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum MessageTypeToken
 {
@@ -558,9 +663,10 @@ pub enum MessageTypeToken
     Error = 0xAA,
     LoginAck = 0xAD
 }
+impl_from_primitive!(MessageTypeToken, Done, EnvChange, Error, LoginAck);
 
 trait DecodeTokenStream {
-    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<Self> where Self: Sized;
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<Self> where Self: Sized;
 }
 
 #[derive(Debug)]
@@ -592,7 +698,7 @@ enum TokenStreamDoneStatus {
 }
 
 impl DecodeTokenStream for TokenStreamDone {
-    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<TokenStreamDone> {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<TokenStreamDone> {
         Ok(TokenStreamDone {
             status: try!(cursor.read_u16::<LittleEndian>()),
             cur_cmd: try!(cursor.read_u16::<LittleEndian>()),
@@ -609,7 +715,7 @@ enum TokenStreamEnvChange {
     PacketSize(String, Option<String>)
 }
 
-#[derive(Copy, Clone, Debug, NumFromPrimitive, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]
 enum EnvChangeType {
     Database = 1,
@@ -637,9 +743,13 @@ enum EnvChangeType {
     SessStartUserInst = 19,
     RoutingInformation = 20
 }
+impl_from_primitive!(EnvChangeType, Database, Language, CharacterSet, PacketSize, UnicodeDataSortLID, UnicodeDataSortLCF,
+    SqlCollation, BeginTransaction, CommitTransaction, RollbackTransaction, EnlistDTCTransaction, DefectTransaction, Rtls,
+    PromoteTransaction, TransactionManagerAddr, TransactionEnded, ResetConnectionAck, SessStartUserInst, RoutingInformation
+);
 
 impl DecodeTokenStream for TokenStreamEnvChange {
-    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<TokenStreamEnvChange> {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<TokenStreamEnvChange> {
         let start_pos = cursor.position();
         let end_pos = start_pos + try!(cursor.read_u16::<LittleEndian>()) as u64;
         let token_type: EnvChangeType = read_packet_data!(cursor, read_u8, from_u8, "unknown envchange token type '0x{:x}'");
@@ -667,7 +777,7 @@ struct TokenStreamError {
 }
 
 impl DecodeTokenStream for TokenStreamError {
-    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<TokenStreamError> {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<TokenStreamError> {
         let length = try!(cursor.read_u16::<LittleEndian>());
 
         Ok(TokenStreamError {
@@ -696,7 +806,7 @@ struct TokenStreamLoginAck {
 }
 
 impl DecodeTokenStream for TokenStreamLoginAck {
-    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> Result<TokenStreamLoginAck> {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<TokenStreamLoginAck> {
         let length = try!(cursor.read_u16::<LittleEndian>());
 
         Ok(TokenStreamLoginAck {

@@ -3,11 +3,13 @@ use std::io;
 use std::net::TcpStream;
 
 use packets::*;
-use ::Result as TdsResult;
+use ::TdsResult;
 
+#[derive(Debug, PartialEq)]
 enum ClientState {
     Initial,
-    PreloginPerformed
+    PreloginPerformed,
+    Ready
 }
 
 pub struct Client<S: Write> {
@@ -33,6 +35,7 @@ impl<S: Read + Write> Client<S> {
         }
     }
 
+    #[inline]
     fn alloc_id(&mut self) -> u8 {
         let id = self.last_packet_id;
         self.last_packet_id = (id + 1) % 255;
@@ -48,13 +51,28 @@ impl<S: Read + Write> Client<S> {
             OptionTokenPair::ThreadId(0),
             OptionTokenPair::Mars(0)
         ])));
-        let mut response_packet = try!(self.read_packet());
-        println!("{:?}", response_packet);
+        {
+            let mut response_packet = try!(self.read_packet());
+            println!("{:?}", response_packet);
+        }
         self.state = ClientState::PreloginPerformed;
         let login_packet = Login7::new();
         try!(self.send_packet(PacketData::Login(login_packet)));
-        response_packet = try!(self.read_packet());
-        println!("{:?}", response_packet);
+        {
+            let mut response_packet = try!(self.read_packet());
+            println!("{:?}", response_packet);
+            // TODO verify response
+        }
+        self.state = ClientState::Ready;
+        Ok(())
+    }
+
+    // Executes a SQL statement
+    pub fn exec(&mut self, sql: &str) -> TdsResult<()> {
+        assert_eq!(self.state, ClientState::Ready);
+        try!(self.send_packet(PacketData::SqlBatch(sql)));
+        let p = self.read_packet();
+        println!("{:?}", p);
         Ok(())
     }
 
@@ -65,6 +83,9 @@ impl<S: Read + Write> Client<S> {
                 try!(packet.parse_as_prelogin());
             },
             ClientState::PreloginPerformed => {
+                try!(packet.parse_as_token_stream());
+            },
+            ClientState::Ready => {
                 try!(packet.parse_as_token_stream());
             }
         }
