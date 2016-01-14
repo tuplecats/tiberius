@@ -3,19 +3,18 @@ extern crate chrono;
 extern crate encoding;
 extern crate net2;
 
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-
 use std::borrow::Cow;
 use std::convert::From;
-use std::io::prelude::*; //dbg
 use std::io;
-use client::Client;
 
-mod packets;
+mod protocol;
 mod client;
+pub use client::*;
+
+pub static LIB_NAME: &'static str = "tiberius";
 
 /// An error returned by the SQL-server
-pub type ServerError = packets::TokenStreamError;
+pub type ServerError = protocol::TokenStreamError;
 
 #[derive(Debug)]
 pub enum TdsProtocolError {
@@ -59,19 +58,4 @@ impl From<TdsProtocolError> for TdsError {
     fn from(err: TdsProtocolError) -> TdsError {
         TdsError::ProtocolError(err)
     }
-}
-
-#[test]
-fn main()
-{
-    //let mut test = vec![];
-    //let mut cl = Client::new(test);
-    let mut cl = Client::connect_tcp("127.0.0.1", 1433).unwrap();
-    cl.initialize_connection().unwrap();
-    let rows = cl.exec("INSERT INTO [test].[dbo].[test](test) VALUES('hello2');").unwrap();
-    println!("rows: {:?}", rows);
-    //let mut buffer = [0; 4096];
-    //cl.stream.read(&mut buffer).unwrap();
-    //println!("{:?}", buffer.to_vec());
-    //println!("{:?}", cl.stream);
 }

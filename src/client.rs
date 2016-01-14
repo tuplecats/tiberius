@@ -2,7 +2,7 @@ use std::io::prelude::*;
 use std::io;
 use std::net::TcpStream;
 
-use packets::*;
+use protocol::*;
 use ::{TdsResult, TdsError};
 
 #[derive(Debug, PartialEq)]
