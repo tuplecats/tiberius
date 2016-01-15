@@ -124,6 +124,24 @@ impl<'a> Packet<'a> {
         self.data = PacketData::TokenStream(streams);
         Ok(())
     }
+
+    /// Check if the tokenstream in the packet contains an error token
+    pub fn catch_error(&self) -> TdsResult<()> {
+        match self.data {
+            PacketData::TokenStream(ref tokens) => {
+                for token in tokens {
+                    match *token {
+                        TokenStream::Error(ref err) => {
+                            return Err(TdsError::ServerError(err.clone()))
+                        },
+                        _ => ()
+                    }
+                }
+            },
+            _ => ()
+        }
+        Ok(())
+    }
 }
 
 /// 8-byte packet headers as described in 2.2.3.

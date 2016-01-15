@@ -45,7 +45,7 @@ impl Connection<TcpStream> {
 pub struct InternalConnection<S: Write> {
     pub stream: S,
     pub state: ClientState,
-    last_packet_id: u8
+    last_packet_id: u8,
 }
 
 impl<S: Read + Write> InternalConnection<S> {
@@ -75,16 +75,16 @@ impl<S: Read + Write> InternalConnection<S> {
         ])));
         {
             let mut response_packet = try!(self.read_packet());
-            println!("{:?}", response_packet);
+            try!(response_packet.catch_error());
         }
         self.state = ClientState::PreloginPerformed;
         let login_packet = Login7::new();
         try!(self.send_packet(PacketData::Login(login_packet)));
         {
             let mut response_packet = try!(self.read_packet());
-            println!("{:?}", response_packet);
-            // TODO verify response
+            try!(response_packet.catch_error());
         }
+        // TODO verify and use response data
         self.state = ClientState::Ready;
         Ok(())
     }
