@@ -13,7 +13,9 @@ pub use self::login::Login7;
 
 use protocol::util::WriteUtf16;
 use protocol::message_types::*;
-use ::{TdsResult, TdsProtocolError};
+use protocol::types::*;
+use stmt::Statement;
+use ::{TdsResult, TdsError, TdsProtocolError};
 
 macro_rules! extract_raw_data {
     ($_self:expr) => ({
@@ -67,7 +69,43 @@ impl<'a> Packet<'a> {
         Ok(())
     }
 
-    pub fn parse_as_token_stream(&mut self) -> TdsResult<()> {
+    #[inline]
+    fn handle_token_stream<C: AsRef<[u8]>>(&self, token_type: MessageTypeToken, cursor: &mut Cursor<C>) -> TdsResult<TokenStream> {
+        match token_type {
+            MessageTypeToken::Error => {
+                return Ok(TokenStream::Error(try!(TokenStreamError::decode(cursor))));
+            },
+            MessageTypeToken::LoginAck => {
+                return Ok(TokenStream::LoginAck(try!(TokenStreamLoginAck::decode(cursor))));
+            },
+            MessageTypeToken::EnvChange => {
+                return Ok(TokenStream::EnvChange(try!(TokenStreamEnvChange::decode(cursor))));
+            },
+            MessageTypeToken::Done => {
+                return Ok(TokenStream::Done(try!(TokenStreamDone::decode(cursor))));
+            },
+            _ => ()
+        }
+        return Err(TdsError::Other(format!("token {:?} not supported yet", token_type)))
+    }
+
+    pub fn parse_as_general_token_stream(&mut self) -> TdsResult<()> {
+        let mut streams: Vec<TokenStream> = vec![];
+        {
+            let packet_data = extract_raw_data!(self);
+            let mut cursor = Cursor::new(packet_data);
+
+            while cursor.position() < packet_data.len() as u64 {
+                let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
+                streams.push(try!(self.handle_token_stream(token_type, &mut cursor)));
+            }
+            assert_eq!(cursor.position(), packet_data.len() as u64);
+        }
+        self.data = PacketData::TokenStream(streams);
+        Ok(())
+    }
+
+    pub fn parse_as_stmt_token_stream(&mut self, stmt: &mut Statement) -> TdsResult<()> {
         let mut streams: Vec<TokenStream> = vec![];
         {
             let packet_data = extract_raw_data!(self);
@@ -76,19 +114,9 @@ impl<'a> Packet<'a> {
             while cursor.position() < packet_data.len() as u64 {
                 let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
                 match token_type {
-                    MessageTypeToken::Error => {
-                        streams.push(TokenStream::Error(try!(TokenStreamError::decode(&mut cursor))));
-                    },
-                    MessageTypeToken::LoginAck => {
-                        streams.push(TokenStream::LoginAck(try!(TokenStreamLoginAck::decode(&mut cursor))));
-                    },
-                    MessageTypeToken::EnvChange => {
-                        streams.push(TokenStream::EnvChange(try!(TokenStreamEnvChange::decode(&mut cursor))));
-                    },
-                    MessageTypeToken::Done => {
-                        streams.push(TokenStream::Done(try!(TokenStreamDone::decode(&mut cursor))));
-                    }
-                    //_ => panic!("token {:?} not supported yet", token_type)
+                    MessageTypeToken::Colmetadata => streams.push(TokenStream::Colmetadata(try!(TokenStreamColmetadata::decode_stmt(&mut cursor, stmt)))),
+                    MessageTypeToken::Row => streams.push(TokenStream::Row(try!(TokenStreamRow::decode_stmt(&mut cursor, stmt)))),
+                    _ => { streams.push(try!(self.handle_token_stream(token_type, &mut cursor))); }
                 }
             }
             assert_eq!(cursor.position(), packet_data.len() as u64);

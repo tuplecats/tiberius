@@ -1,22 +1,32 @@
-
-struct ColumnData {
-    user_type: u32,
-    /// fNullable[1b], fCaseSen[1b], usUpdateable[2b], fIdentity[1b], fComputed[1b], usReservedODBC[2b]
-    flags1: u8,
-    /// fFixedLenCLRType[1b], usReserved[4b], fHidden[1b], fKey[1b], fNullableUnknown[1b]
-    flags2: u8,
-}
+use std::io::Cursor;
+use byteorder::{LittleEndian, ReadBytesExt};
+use super::{DecodeTokenStream, DecodeStmtTokenStream};
+use protocol::util::{FromPrimitive, ReadCharStream};
+use protocol::types::*;
+use stmt::Statement;
+use ::{TdsResult, TdsProtocolError};
 
 /// 2.2.7.4
-struct TokenStreamColmetadata {
-    token_type: u8,
-    count: u16,
-    /// NoMetaData / (1 *ColumnData)
-    column_data: Option<ColumnData>,
+#[derive(Debug)]
+pub enum TokenStreamColmetadata {
+    None
 }
 
-struct TokenStreamColmetadata {
-    impl decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<TokenStreamColmetadata> {
+impl DecodeStmtTokenStream for TokenStreamColmetadata {
+    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<TokenStreamColmetadata> {
+        //TODO support packets with more than 1 column
+        let count = try!(cursor.read_u16::<LittleEndian>());
+        match try!(cursor.read_u16::<LittleEndian>()) {
+            // NoMetaData 0xFFFF / (1 *ColumnData)
+            0xFFFF => (),
+            _ => {
+                let pos = cursor.position() - 2;
+                cursor.set_position(pos);
+                stmt.column_infos.push(try!(ColumnData::decode(cursor)));
+            }
+        };
 
+        // This directly writes to the specified meta data object and does not use the return value
+        Ok(TokenStreamColmetadata::None)
     }
 }

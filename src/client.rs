@@ -1,20 +1,23 @@
 use std::io::prelude::*;
 use std::io;
 use std::net::TcpStream;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use protocol::*;
+use stmt::{StatementInternal, Statement, QueryResult};
 use ::{TdsResult, TdsError};
 
 #[derive(Debug, PartialEq)]
-enum ClientState {
+pub enum ClientState {
     Initial,
     PreloginPerformed,
     Ready
 }
 
 pub struct Client<S: Write> {
-/*dbg */pub stream: S,
-    state: ClientState,
+    pub stream: S,
+    pub state: ClientState,
     last_packet_id: u8
 }
 
@@ -67,44 +70,31 @@ impl<S: Read + Write> Client<S> {
         Ok(())
     }
 
-    /// Execute an SQL statement
-    /// returns the amount of affected rows
-    pub fn exec(&mut self, sql: &str) -> TdsResult<usize> {
+    #[inline]
+    pub fn internal_exec(&mut self, sql: &str) -> TdsResult<()> {
         assert_eq!(self.state, ClientState::Ready);
         try!(self.send_packet(PacketData::SqlBatch(sql)));
-        let p = try!(self.read_packet());
-        match p.data {
-            PacketData::TokenStream(ref tokens) => {
-                for token in tokens {
-                    match *token {
-                        TokenStream::Error(ref err) => {
-                            return Err(TdsError::ServerError(err.clone()))
-                        },
-                        TokenStream::Done(ref done_token) => {
-                            assert_eq!(done_token.status, TokenStreamDoneStatus::DoneCount as u16);
-                            return Ok(done_token.done_row_count as usize)
-                        },
-                        _ => return Err(TdsError::Other(format!("exec: unexpected TOKEN {:?}", token)))
-                    }
-                }
-            }
-            , _ => ()
-        }
-
-        return Err(TdsError::Other(format!("exec: Unexpected packet {:?}", p)))
+        Ok(())
     }
 
-    pub fn read_packet(&mut self) -> TdsResult<Packet> {
+    /// Execute a query
+    pub fn query<'a>(&'a mut self, sql: &'a str) -> TdsResult<QueryResult> {
+        let mut stmt = StatementInternal::new(self, sql);
+        Ok(try!(stmt.execute_into_query()))
+    }
+
+    /// read and parse "simple" packets
+    fn read_packet(&mut self) -> TdsResult<Packet> {
         let mut packet = try!(self.stream.read_packet());
         match self.state {
             ClientState::Initial => {
                 try!(packet.parse_as_prelogin());
             },
             ClientState::PreloginPerformed => {
-                try!(packet.parse_as_token_stream());
+                try!(packet.parse_as_general_token_stream());
             },
             ClientState::Ready => {
-                try!(packet.parse_as_token_stream());
+                panic!("read_packet: cannot be used in ready state");
             }
         }
         Ok(packet)

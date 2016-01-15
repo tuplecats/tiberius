@@ -3,10 +3,13 @@ mod loginack;
 mod env_change;
 mod done;
 mod colmetadata;
+mod row;
 
 use std::io::Cursor;
 use std::io::prelude::*;
 use byteorder::{LittleEndian, WriteBytesExt, ReadBytesExt};
+use protocol::types::*;
+use stmt::Statement;
 use ::{TdsResult};
 
 pub use self::err::*;
@@ -14,6 +17,7 @@ pub use self::loginack::*;
 pub use self::env_change::*;
 pub use self::done::*;
 pub use self::colmetadata::*;
+pub use self::row::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]
@@ -23,12 +27,17 @@ pub enum MessageTypeToken
     EnvChange = 0xE3,
     Error = 0xAA,
     LoginAck = 0xAD,
-    //Colmetadata = 0x81,
+    Colmetadata = 0x81,
+    Row = 0xD1,
 }
-impl_from_primitive!(MessageTypeToken, Done, EnvChange, Error, LoginAck);
+impl_from_primitive!(MessageTypeToken, Done, EnvChange, Error, LoginAck, Colmetadata, Row);
 
 pub trait DecodeTokenStream {
     fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<Self> where Self: Sized;
+}
+
+pub trait DecodeStmtTokenStream {
+    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<Self> where Self: Sized;
 }
 
 #[derive(Debug)]
@@ -36,7 +45,9 @@ pub enum TokenStream {
     Error(TokenStreamError),
     LoginAck(TokenStreamLoginAck),
     EnvChange(TokenStreamEnvChange),
-    Done(TokenStreamDone)
+    Done(TokenStreamDone),
+    Colmetadata(TokenStreamColmetadata),
+    Row(TokenStreamRow),
 }
 
 #[derive(Debug)]

@@ -5,11 +5,14 @@ extern crate net2;
 
 use std::borrow::Cow;
 use std::convert::From;
+use std::error;
 use std::io;
 
 mod protocol;
 mod client;
+mod stmt;
 pub use client::*;
+pub use stmt::*;
 
 pub static LIB_NAME: &'static str = "tiberius";
 
@@ -28,7 +31,8 @@ pub enum TdsError {
     IoError(io::Error),
     /// An error returned by the SQL-server
     ServerError(ServerError),
-    Other(String)
+    Other(String),
+    Conversion(Box<error::Error + Sync + Send>)
 }
 
 pub type TdsResult<T> = std::result::Result<T, TdsError>;
