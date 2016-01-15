@@ -14,15 +14,19 @@ pub enum TokenStreamColmetadata {
 
 impl DecodeStmtTokenStream for TokenStreamColmetadata {
     fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<TokenStreamColmetadata> {
-        //TODO support packets with more than 1 column
         let count = try!(cursor.read_u16::<LittleEndian>());
+
+        // TODO: for prepared statements we may have to cache a stack of column types (for multi-queries)
+        stmt.column_infos.clear();
+        // NoMetaData 0xFFFF / (1 *ColumnData)
         match try!(cursor.read_u16::<LittleEndian>()) {
-            // NoMetaData 0xFFFF / (1 *ColumnData)
             0xFFFF => (),
             _ => {
                 let pos = cursor.position() - 2;
                 cursor.set_position(pos);
-                stmt.column_infos.push(try!(ColumnData::decode(cursor)));
+                for c in 0..count {
+                    stmt.column_infos.push(try!(ColumnData::decode(cursor)));
+                };
             }
         };
 
