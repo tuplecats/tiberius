@@ -24,6 +24,12 @@ impl<S: Read + Write> Connection<S> {
         let mut stmt = StatementInternal::new(&mut self.0, sql);
         Ok(try!(stmt.execute_into_query()))
     }
+
+    /// Execute a sql statement and return the number of affected rows
+    pub fn exec(&mut self, sql: &str) -> TdsResult<usize> {
+        let mut stmt = StatementInternal::new(&mut self.0, sql);
+        Ok(try!(stmt.execute()))
+    }
 }
 
 impl Connection<TcpStream> {

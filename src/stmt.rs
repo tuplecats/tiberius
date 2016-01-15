@@ -150,4 +150,28 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
         }
         Ok(query_result)
     }
+
+    pub fn execute(&mut self) -> TdsResult<usize> {
+        try!(self.conn.internal_exec(self.query));
+        let mut packet = try!(self.conn.stream.read_packet());
+        try!(packet.parse_as_general_token_stream());
+        match packet.data {
+            PacketData::TokenStream(ref tokens) => {
+                for token in tokens {
+                    match *token {
+                        TokenStream::Error(ref err) => {
+                            return Err(TdsError::ServerError(err.clone()))
+                        },
+                        TokenStream::Done(ref done_token) => {
+                            assert_eq!(done_token.status, TokenStreamDoneStatus::DoneCount as u16);
+                            return Ok(done_token.done_row_count as usize)
+                        },
+                        _ => return Err(TdsError::Other(format!("exec: unexpected TOKEN {:?}", token)))
+                    }
+                }
+            }
+            , _ => ()
+        }
+        return Err(TdsError::Other(format!("exec: Unexpected packet {:?}", packet)))
+    }
 }
