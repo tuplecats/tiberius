@@ -5,10 +5,11 @@ use std::rc::Rc;
 use std::io::prelude::*;
 use std::ops::Deref;
 use protocol::*;
-use client::{Client, ClientState};
+use conn::{InternalConnection, ClientState};
 use ::{TdsResult, TdsError};
 
 #[derive(Debug)]
+#[doc(hidden)]
 pub struct Statement {
     pub column_infos: Vec<ColumnData>
 }
@@ -21,10 +22,11 @@ impl Statement {
     }
 }
 
+/// A result row of a resultset of a query
 #[derive(Debug)]
 pub struct Row {
     stmt: Rc<Statement>,
-    values: Vec<RowValue>
+    values: Vec<ColumnValue>
 }
 
 pub trait RowIndex {
@@ -51,7 +53,7 @@ impl<'a> RowIndex for &'a str {
 }
 
 impl<'a> Row {
-    pub fn get<I: RowIndex + Debug, T>(&'a self, idx: I) -> T where Option<T>: From<&'a RowValue> {
+    pub fn get<I: RowIndex + Debug, T>(&'a self, idx: I) -> T where Option<T>: From<&'a ColumnValue> {
         let idx = match idx.get_index(self) {
             Some(x) => x,
             None => panic!("unknown index: {:?}", idx)
@@ -63,30 +65,32 @@ impl<'a> Row {
     }
 }
 
+/// The converted SQL value of a column
 #[derive(Debug)]
-pub enum RowValue {
+pub enum ColumnValue {
     I16(i16),
     String(String)
 }
 
-impl<'a> From<&'a RowValue> for Option<i16> {
-    fn from(val: &'a RowValue) -> Option<i16> {
+impl<'a> From<&'a ColumnValue> for Option<i16> {
+    fn from(val: &'a ColumnValue) -> Option<i16> {
         match *val {
-            RowValue::I16(i) => Some(i),
+            ColumnValue::I16(i) => Some(i),
             _ => None
         }
     }
 }
 
-impl<'a> From<&'a RowValue> for Option<&'a str> {
-    fn from(val: &'a RowValue) -> Option<&'a str> {
+impl<'a> From<&'a ColumnValue> for Option<&'a str> {
+    fn from(val: &'a ColumnValue) -> Option<&'a str> {
         match *val {
-            RowValue::String(ref str_) => Some(str_),
+            ColumnValue::String(ref str_) => Some(str_),
             _ => None
         }
     }
 }
 
+/// The resultset of a query (containing the resulting rows)
 #[derive(Debug)]
 pub struct QueryResult {
     rows: Option<Vec<Row>>,
@@ -98,22 +102,22 @@ impl IntoIterator for QueryResult {
     type IntoIter = ::std::vec::IntoIter<Row>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.rows.unwrap().into_iter()
-        /*match self.rows {
+        match self.rows {
             Some(x) => x.into_iter(),
-            None => [].into_iter()
-        }*/
+            None => vec![].into_iter()
+        }
     }
 }
 
+#[doc(hidden)]
 pub struct StatementInternal<'a, S: 'a> where S: Read + Write {
-    conn: &'a mut Client<S>,
+    conn: &'a mut InternalConnection<S>,
     query: &'a str,
     statement: Statement
 }
 
 impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
-    pub fn new(conn: &'a mut Client<S>, query: &'a str) -> StatementInternal<'a, S> {
+    pub fn new(conn: &'a mut InternalConnection<S>, query: &'a str) -> StatementInternal<'a, S> {
         StatementInternal {
             conn: conn,
             query: query,

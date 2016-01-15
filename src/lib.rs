@@ -9,9 +9,9 @@ use std::error;
 use std::io;
 
 mod protocol;
-mod client;
+mod conn;
 mod stmt;
-pub use client::*;
+pub use conn::*;
 pub use stmt::*;
 
 pub static LIB_NAME: &'static str = "tiberius";

@@ -15,23 +15,36 @@ pub enum ClientState {
     Ready
 }
 
-pub struct Client<S: Write> {
+/// A connection to a MSSQL server
+pub struct Connection<S: Write>(InternalConnection<S>);
+
+impl<S: Read + Write> Connection<S> {
+    /// Execute the given query and return the resulting rows
+    pub fn query<'a>(&'a mut self, sql: &'a str) -> TdsResult<QueryResult> {
+        let mut stmt = StatementInternal::new(&mut self.0, sql);
+        Ok(try!(stmt.execute_into_query()))
+    }
+}
+
+impl Connection<TcpStream> {
+    pub fn connect_tcp(host: &str, port: u16) -> TdsResult<Connection<TcpStream>> {
+        let mut conn = InternalConnection::new(try!(TcpStream::connect(&(host, port))));
+        try!(conn.initialize());
+        Ok(Connection(conn))
+    }
+}
+
+/// Internal representation of a Internal Connection
+#[doc(hidden)]
+pub struct InternalConnection<S: Write> {
     pub stream: S,
     pub state: ClientState,
     last_packet_id: u8
 }
 
-impl Client<TcpStream> {
-    pub fn connect_tcp(host: &str, port: u16) -> Result<Client<TcpStream>, io::Error> {
-        let mut client = Client::new(try!(TcpStream::connect(&(host, port))));
-
-        Ok(client)
-    }
-}
-
-impl<S: Read + Write> Client<S> {
-    pub /*dbg*/ fn new(str: S) -> Client<S> {
-        Client {
+impl<S: Read + Write> InternalConnection<S> {
+    fn new(str: S) -> InternalConnection<S> {
+        InternalConnection {
             stream: str,
             state: ClientState::Initial,
             last_packet_id: 0
@@ -45,8 +58,8 @@ impl<S: Read + Write> Client<S> {
         return id;
     }
 
-    /// Send an prelogin packet with version number 9.0.0000 (>=TDS 7.2), and US_SUBBUILD=0 (for MSSQL always 0)
-    pub fn initialize_connection(&mut self) -> TdsResult<()> {
+    /// Send a prelogin packet with version number 9.0.0000 (>=TDS 7.2), and US_SUBBUILD=0 (for MSSQL always 0)
+    fn initialize(&mut self) -> TdsResult<()> {
         try!(self.send_packet(PacketData::PreLogin(vec![
             OptionTokenPair::Version(0x09000000, 0),
             OptionTokenPair::Encryption(EncryptionSetting::EncryptNotSupported),
@@ -75,12 +88,6 @@ impl<S: Read + Write> Client<S> {
         assert_eq!(self.state, ClientState::Ready);
         try!(self.send_packet(PacketData::SqlBatch(sql)));
         Ok(())
-    }
-
-    /// Execute a query
-    pub fn query<'a>(&'a mut self, sql: &'a str) -> TdsResult<QueryResult> {
-        let mut stmt = StatementInternal::new(self, sql);
-        Ok(try!(stmt.execute_into_query()))
     }
 
     /// read and parse "simple" packets

@@ -1,13 +1,12 @@
 extern crate tiberius;
-use tiberius::Client;
+use tiberius::Connection;
 
 #[test]
 fn main()
 {
     //let mut test = vec![];
     //let mut cl = Client::new(test);
-    let mut cl = Client::connect_tcp("127.0.0.1", 1433).unwrap();
-    cl.initialize_connection().unwrap();
+    let mut cl = Connection::connect_tcp("127.0.0.1", 1433).unwrap();
     let rows = cl.query("SELECT test FROM [test].[dbo].[test];").unwrap();
     println!("rows: {:?}", rows);
     for row in rows {
