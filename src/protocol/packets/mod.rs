@@ -13,7 +13,6 @@ pub use self::login::Login7;
 
 use protocol::util::WriteUtf16;
 use protocol::message_types::*;
-use protocol::types::*;
 use stmt::Statement;
 use ::{TdsResult, TdsError, TdsProtocolError};
 

@@ -1,11 +1,10 @@
-use std::borrow::Borrow;
 use std::convert::From;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::io::prelude::*;
-use std::ops::Deref;
 use protocol::*;
-use conn::{InternalConnection, ClientState};
+use conn::{InternalConnection};
+use types::{ColumnValue};
 use ::{TdsResult, TdsError};
 
 #[derive(Debug)]
@@ -35,7 +34,7 @@ pub trait RowIndex {
 
 impl RowIndex for usize {
     #[inline]
-    fn get_index(&self, row: &Row) -> Option<usize> {
+    fn get_index(&self, _: &Row) -> Option<usize> {
         Some(*self)
     }
 }
@@ -65,36 +64,34 @@ impl<'a> Row {
     }
 }
 
-/// The converted SQL value of a column
-#[derive(Debug)]
-pub enum ColumnValue {
-    I16(i16),
-    String(String)
-}
-
-impl<'a> From<&'a ColumnValue> for Option<i16> {
-    fn from(val: &'a ColumnValue) -> Option<i16> {
-        match *val {
-            ColumnValue::I16(i) => Some(i),
-            _ => None
-        }
-    }
-}
-
-impl<'a> From<&'a ColumnValue> for Option<&'a str> {
-    fn from(val: &'a ColumnValue) -> Option<&'a str> {
-        match *val {
-            ColumnValue::String(ref str_) => Some(str_),
-            _ => None
-        }
-    }
-}
-
 /// The resultset of a query (containing the resulting rows)
 #[derive(Debug)]
 pub struct QueryResult {
     rows: Option<Vec<Row>>,
     stmt: Rc<Statement>
+}
+
+impl QueryResult {
+    /// return the number of contained rows
+    pub fn len(&self) -> usize {
+        return match self.rows {
+            None => 0,
+            Some(ref rows) => rows.len()
+        }
+    }
+
+    /// return the row on a specific index, panics if the idx is out of bounds
+    pub fn get<'a>(&'a self, idx: usize) -> &'a Row {
+        match self.rows {
+            None => (),
+            Some(ref rows) => {
+                if rows.len() > idx {
+                    return &rows[idx]
+                }
+            }
+        }
+        panic!("queryresult: get: idx out of bounds");
+    }
 }
 
 impl IntoIterator for QueryResult {

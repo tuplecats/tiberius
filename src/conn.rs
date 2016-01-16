@@ -1,12 +1,9 @@
 use std::io::prelude::*;
-use std::io;
 use std::net::TcpStream;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 use protocol::*;
-use stmt::{StatementInternal, Statement, QueryResult};
-use ::{TdsResult, TdsError};
+use stmt::{StatementInternal, QueryResult};
+use ::{TdsResult};
 
 #[derive(Debug, PartialEq)]
 pub enum ClientState {
@@ -21,7 +18,7 @@ pub struct Connection<S: Write>(InternalConnection<S>);
 impl<S: Read + Write> Connection<S> {
     /// Execute the given query and return the resulting rows
     pub fn query<'a>(&'a mut self, sql: &'a str) -> TdsResult<QueryResult> {
-        let mut stmt = StatementInternal::new(&mut self.0, sql);
+        let stmt = StatementInternal::new(&mut self.0, sql);
         Ok(try!(stmt.execute_into_query()))
     }
 
@@ -64,7 +61,7 @@ impl<S: Read + Write> InternalConnection<S> {
         return id;
     }
 
-    /// Send a prelogin packet with version number 9.0.0000 (>=TDS 7.2), and US_SUBBUILD=0 (for MSSQL always 0)
+    /// Send a prelogin packet with version number 9.0.0000 (>=TDS 7.2 ?), and US_SUBBUILD=0 (for MSSQL always 0)
     fn initialize(&mut self) -> TdsResult<()> {
         try!(self.send_packet(PacketData::PreLogin(vec![
             OptionTokenPair::Version(0x09000000, 0),
@@ -74,14 +71,14 @@ impl<S: Read + Write> InternalConnection<S> {
             OptionTokenPair::Mars(0)
         ])));
         {
-            let mut response_packet = try!(self.read_packet());
+            let response_packet = try!(self.read_packet());
             try!(response_packet.catch_error());
         }
         self.state = ClientState::PreloginPerformed;
-        let login_packet = Login7::new();
+        let login_packet = Login7::new(0x02000972);
         try!(self.send_packet(PacketData::Login(login_packet)));
         {
-            let mut response_packet = try!(self.read_packet());
+            let response_packet = try!(self.read_packet());
             try!(response_packet.catch_error());
         }
         // TODO verify and use response data

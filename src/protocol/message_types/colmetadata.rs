@@ -1,10 +1,9 @@
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 use super::{DecodeTokenStream, DecodeStmtTokenStream};
-use protocol::util::{FromPrimitive, ReadCharStream};
 use protocol::types::*;
 use stmt::Statement;
-use ::{TdsResult, TdsProtocolError};
+use ::{TdsResult};
 
 /// 2.2.7.4
 #[derive(Debug)]
@@ -24,7 +23,7 @@ impl DecodeStmtTokenStream for TokenStreamColmetadata {
             _ => {
                 let pos = cursor.position() - 2;
                 cursor.set_position(pos);
-                for c in 0..count {
+                for _ in 0..count {
                     stmt.column_infos.push(try!(ColumnData::decode(cursor)));
                 };
             }

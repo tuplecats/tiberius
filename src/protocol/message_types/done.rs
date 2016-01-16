@@ -12,6 +12,7 @@ pub struct TokenStreamDone {
     pub done_row_count: u64
 }
 
+#[allow(dead_code)]
 #[repr(u16)]
 pub enum TokenStreamDoneStatus {
     DoneFinal = 0x00,

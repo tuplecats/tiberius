@@ -49,9 +49,9 @@ pub struct Login7
 
 impl Login7 {
     /// Create a new Login7 packet for TDS7.3
-    pub fn new() -> Login7 {
+    pub fn new(tds_version: u32) -> Login7 {
         Login7 {
-            tds_version: 0x03000B73,
+            tds_version: tds_version,
             packet_size: 0x1000,
             client_prog_ver: 0,
             client_pid: 0,

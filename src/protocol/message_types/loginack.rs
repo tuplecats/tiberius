@@ -19,7 +19,7 @@ pub struct TokenStreamLoginAck {
 
 impl DecodeTokenStream for TokenStreamLoginAck {
     fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<TokenStreamLoginAck> {
-        let length = try!(cursor.read_u16::<LittleEndian>());
+        try!(cursor.read_u16::<LittleEndian>()); //length
 
         Ok(TokenStreamLoginAck {
             interface: try!(cursor.read_u8()),

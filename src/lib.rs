@@ -11,8 +11,10 @@ use std::io;
 mod protocol;
 mod conn;
 mod stmt;
+mod types;
 pub use conn::*;
 pub use stmt::*;
+pub use types::*;
 
 pub static LIB_NAME: &'static str = "tiberius";
 
@@ -21,7 +23,8 @@ pub type ServerError = protocol::TokenStreamError;
 
 #[derive(Debug)]
 pub enum TdsProtocolError {
-    InvalidValue(String)
+    InvalidValue(String),
+    InvalidLength(String)
 }
 
 #[derive(Debug)]

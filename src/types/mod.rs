@@ -1,0 +1,98 @@
+///! The SQL type mapping to rust
+use std::io::Cursor;
+use byteorder::{ReadBytesExt};
+use protocol::{DecodeTokenStream};
+use ::{TdsResult};
+
+/// The converted SQL value of a column
+#[derive(Debug)]
+pub enum ColumnType {
+    Bool(bool),
+    I8(i8),
+    I16(i16),
+    I32(i32),
+    I64(i64),
+    F32(f32),
+    F64(f64),
+    String(String),
+    Guid(Guid)
+}
+
+#[derive(Debug)]
+pub enum ColumnValue {
+    Some(ColumnType),
+    None
+}
+
+macro_rules! column_conv_unpack {
+    (pack, true, $val:expr) => (Some($val));
+    (pack, false, $val:expr) => ($val);
+    ($val:expr, true, $id:ident, $is_nullable:ident) => {
+        match $val {
+            ColumnValue::Some(ColumnType::$id(ref val)) => column_conv_unpack!(pack, $is_nullable, Some(val)),
+            ColumnValue::None => column_conv_unpack!(pack, $is_nullable, None),
+            _ => None
+        }
+    };
+    ($val:expr, false, $id:ident, $is_nullable:ident) => {
+        match $val {
+            ColumnValue::Some(ColumnType::$id(val)) => column_conv_unpack!(pack, $is_nullable, Some(val)),
+            ColumnValue::None => column_conv_unpack!(pack, $is_nullable, None),
+            _ => None
+        }
+    }
+}
+
+macro_rules! column_conv_nullable {
+    ($ty:ty, $id:ident, $by_ref:ident) => {
+        impl <'a> From<&'a ColumnValue> for Option<Option<$ty>> {
+            fn from(val: &'a ColumnValue) -> Option<Option<$ty>> {
+                return column_conv_unpack!(*val, $by_ref, $id, true);
+            }
+        }
+    };
+}
+
+macro_rules! column_conv {
+    ($ty:ty, $id:ident) => { column_conv!($ty, $id, false); };
+    ($ty:ty, $id:ident, $by_ref:ident) => {
+        impl <'a> From<&'a ColumnValue> for Option<$ty> {
+            fn from(val: &'a ColumnValue) -> Option<$ty> {
+                return column_conv_unpack!(*val, $by_ref, $id, false);
+            }
+        }
+
+        column_conv_nullable!($ty, $id, $by_ref);
+    }
+}
+
+column_conv!(bool, Bool);
+column_conv!(i32, I32);
+column_conv!(f32, F32);
+column_conv!(f64, F64);
+column_conv!(&'a str, String, true);
+column_conv!(&'a Guid, Guid, true);
+
+/// A TSQL uniqueidentifier/GUID
+#[derive(Debug)]
+pub struct Guid([u8; 16], Option<String>);
+impl DecodeTokenStream for Guid {
+    fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<Guid> {
+        let mut data = [0; 16];
+        for c in 0..16 {
+            data[c] = try!(cursor.read_u8());
+        }
+        Ok(Guid(data, None))
+    }
+}
+
+impl<'a> Guid {
+    pub fn as_str(&'a self) -> String {
+        format!(
+            "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+            self.0[3], self.0[2], self.0[1], self.0[0], self.0[5], self.0[4],
+            self.0[7], self.0[6], self.0[8], self.0[9], self.0[10], self.0[11],
+            self.0[12], self.0[13], self.0[14], self.0[15]
+        )
+    }
+}

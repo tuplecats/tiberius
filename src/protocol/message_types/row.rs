@@ -2,9 +2,9 @@ use std::io::Cursor;
 use std::io::prelude::*;
 use byteorder::{LittleEndian, ReadBytesExt};
 use super::{DecodeTokenStream, DecodeStmtTokenStream};
-use protocol::util::{ReadCharStream};
 use protocol::types::*;
-use stmt::{ColumnValue, Statement};
+use stmt::Statement;
+use types::{ColumnValue, ColumnType, Guid};
 
 use ::{TdsResult, TdsError, TdsProtocolError};
 
@@ -51,19 +51,78 @@ impl DecodeStmtTokenStream for TokenStreamRow {
             values.push(match column.type_info {
                 TypeInfo::FixedLenType(ref f_type) => {
                     match *f_type {
-                        FixedLenType::Int2 => ColumnValue::I16(try!(cursor.read_i16::<LittleEndian>())),
+                        FixedLenType::Bit => ColumnValue::Some(ColumnType::Bool(try!(cursor.read_u8()) == 1)),
+                        FixedLenType::Int1 => ColumnValue::Some(ColumnType::I8(try!(cursor.read_i8()))),
+                        FixedLenType::Int2 => ColumnValue::Some(ColumnType::I16(try!(cursor.read_i16::<LittleEndian>()))),
+                        FixedLenType::Int4 => ColumnValue::Some(ColumnType::I32(try!(cursor.read_i32::<LittleEndian>()))),
+                        FixedLenType::Int8 => ColumnValue::Some(ColumnType::I64(try!(cursor.read_i64::<LittleEndian>()))),
+                        FixedLenType::Float4 => ColumnValue::Some(ColumnType::F32(try!(cursor.read_f32::<LittleEndian>()))),
+                        FixedLenType::Float8 => ColumnValue::Some(ColumnType::F64(try!(cursor.read_f64::<LittleEndian>()))),
                         _ => panic!("unsupported ftype {:?}", f_type)
                     }
                 },
                 TypeInfo::VarLenType(ref v_type, _, ref collation) => {
                     match *v_type {
-                        VarLenType::BigVarChar => {
+                        VarLenType::BigChar | VarLenType::BigVarChar => {
                             let len = try!(cursor.read_u16::<LittleEndian>());
-                            let mut buf = vec![0; len as usize];
-                            try!(cursor.read(&mut buf));
-                            match String::from_utf8(buf) {
-                                Err(x) => return Err(TdsError::Conversion(Box::new(x))),
-                                Ok(x) => ColumnValue::String(x)
+                            match column.is_nullable() && len == 0xFFFF {
+                                true => ColumnValue::None,
+                                false => {
+                                    let mut buf = vec![0; len as usize];
+                                    try!(cursor.read(&mut buf));
+                                    match String::from_utf8(buf) {
+                                        Err(x) => return Err(TdsError::Conversion(Box::new(x))),
+                                        Ok(x) => ColumnValue::Some(ColumnType::String(x))
+                                    }
+                                }
+                            }
+                        },
+                        VarLenType::Text => {
+                            // TODO what is textptr dummy stuff...
+                            match try!(cursor.read_u8()) {
+                                0 => ColumnValue::None,
+                                text_ptr_len => {
+                                    let mut buf = vec![0; text_ptr_len as usize]; //text_ptr
+                                    try!(cursor.read(&mut buf));
+                                    // Timestamp TODO: what is this..
+                                    let mut timestamp = [0; 8];
+                                    try!(cursor.read(&mut timestamp));
+                                    let len = try!(cursor.read_i32::<LittleEndian>());
+
+                                    if len < -1 {
+                                        return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("text: invalid length of {}", len))));
+                                    }
+                                    match column.is_nullable() && len < 0 {
+                                        true => ColumnValue::None,
+                                        false => {
+                                            let mut buf = vec![0; len as usize];
+                                            try!(cursor.read(&mut buf));
+                                            match String::from_utf8(buf) {
+                                                Err(x) => return Err(TdsError::Conversion(Box::new(x))),
+                                                Ok(x) => ColumnValue::Some(ColumnType::String(x))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        VarLenType::Intn => {
+                            let len = try!(cursor.read_u8());
+                            match len {
+                                0 => ColumnValue::None,
+                                1 => ColumnValue::Some(ColumnType::I8(try!(cursor.read_i8()))),
+                                2 => ColumnValue::Some(ColumnType::I16(try!(cursor.read_i16::<LittleEndian>()))),
+                                4 => ColumnValue::Some(ColumnType::I32(try!(cursor.read_i32::<LittleEndian>()))),
+                                8 => ColumnValue::Some(ColumnType::I64(try!(cursor.read_i64::<LittleEndian>()))),
+                                _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("intn: length of {} is invalid", len))))
+                            }
+                        },
+                        VarLenType::Guid => {
+                            let len = try!(cursor.read_u8());
+                            match len {
+                                0x10 => ColumnValue::Some(ColumnType::Guid(try!(Guid::decode(cursor)))),
+                                0x00 => ColumnValue::None,
+                                _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("guid: length of {} is invalid", len))))
                             }
                         },
                         _ => panic!("unsupported vtype {:?}", v_type)

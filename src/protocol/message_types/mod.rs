@@ -7,8 +7,7 @@ mod row;
 
 use std::io::Cursor;
 use std::io::prelude::*;
-use byteorder::{LittleEndian, WriteBytesExt, ReadBytesExt};
-use protocol::types::*;
+use byteorder::{LittleEndian, WriteBytesExt};
 use stmt::Statement;
 use ::{TdsResult};
 
@@ -57,6 +56,7 @@ pub enum PacketDataHeader {
 
 /// headers for a specific (packet-)data type 2.2.5.3
 #[derive(Debug)]
+#[allow(dead_code)]
 #[repr(u16)]
 pub enum PacketDataHeaderType {
     QueryNotifications = 1,
