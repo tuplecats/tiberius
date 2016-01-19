@@ -96,10 +96,8 @@ pub enum VarLenType {
     // not supported yet
     BigVarBin = 0xA5,
     BigVarChar = 0xA7,
-    // not supported yet
     BigBinary = 0xAD,
     BigChar = 0xAF,
-    // not supported yet
     NVarchar = 0xE7,
     // not supported yet
     NChar = 0xEF,
@@ -165,9 +163,12 @@ impl DecodeTokenStream for ColumnData {
 
                         let len = match var_len_type {
                             VarLenType::Guid | VarLenType::Intn => VarLen::Byte(try!(cursor.read_u8())),
-                            VarLenType::BigChar | VarLenType::BigVarChar => {
+                            VarLenType::NVarchar | VarLenType::BigChar | VarLenType::BigVarChar => {
                                 // TODO: BIGCHARTYPE, BIGVARCHRTYPE, TEXTTYPE, NTEXTTYPE,NCHARTYPE, NVARCHARTYPE also include collation
                                 has_collation = true;
+                                VarLen::UShortCharBin(try!(cursor.read_u16::<LittleEndian>()))
+                            },
+                            VarLenType::BigBinary => {
                                 VarLen::UShortCharBin(try!(cursor.read_u16::<LittleEndian>()))
                             },
                             VarLenType::Text => {

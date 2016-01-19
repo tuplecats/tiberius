@@ -1,5 +1,7 @@
 use std::io::Cursor;
 use std::io::prelude::*;
+use encoding::{Encoding, DecoderTrap};
+use encoding::all::UTF_16LE;
 use byteorder::{LittleEndian, ReadBytesExt};
 use super::{DecodeTokenStream, DecodeStmtTokenStream};
 use protocol::types::*;
@@ -74,6 +76,28 @@ impl DecodeStmtTokenStream for TokenStreamRow {
                                         Err(x) => return Err(TdsError::Conversion(Box::new(x))),
                                         Ok(x) => ColumnValue::Some(ColumnType::String(x))
                                     }
+                                }
+                            }
+                        },
+                        VarLenType::NVarchar => {
+                            let len = try!(cursor.read_u16::<LittleEndian>());
+                            match column.is_nullable() && len == 0xFFFF {
+                                true => ColumnValue::None,
+                                false => {
+                                    let mut buf = vec![0; len as usize];
+                                    try!(cursor.read(&mut buf));
+                                    ColumnValue::Some(ColumnType::String(try!(UTF_16LE.decode(&buf, DecoderTrap::Strict))))
+                                }
+                            }
+                        },
+                        VarLenType::BigBinary => {
+                            let len = try!(cursor.read_u16::<LittleEndian>());
+                            match column.is_nullable() && len == 0xFFFF {
+                                true => ColumnValue::None,
+                                false => {
+                                    let mut buf = vec![0; len as usize];
+                                    try!(cursor.read(&mut buf));
+                                    ColumnValue::Some(ColumnType::Binary(buf))
                                 }
                             }
                         },

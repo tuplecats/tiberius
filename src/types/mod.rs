@@ -15,7 +15,8 @@ pub enum ColumnType {
     F32(f32),
     F64(f64),
     String(String),
-    Guid(Guid)
+    Guid(Guid),
+    Binary(Vec<u8>)
 }
 
 #[derive(Debug)]
@@ -72,6 +73,7 @@ column_conv!(f32, F32);
 column_conv!(f64, F64);
 column_conv!(&'a str, String, true);
 column_conv!(&'a Guid, Guid, true);
+column_conv!(&'a [u8], Binary, true);
 
 /// A TSQL uniqueidentifier/GUID
 #[derive(Debug)]

@@ -53,6 +53,9 @@ fn test_datatypes_nullable() {
     assert_eq!(str1, None);
     str1 = rows.get(4).get("col_text");
     assert_eq!(str1, Some("hello world!"));
+    // binary(50)
+    let binary: &[u8] = rows.get(4).get("col_binary");
+    assert!(binary.iter().take(6).eq([1, 2, 3, 4, 5, 6].iter()))
 }
 
 #[test]
@@ -75,4 +78,7 @@ fn test_datatypes_not_nullable() {
     // float8
     let float8: f64 = rows.get(0).get("col_float");
     assert_eq!(float8, 42.42);
+    // nvarchar(50)
+    let nvarchar: &str = rows.get(0).get("col_nvarchar_50");
+    assert_eq!(nvarchar, "chinese:莊子");
 }
