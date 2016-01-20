@@ -2,7 +2,7 @@ use std::io::Cursor;
 use std::io::prelude::*;
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::UTF_16LE;
-use byteorder::{LittleEndian, ReadBytesExt};
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use super::{DecodeTokenStream, DecodeStmtTokenStream};
 use protocol::types::*;
 use stmt::Statement;
@@ -59,7 +59,9 @@ impl DecodeStmtTokenStream for TokenStreamRow {
                         FixedLenType::Int4 => ColumnValue::Some(ColumnType::I32(try!(cursor.read_i32::<LittleEndian>()))),
                         FixedLenType::Int8 => ColumnValue::Some(ColumnType::I64(try!(cursor.read_i64::<LittleEndian>()))),
                         FixedLenType::Float4 => ColumnValue::Some(ColumnType::F32(try!(cursor.read_f32::<LittleEndian>()))),
+                        FixedLenType::Money4 => ColumnValue::Some(ColumnType::F32(try!(cursor.read_i32::<LittleEndian>()) as f32 / (10u32.pow(4) as f32))),
                         FixedLenType::Float8 => ColumnValue::Some(ColumnType::F64(try!(cursor.read_f64::<LittleEndian>()))),
+                        //FixedLenType::Money8 => ColumnValue::Some(ColumnType::F64(try!(cursor.read_i64::<BigEndian>()) as f64 / (10u32.pow(4) as f64))),
                         _ => panic!("unsupported ftype {:?}", f_type)
                     }
                 },

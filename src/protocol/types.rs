@@ -45,15 +45,14 @@ pub enum FixedLenType {
     DateTim4 = 0x3A,
     Float4 = 0x3B,
     // not supported yet
-    Money = 0x3C,
+    Money8 = 0x3C,
     // not supported yet
     DateTime = 0x3D,
     Float8 = 0x3E,
-    // not supported yet
     Money4 = 0x7A,
     Int8 = 0x7F,
 }
-impl_from_primitive!(FixedLenType, Null, Int1, Bit, Int2, Int4, DateTim4, Float4, Money, DateTime, Float8, Money4, Int8);
+impl_from_primitive!(FixedLenType, Null, Int1, Bit, Int2, Int4, DateTim4, Float4, Money8, DateTime, Float8, Money4, Int8);
 
 /// 2.2.5.4.2
 #[repr(u8)]

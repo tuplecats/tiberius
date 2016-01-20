@@ -55,7 +55,7 @@ fn test_datatypes_nullable() {
     assert_eq!(str1, Some("hello world!"));
     // binary(50)
     let binary: &[u8] = rows.get(4).get("col_binary");
-    assert!(binary.iter().take(6).eq([1, 2, 3, 4, 5, 6].iter()))
+    assert!(binary.iter().take(6).eq([1, 2, 3, 4, 5, 6].iter()));
 }
 
 #[test]
@@ -81,4 +81,9 @@ fn test_datatypes_not_nullable() {
     // nvarchar(50)
     let nvarchar: &str = rows.get(0).get("col_nvarchar_50");
     assert_eq!(nvarchar, "chinese:莊子");
+    // smallmoney
+    let money: f32 = rows.get(0).get("col_money4");
+    assert_eq!(money, 52.10);
+    let money: f64 = rows.get(0).get("col_money8");
+    assert_eq!(money, 42.43);
 }
