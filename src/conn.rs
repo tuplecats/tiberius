@@ -2,7 +2,7 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 
 use protocol::*;
-use stmt::{StatementInternal, QueryResult};
+use stmt::{StatementInternal, QueryResult, PreparedStatement};
 use ::{TdsResult};
 
 #[derive(Debug, PartialEq)]
@@ -26,6 +26,10 @@ impl<S: Read + Write> Connection<S> {
     pub fn exec(&mut self, sql: &str) -> TdsResult<usize> {
         let mut stmt = StatementInternal::new(&mut self.0, sql);
         Ok(try!(stmt.execute()))
+    }
+
+    pub fn prepare<'a>(&'a mut self, sql: &str) -> TdsResult<PreparedStatement<S>> {
+        Ok(try!(PreparedStatement::new(&mut self.0, sql)))
     }
 }
 

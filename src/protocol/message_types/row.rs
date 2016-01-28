@@ -2,7 +2,7 @@ use std::io::Cursor;
 use std::io::prelude::*;
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::UTF_16LE;
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt};
 use super::{DecodeTokenStream, DecodeStmtTokenStream};
 use protocol::types::*;
 use stmt::Statement;
@@ -31,8 +31,6 @@ pub struct TokenStreamRow {
 }
 
 /// This does not implement `DecodeTokenStream` since it requires access to meta information
-/// TODO: for the future, if there are multiple of these functions requiring meta information
-/// add a new trait for function decode_meta
 impl DecodeStmtTokenStream for TokenStreamRow {
     fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<TokenStreamRow> {
         let mut values = Vec::with_capacity(stmt.column_infos.len());

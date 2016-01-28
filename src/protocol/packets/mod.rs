@@ -181,7 +181,7 @@ pub enum PacketType
     /// invalid
     Unknown       = 0,
     SqlBatch      = 1,
-    RPC           = 2,
+    Rpc           = 3,
     TabularResult = 4,
     Attention     = 6,
     BulkLoadData  = 7,
@@ -189,11 +189,11 @@ pub enum PacketType
     TransactionManagerReq = 14,
     /// Login used for >=TDS v7
     Login         = 16,
-    SSPI          = 17,
+    Sspi          = 17,
     PreLogin      = 18
 }
-impl_from_primitive!(PacketType, Unknown, SqlBatch, RPC, TabularResult, Attention, BulkLoadData, FedAuthToken,
-    TransactionManagerReq, Login, SSPI, PreLogin);
+impl_from_primitive!(PacketType, Unknown, SqlBatch, Rpc, TabularResult, Attention, BulkLoadData, FedAuthToken,
+    TransactionManagerReq, Login, Sspi, PreLogin);
 
 #[derive(Debug)]
 pub enum PacketData<'a>
@@ -205,6 +205,7 @@ pub enum PacketData<'a>
     /// as specified by 2.2.6.4
     Login(Login7),
     /// as specified in 2.2.6.7
+    RpcRequest(&'a RpcRequestData<'a>),
     SqlBatch(&'a str),
     TokenStream(Vec<TokenStream>)
 }
@@ -252,11 +253,24 @@ impl<W: Write> WritePacket for W
                 packet.header.status = PacketStatus::EndOfMessage;
                 packet.header.ptype = PacketType::SqlBatch;
 
+                //TODO: transaction support, move this out
                 try!(buf.write_data_header(&PacketDataHeader::Transaction(PacketDataHeaderTransaction {
                     outstanding_requests: 1,
                     transaction_descriptor: 0
                 })));
                 try!(buf.write_as_utf16(sql_));
+            },
+            PacketData::RpcRequest(req) => {
+                packet.header.status = PacketStatus::EndOfMessage;
+                packet.header.ptype = PacketType::Rpc;
+
+                //TODO: transaction support, move this out
+                try!(buf.write_data_header(&PacketDataHeader::Transaction(PacketDataHeaderTransaction {
+                    outstanding_requests: 1,
+                    transaction_descriptor: 0
+                })));
+
+                try!(buf.write_rpc_procid(&req.proc_id));
             },
             PacketData::PreLogin(ref token_vec) => {
                 let mut cursor = Cursor::new(buf);

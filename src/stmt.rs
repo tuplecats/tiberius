@@ -172,3 +172,42 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
         return Err(TdsError::Other(format!("exec: Unexpected packet {:?}", packet)))
     }
 }
+
+pub struct PreparedStatement<'a, S: 'a> where S: Read + Write {
+    conn: &'a mut InternalConnection<S>
+}
+
+impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
+    pub fn new(conn: &'a mut InternalConnection<S>, sql: &str) -> TdsResult<PreparedStatement<'a, S>> {
+        let params_meta = vec![
+            RpcParamMetaData {
+                name: "handle",
+                status_flags: 0,
+                type_info: TypeInfo::FixedLenType(FixedLenType::Int4)
+            },
+            RpcParamMetaData {
+                name: "params",
+                status_flags: 0,
+                type_info: TypeInfo::VarLenType(VarLenType::NVarchar, VarLen::Long(5), None) //TODO
+            },
+            RpcParamMetaData {
+                name: "stmt",
+                status_flags: 0,
+                type_info: TypeInfo::VarLenType(VarLenType::NVarchar, VarLen::Long(sql.len() as i32), None)
+            }
+        ];
+        //TODO
+        let rpc_req = RpcRequestData {
+            proc_id: RpcProcIdValue::Id(RpcProcId::SpPrepare),
+            flags: 0,
+            params: params_meta,
+        };
+        try!(conn.send_packet(PacketData::RpcRequest(&rpc_req)));
+        {
+            let mut packet = try!(conn.stream.read_packet());
+            try!(packet.parse_as_general_token_stream());
+            println!("{:?}", packet);
+        }
+        Ok(PreparedStatement{ conn: conn })
+    }
+}

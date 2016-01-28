@@ -4,6 +4,7 @@ mod env_change;
 mod done;
 mod colmetadata;
 mod row;
+pub mod rpc;
 
 use std::io::Cursor;
 use std::io::prelude::*;
@@ -17,6 +18,7 @@ pub use self::env_change::*;
 pub use self::done::*;
 pub use self::colmetadata::*;
 pub use self::row::*;
+pub use self::rpc::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]

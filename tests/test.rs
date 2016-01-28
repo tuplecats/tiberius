@@ -23,7 +23,7 @@ fn main()
     //println!("{:?}", cl.stream);
 }
 
-fn get_connection() -> Connection<TcpStream> {
+pub fn get_connection() -> Connection<TcpStream> {
     Connection::connect_tcp("127.0.0.1", 1433).unwrap()
 }
 
@@ -84,6 +84,4 @@ fn test_datatypes_not_nullable() {
     // smallmoney
     let money: f32 = rows.get(0).get("col_money4");
     assert_eq!(money, 52.10);
-    let money: f64 = rows.get(0).get("col_money8");
-    assert_eq!(money, 42.43);
 }
