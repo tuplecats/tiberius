@@ -12,7 +12,7 @@ pub use self::prelogin::{EncryptionSetting, OptionTokenPair, ReadOptionToken, Wr
 pub use self::login::Login7;
 
 use protocol::util::{WriteUtf16, WriteCharStream};
-use protocol::message_types::*;
+use protocol::token_stream::*;
 use protocol::types::{VarLenType};
 use stmt::Statement;
 use types::ColumnType;
