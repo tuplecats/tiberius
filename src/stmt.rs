@@ -1,10 +1,11 @@
+use std::borrow::Cow;
 use std::convert::From;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::io::prelude::*;
 use protocol::*;
 use conn::{InternalConnection};
-use types::{ColumnValue};
+use types::{ColumnType, ColumnValue, ToColumnType};
 use ::{TdsResult, TdsError};
 
 #[derive(Debug)]
@@ -23,9 +24,9 @@ impl Statement {
 
 /// A result row of a resultset of a query
 #[derive(Debug)]
-pub struct Row {
+pub struct Row<'a> {
     stmt: Rc<Statement>,
-    values: Vec<ColumnValue>
+    values: Vec<ColumnValue<'a>>
 }
 
 pub trait RowIndex {
@@ -51,8 +52,8 @@ impl<'a> RowIndex for &'a str {
     }
 }
 
-impl<'a> Row {
-    pub fn get<I: RowIndex + Debug, T>(&'a self, idx: I) -> T where Option<T>: From<&'a ColumnValue> {
+impl<'a> Row<'a> {
+    pub fn get<I: RowIndex + Debug, T>(&'a self, idx: I) -> T where Option<T>: From<&'a ColumnValue<'a>> {
         let idx = match idx.get_index(self) {
             Some(x) => x,
             None => panic!("unknown index: {:?}", idx)
@@ -66,12 +67,12 @@ impl<'a> Row {
 
 /// The resultset of a query (containing the resulting rows)
 #[derive(Debug)]
-pub struct QueryResult {
-    rows: Option<Vec<Row>>,
+pub struct QueryResult<'a> {
+    rows: Option<Vec<Row<'a>>>,
     stmt: Rc<Statement>
 }
 
-impl QueryResult {
+impl<'a> QueryResult<'a> {
     /// return the number of contained rows
     pub fn len(&self) -> usize {
         return match self.rows {
@@ -81,7 +82,7 @@ impl QueryResult {
     }
 
     /// return the row on a specific index, panics if the idx is out of bounds
-    pub fn get<'a>(&'a self, idx: usize) -> &'a Row {
+    pub fn get(&self, idx: usize) -> &Row {
         match self.rows {
             None => (),
             Some(ref rows) => {
@@ -94,9 +95,9 @@ impl QueryResult {
     }
 }
 
-impl IntoIterator for QueryResult {
-    type Item = Row;
-    type IntoIter = ::std::vec::IntoIter<Row>;
+impl<'a> IntoIterator for QueryResult<'a> {
+    type Item = Row<'a>;
+    type IntoIter = ::std::vec::IntoIter<Row<'a>>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self.rows {
@@ -122,16 +123,15 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
         }
     }
 
-    pub fn execute_into_query(mut self) -> TdsResult<QueryResult> {
+    pub fn execute_into_query(mut self) -> TdsResult<QueryResult<'a>> {
         try!(self.conn.internal_exec(self.query));
-        let mut packet = try!(self.conn.stream.read_packet());
-        try!(packet.parse_as_stmt_token_stream(&mut self.statement));
+        let packet = try!(try!(self.conn.stream.read_packet()).into_stmt_token_stream(&mut self.statement));
         let mut query_result = QueryResult {
             rows: None,
             stmt: Rc::new(self.statement)
         };
-        match packet.data {
-            PacketData::TokenStream(tokens) => {
+        match packet {
+            Packet::TokenStream(tokens) => {
                 let mut rows = Vec::with_capacity(tokens.len());
                 for token in tokens {
                     match token {
@@ -150,10 +150,9 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
 
     pub fn execute(&mut self) -> TdsResult<usize> {
         try!(self.conn.internal_exec(self.query));
-        let mut packet = try!(self.conn.stream.read_packet());
-        try!(packet.parse_as_general_token_stream());
-        match packet.data {
-            PacketData::TokenStream(ref tokens) => {
+        let packet = try!(try!(self.conn.stream.read_packet()).into_general_token_stream());
+        match packet {
+            Packet::TokenStream(ref tokens) => {
                 for token in tokens {
                     match *token {
                         TokenStream::Error(ref err) => {
@@ -174,26 +173,37 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
 }
 
 pub struct PreparedStatement<'a, S: 'a> where S: Read + Write {
-    conn: &'a mut InternalConnection<S>
+    conn: &'a mut InternalConnection<S>,
+    handle: Option<u32>,
+    sql: &'a str,
 }
 
 impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
-    pub fn new(conn: &'a mut InternalConnection<S>, sql: &str) -> TdsResult<PreparedStatement<'a, S>> {
+    pub fn new(conn: &'a mut InternalConnection<S>, sql: &'a str) -> TdsResult<PreparedStatement<'a, S>> {
+        Ok(PreparedStatement{
+            conn: conn,
+            handle: None,
+            sql: sql,
+        })
+    }
+
+    /// Prepares the actual statement
+    fn do_prepare(&mut self) -> TdsResult<()> {
         let params_meta = vec![
-            RpcParamMetaData {
+            RpcParamData {
                 name: "handle",
-                status_flags: 0,
-                type_info: TypeInfo::FixedLenType(FixedLenType::Int4)
+                status_flags: rpc::fByRefValue,
+                value: ColumnType::I32(0),
             },
-            RpcParamMetaData {
+            RpcParamData {
                 name: "params",
                 status_flags: 0,
-                type_info: TypeInfo::VarLenType(VarLenType::NVarchar, VarLen::Long(5), None) //TODO
+                value: ColumnType::String(Cow::Borrowed("a"))
             },
-            RpcParamMetaData {
+            RpcParamData {
                 name: "stmt",
                 status_flags: 0,
-                type_info: TypeInfo::VarLenType(VarLenType::NVarchar, VarLen::Long(sql.len() as i32), None)
+                value: ColumnType::String(Cow::Borrowed(self.sql)),
             }
         ];
         //TODO
@@ -202,12 +212,21 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
             flags: 0,
             params: params_meta,
         };
-        try!(conn.send_packet(PacketData::RpcRequest(&rpc_req)));
+        let rpc_packet = Packet::RpcRequest(&rpc_req);
+        try!(self.conn.send_packet(&rpc_packet));
         {
-            let mut packet = try!(conn.stream.read_packet());
-            try!(packet.parse_as_general_token_stream());
+            let packet = try!(try!(self.conn.stream.read_packet()).into_general_token_stream());
             println!("{:?}", packet);
         }
-        Ok(PreparedStatement{ conn: conn })
+        Ok(())
+    }
+
+    /// Makes sure the statement is prepared, since we lazily prepare statements
+    /// and then executes the statement, handling it as a query and therefore returning the results as rows
+    pub fn query(&mut self, params: &[&ToColumnType]) -> TdsResult<()> {
+        if self.handle.is_none() {
+            try!(self.do_prepare());
+        }
+        Ok(())
     }
 }

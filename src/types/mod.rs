@@ -1,4 +1,5 @@
 ///! The SQL type mapping to rust
+use std::borrow::Cow;
 use std::io::Cursor;
 use byteorder::{ReadBytesExt};
 use protocol::{DecodeTokenStream};
@@ -6,7 +7,7 @@ use ::{TdsResult};
 
 /// The converted SQL value of a column
 #[derive(Debug)]
-pub enum ColumnType {
+pub enum ColumnType<'a> {
     Bool(bool),
     I8(i8),
     I16(i16),
@@ -14,15 +15,25 @@ pub enum ColumnType {
     I64(i64),
     F32(f32),
     F64(f64),
-    String(String),
+    String(Cow<'a, str>),
     Guid(Guid),
     Binary(Vec<u8>)
 }
 
 #[derive(Debug)]
-pub enum ColumnValue {
-    Some(ColumnType),
+pub enum ColumnValue<'a> {
+    Some(ColumnType<'a>),
     None
+}
+
+pub trait ToColumnType {
+    fn to_column_type(&self) -> ColumnType;
+}
+
+impl ToColumnType for i32 {
+    fn to_column_type(&self) -> ColumnType {
+        ColumnType::I32(*self)
+    }
 }
 
 macro_rules! column_conv_unpack {
@@ -46,7 +57,7 @@ macro_rules! column_conv_unpack {
 
 macro_rules! column_conv_nullable {
     ($ty:ty, $id:ident, $by_ref:ident) => {
-        impl <'a> From<&'a ColumnValue> for Option<Option<$ty>> {
+        impl <'a> From<&'a ColumnValue<'a>> for Option<Option<$ty>> {
             fn from(val: &'a ColumnValue) -> Option<Option<$ty>> {
                 return column_conv_unpack!(*val, $by_ref, $id, true);
             }
@@ -57,7 +68,7 @@ macro_rules! column_conv_nullable {
 macro_rules! column_conv {
     ($ty:ty, $id:ident) => { column_conv!($ty, $id, false); };
     ($ty:ty, $id:ident, $by_ref:ident) => {
-        impl <'a> From<&'a ColumnValue> for Option<$ty> {
+        impl <'a> From<&'a ColumnValue<'a>> for Option<$ty> {
             fn from(val: &'a ColumnValue) -> Option<$ty> {
                 return column_conv_unpack!(*val, $by_ref, $id, false);
             }

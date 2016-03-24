@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::io::Cursor;
 use std::io::prelude::*;
 use encoding::{Encoding, DecoderTrap};
@@ -22,17 +23,17 @@ use ::{TdsResult, TdsError, TdsProtocolError};
 
 /// 2.2.7.19
 #[derive(Debug)]
-pub struct TokenStreamRow {
+pub struct TokenStreamRow<'a> {
     // text_ptr and timestamp are not specified if the value can be NULL
     // text_ptr: Vec<u8>, //slice possible?
     // timestamp: [u8; 8],
     // data: VarByte
-    pub data: Vec<ColumnValue>
+    pub data: Vec<ColumnValue<'a>>
 }
 
 /// This does not implement `DecodeTokenStream` since it requires access to meta information
-impl DecodeStmtTokenStream for TokenStreamRow {
-    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<TokenStreamRow> {
+impl<'a> DecodeStmtTokenStream for TokenStreamRow<'a> {
+    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<TokenStreamRow<'a>> {
         let mut values = Vec::with_capacity(stmt.column_infos.len());
         for column in &stmt.column_infos {
             /*text_ptr: ??? let text_len = try!(cursor.read_u8());
@@ -74,7 +75,7 @@ impl DecodeStmtTokenStream for TokenStreamRow {
                                     try!(cursor.read(&mut buf));
                                     match String::from_utf8(buf) {
                                         Err(x) => return Err(TdsError::Conversion(Box::new(x))),
-                                        Ok(x) => ColumnValue::Some(ColumnType::String(x))
+                                        Ok(x) => ColumnValue::Some(ColumnType::String(Cow::Owned(x)))
                                     }
                                 }
                             }
@@ -86,7 +87,7 @@ impl DecodeStmtTokenStream for TokenStreamRow {
                                 false => {
                                     let mut buf = vec![0; len as usize];
                                     try!(cursor.read(&mut buf));
-                                    ColumnValue::Some(ColumnType::String(try!(UTF_16LE.decode(&buf, DecoderTrap::Strict))))
+                                    ColumnValue::Some(ColumnType::String(Cow::Owned(try!(UTF_16LE.decode(&buf, DecoderTrap::Strict)))))
                                 }
                             }
                         },
@@ -123,7 +124,7 @@ impl DecodeStmtTokenStream for TokenStreamRow {
                                             try!(cursor.read(&mut buf));
                                             match String::from_utf8(buf) {
                                                 Err(x) => return Err(TdsError::Conversion(Box::new(x))),
-                                                Ok(x) => ColumnValue::Some(ColumnType::String(x))
+                                                Ok(x) => ColumnValue::Some(ColumnType::String(Cow::Owned(x)))
                                             }
                                         }
                                     }

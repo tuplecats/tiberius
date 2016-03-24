@@ -4,8 +4,7 @@ use std::io::prelude::*;
 use encoding::{Encoding, EncoderTrap, DecoderTrap};
 use encoding::all::UTF_16LE;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-
-use ::TdsResult;
+use ::{TdsResult};
 
 #[doc(hidden)]
 pub trait WriteCStr {
@@ -41,6 +40,11 @@ pub trait ReadCharStream {
     fn read_b_varchar(&mut self) -> TdsResult<String>;
 }
 
+pub trait WriteCharStream {
+    fn write_varchar(&mut self, s: &str) -> TdsResult<Vec<u8>>;
+    fn write_b_varchar(&mut self, s: &str) -> TdsResult<()>;
+}
+
 impl<R: Read> ReadCharStream for R {
     fn read_varchar(&mut self, length: usize) -> TdsResult<String> {
         let length = length * 2;
@@ -59,6 +63,21 @@ impl<R: Read> ReadCharStream for R {
     fn read_b_varchar(&mut self) -> TdsResult<String> {
         let len = try!(self.read_u8()) as usize;
         self.read_varchar(len)
+    }
+}
+
+impl<W: Write> WriteCharStream for W {
+    fn write_varchar(&mut self, s: &str) -> TdsResult<Vec<u8>> {
+        Ok(try!(UTF_16LE.encode(&s, EncoderTrap::Strict)))
+    }
+
+    fn write_b_varchar(&mut self, s: &str) -> TdsResult<()> {
+        let bytes = try!(self.write_varchar(s));
+        let len = s.len();
+        assert!(len < 0xFF);
+        try!(self.write_u8(len as u8));
+        try!(self.write_all(&bytes));
+        Ok(())
     }
 }
 

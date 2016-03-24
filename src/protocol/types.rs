@@ -31,7 +31,7 @@ impl DecodeTokenStream for Collation {
 }
 
 /// 2.2.5.4.1
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 #[repr(u8)]
 pub enum FixedLenType {
     // not supported yet, TODO: what is this?

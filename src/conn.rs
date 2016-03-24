@@ -28,7 +28,7 @@ impl<S: Read + Write> Connection<S> {
         Ok(try!(stmt.execute()))
     }
 
-    pub fn prepare<'a>(&'a mut self, sql: &str) -> TdsResult<PreparedStatement<S>> {
+    pub fn prepare<'a>(&'a mut self, sql: &'a str) -> TdsResult<PreparedStatement<S>> {
         Ok(try!(PreparedStatement::new(&mut self.0, sql)))
     }
 }
@@ -67,7 +67,7 @@ impl<S: Read + Write> InternalConnection<S> {
 
     /// Send a prelogin packet with version number 9.0.0000 (>=TDS 7.2 ?), and US_SUBBUILD=0 (for MSSQL always 0)
     fn initialize(&mut self) -> TdsResult<()> {
-        try!(self.send_packet(PacketData::PreLogin(vec![
+        try!(self.send_packet(&Packet::PreLogin(vec![
             OptionTokenPair::Version(0x09000000, 0),
             OptionTokenPair::Encryption(EncryptionSetting::EncryptNotSupported),
             OptionTokenPair::Instance("".to_owned()),
@@ -80,7 +80,7 @@ impl<S: Read + Write> InternalConnection<S> {
         }
         self.state = ClientState::PreloginPerformed;
         let login_packet = Login7::new(0x02000972);
-        try!(self.send_packet(PacketData::Login(login_packet)));
+        try!(self.send_packet(&Packet::Login(login_packet)));
         {
             let response_packet = try!(self.read_packet());
             try!(response_packet.catch_error());
@@ -93,36 +93,31 @@ impl<S: Read + Write> InternalConnection<S> {
     #[inline]
     pub fn internal_exec(&mut self, sql: &str) -> TdsResult<()> {
         assert_eq!(self.state, ClientState::Ready);
-        try!(self.send_packet(PacketData::SqlBatch(sql)));
+        try!(self.send_packet(&Packet::SqlBatch(sql)));
         Ok(())
     }
 
     /// read and parse "simple" packets
-    fn read_packet(&mut self) -> TdsResult<Packet> {
-        let mut packet = try!(self.stream.read_packet());
-        match self.state {
+    fn read_packet<'a>(&mut self) -> TdsResult<Packet<'a>> {
+        let packet = try!(self.stream.read_packet());
+        Ok(match self.state {
             ClientState::Initial => {
-                try!(packet.parse_as_prelogin());
+                try!(packet.into_prelogin())
             },
             ClientState::PreloginPerformed => {
-                try!(packet.parse_as_general_token_stream());
+                try!(packet.into_general_token_stream())
             },
             ClientState::Ready => {
                 panic!("read_packet: cannot be used in ready state");
             }
-        }
-        Ok(packet)
+        })
     }
 
     /// Allocate an id and send a packet with the given data
-    pub fn send_packet(&mut self, data: PacketData) -> TdsResult<()> {
+    pub fn send_packet(&mut self, packet: &Packet) -> TdsResult<()> {
         let mut header = PacketHeader::new();
         header.id = self.alloc_id();
-        let mut packet = Packet {
-            header: header,
-            data: data
-        };
-        try!(self.stream.write_packet(&mut packet));
+        try!(self.stream.write_packet(&mut header, packet));
         Ok(())
     }
 }

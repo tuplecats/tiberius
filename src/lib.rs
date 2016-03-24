@@ -46,15 +46,6 @@ impl From<io::Error> for TdsError {
     }
 }
 
-impl From<byteorder::Error> for TdsError {
-    fn from(err: byteorder::Error) -> TdsError {
-        match err {
-            byteorder::Error::Io(x) => TdsError::IoError(x),
-            byteorder::Error::UnexpectedEOF => TdsError::UnexpectedEOF
-        }
-    }
-}
-
 impl From<Cow<'static, str>> for TdsError {
     fn from(err: Cow<'static, str>) -> TdsError {
         TdsError::Other(err.into_owned())

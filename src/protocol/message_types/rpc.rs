@@ -1,6 +1,6 @@
 use std::io::prelude::*;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use protocol::TypeInfo;
+use types::ColumnType;
 use ::TdsResult;
 
 #[repr(u8)]
@@ -16,12 +16,15 @@ pub enum RpcProcId {
 //     type_info: TypeInfo
 // }
 
+/// pass the parameter by reference (e.g. OUTPUT)
+pub const fByRefValue: u8 = 0x01;
+
 #[derive(Debug)]
-pub struct RpcParamMetaData<'a> {
+pub struct RpcParamData<'a> {
     pub name: &'a str,
     // fByRefValue[1b], fDefaultValue[1b], reserved[1b], fEncrypted[1b], reserved[4b]
     pub status_flags: u8,
-    pub type_info: TypeInfo
+    pub value: ColumnType<'a>,
 }
 
 #[derive(Debug)]
@@ -40,7 +43,7 @@ impl<W: Write> WriteRpcProcId for W {
             //RpcProcIdValue::Name(ref name) => try!(self.write_b_varchar(name)),
             &RpcProcIdValue::Id(ref id) => {
                 try!(self.write_u16::<LittleEndian>(0xFFFF));
-                try!(self.write_u8((*id).clone() as u8))
+                try!(self.write_u16::<LittleEndian>((*id).clone() as u16))
             },
             _ => panic!("write_rpc_procid: not implemented for Name")
         }
@@ -54,7 +57,7 @@ pub struct RpcRequestData<'a> {
     // NameLenProcID: US_VARCHAR || (0xFFFF USHORT(ProcId))
     pub proc_id: RpcProcIdValue,
     // fWithRecomp[1b], fNoMetaData[1b], fReuseMetaData[1b], reserved[5b]
-    pub flags: u8,
+    pub flags: u16,
     // reserved[8b]
-    pub params: Vec<RpcParamMetaData<'a>>
+    pub params: Vec<RpcParamData<'a>>
 }

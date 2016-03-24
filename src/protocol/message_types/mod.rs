@@ -28,10 +28,11 @@ pub enum MessageTypeToken
     EnvChange = 0xE3,
     Error = 0xAA,
     LoginAck = 0xAD,
+    ReturnStatus = 0x79,
     Colmetadata = 0x81,
     Row = 0xD1,
 }
-impl_from_primitive!(MessageTypeToken, Done, EnvChange, Error, LoginAck, Colmetadata, Row);
+impl_from_primitive!(MessageTypeToken, Done, EnvChange, Error, LoginAck, ReturnStatus, Colmetadata, Row);
 
 pub trait DecodeTokenStream {
     fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<Self> where Self: Sized;
@@ -42,13 +43,14 @@ pub trait DecodeStmtTokenStream {
 }
 
 #[derive(Debug)]
-pub enum TokenStream {
+pub enum TokenStream<'a> {
     Error(TokenStreamError),
     LoginAck(TokenStreamLoginAck),
     EnvChange(TokenStreamEnvChange),
     Done(TokenStreamDone),
     Colmetadata(TokenStreamColmetadata),
-    Row(TokenStreamRow),
+    Row(TokenStreamRow<'a>),
+    ReturnStatus(i32),
 }
 
 #[derive(Debug)]
