@@ -198,7 +198,7 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
             RpcParamData {
                 name: "params",
                 status_flags: 0,
-                value: ColumnType::String(Cow::Borrowed("a"))
+                value: ColumnType::String(Cow::Borrowed("@P1 int")) //TODO
             },
             RpcParamData {
                 name: "stmt",

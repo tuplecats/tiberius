@@ -37,23 +37,28 @@ pub struct RawPacket
 fn handle_token_stream<'a, C: AsRef<[u8]>>(token_type: MessageTypeToken, cursor: &mut Cursor<C>) -> TdsResult<TokenStream<'a>> {
     match token_type {
         MessageTypeToken::Error => {
-            return Ok(TokenStream::Error(try!(TokenStreamError::decode(cursor))));
+            Ok(TokenStream::Error(try!(TokenStreamError::decode(cursor))))
         },
         MessageTypeToken::LoginAck => {
-            return Ok(TokenStream::LoginAck(try!(TokenStreamLoginAck::decode(cursor))));
+            Ok(TokenStream::LoginAck(try!(TokenStreamLoginAck::decode(cursor))))
         },
         MessageTypeToken::EnvChange => {
-            return Ok(TokenStream::EnvChange(try!(TokenStreamEnvChange::decode(cursor))));
+            Ok(TokenStream::EnvChange(try!(TokenStreamEnvChange::decode(cursor))))
         },
         MessageTypeToken::Done => {
-            return Ok(TokenStream::Done(try!(TokenStreamDone::decode(cursor))));
+            Ok(TokenStream::Done(try!(TokenStreamDone::decode(cursor))))
+        },
+        MessageTypeToken::DoneProc => {
+            Ok(TokenStream::DoneProc(try!(TokenStreamDone::decode(cursor))))
         },
         MessageTypeToken::ReturnStatus => {
-            return Ok(TokenStream::ReturnStatus(try!(cursor.read_i32::<LittleEndian>())))
+            Ok(TokenStream::ReturnStatus(try!(cursor.read_i32::<LittleEndian>())))
         },
-        _ => ()
+        MessageTypeToken::ReturnValue => {
+            Ok(TokenStream::ReturnValue(try!(TokenStreamRetVal::decode(cursor))))
+        },
+        _ => Err(TdsError::Other(format!("token {:?} not supported yet", token_type)))
     }
-    return Err(TdsError::Other(format!("token {:?} not supported yet", token_type)))
 }
 
 impl RawPacket {

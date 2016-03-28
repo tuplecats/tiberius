@@ -5,6 +5,7 @@ mod done;
 mod colmetadata;
 mod row;
 pub mod rpc;
+mod retval;
 
 use std::io::Cursor;
 use std::io::prelude::*;
@@ -19,20 +20,23 @@ pub use self::done::*;
 pub use self::colmetadata::*;
 pub use self::row::*;
 pub use self::rpc::*;
+pub use self::retval::*;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum MessageTypeToken
 {
     Done = 0xFD,
+    DoneProc = 0xFE,
     EnvChange = 0xE3,
     Error = 0xAA,
     LoginAck = 0xAD,
     ReturnStatus = 0x79,
     Colmetadata = 0x81,
+    ReturnValue = 0xAC,
     Row = 0xD1,
 }
-impl_from_primitive!(MessageTypeToken, Done, EnvChange, Error, LoginAck, ReturnStatus, Colmetadata, Row);
+impl_from_primitive!(MessageTypeToken, Done, DoneProc, EnvChange, Error, LoginAck, ReturnStatus, Colmetadata, ReturnValue, Row);
 
 pub trait DecodeTokenStream {
     fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<Self> where Self: Sized;
@@ -48,9 +52,11 @@ pub enum TokenStream<'a> {
     LoginAck(TokenStreamLoginAck),
     EnvChange(TokenStreamEnvChange),
     Done(TokenStreamDone),
+    DoneProc(TokenStreamDone),
     Colmetadata(TokenStreamColmetadata),
     Row(TokenStreamRow<'a>),
     ReturnStatus(i32),
+    ReturnValue(TokenStreamRetVal<'a>),
 }
 
 #[derive(Debug)]
