@@ -17,7 +17,7 @@ pub enum ColumnType<'a> {
     F64(f64),
     String(Cow<'a, str>),
     Guid(Guid),
-    Binary(Vec<u8>)
+    Binary(Vec<u8>),
 }
 
 #[derive(Debug)]

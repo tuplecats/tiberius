@@ -285,11 +285,6 @@ impl<W: Write> WritePacket for W
                             try!(buf.write_u8(4));
                             try!(buf.write_u8(4));
                             try!(buf.write_i32::<LittleEndian>(*val));
-                            print!("i ");
-                            for byte in buf.iter() {
-                                print!("{:X} ", byte);
-                            }
-                            print!("\n");
                         },
                         ColumnType::String(ref val) => {
                             let len = (val.len() as u32 * 2) as u16;
@@ -298,11 +293,6 @@ impl<W: Write> WritePacket for W
                             try!(buf.write_all(&[0, 0, 0, 0, 0])); //todo use a non-hardcoded collation
                             try!(buf.write_u16::<LittleEndian>(len));
                             try!(buf.write_as_utf16(&val));
-                            print!("s ");
-                            for byte in buf.iter() {
-                                print!("{:X} ", byte);
-                            }
-                            print!("\n");
                         },
                         _ => panic!("rpc: encoding of ColumnType {:?} not supported", meta.value)
                     }

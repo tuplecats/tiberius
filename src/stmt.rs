@@ -170,7 +170,7 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
         }
     }
 
-    pub fn execute_into_query(mut self) -> TdsResult<QueryResult<'a>> {
+    pub fn execute_into_query(self) -> TdsResult<QueryResult<'a>> {
         let mut conn = self.conn.borrow_mut();
         try!(conn.internal_exec(self.query));
         let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
@@ -200,7 +200,7 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
         })
     }
 
-    /// Prepares the actual statement
+    /// Prepares the actual statement (sp_prepare)
     fn do_prepare(&self, params: &[&ToColumnType]) -> TdsResult<()> {
         let mut param_str = String::new();
         // determine the types from the given params
@@ -213,19 +213,21 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
             param_str.push_str(&format!("@P{} ", i));
             param_str.push_str(param.column_type());
         }
+        // for some reason mssql fails when we pass "handle" as int4 (fixed len) insteadof intn (varlen)
+        // because it does not know the type (0x38) ?? strange
         let params_meta = vec![
             RpcParamData {
-                name: "handle",
+                name: Cow::Borrowed("handle"),
                 status_flags: rpc::fByRefValue,
                 value: ColumnType::I32(0),
             },
             RpcParamData {
-                name: "params",
+                name: Cow::Borrowed("params"),
                 status_flags: 0,
                 value: ColumnType::String(Cow::Owned(param_str))
             },
             RpcParamData {
-                name: "stmt",
+                name: Cow::Borrowed("stmt"),
                 status_flags: 0,
                 value: ColumnType::String(Cow::Borrowed(self.sql)),
             }
@@ -240,7 +242,7 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
         try!(conn.send_packet(&rpc_packet));
         {
             let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
-            try!(packet.catch_error());
+            //try!(packet.catch_error());
             match packet {
                 Packet::TokenStream(ref tokens) => {
                     for token in tokens {
@@ -265,12 +267,43 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
         Ok(())
     }
 
+    /// Execute the statement (sp_execute)
+    fn do_internal_exec(&self, params: &[&ToColumnType]) -> TdsResult<()> {
+        let mut params_meta = vec![
+            RpcParamData {
+                name: Cow::Borrowed("handle"),
+                status_flags: rpc::fByRefValue,
+                value: ColumnType::I32(self.stmt.borrow().handle.unwrap() as i32),
+            },
+        ];
+        for (i, param) in params.iter().enumerate() {
+            params_meta.push(RpcParamData {
+                name: Cow::Owned(format!("@P{}", i+1)),
+                status_flags: 0,
+                value: param.to_column_type(),
+            });
+        }
+        let rpc_req = RpcRequestData {
+            // as freeTDS, use sp_execute since SpPrepare (as int) seems broken, even microsofts odbc driver seems to use this
+            proc_id: RpcProcIdValue::Name(Cow::Borrowed("sp_execute")),
+            flags: 0,
+            params: params_meta,
+        };
+        let rpc_packet = Packet::RpcRequest(&rpc_req);
+        let mut conn = self.conn.borrow_mut();
+        try!(conn.send_packet(&rpc_packet));
+        Ok(())
+    }
+
     /// Makes sure the statement is prepared, since we lazily prepare statements
     /// and then executes the statement, handling it as a query and therefore returning the results as rows
-    pub fn query(&self, params: &[&ToColumnType]) -> TdsResult<()> {
+    pub fn query<'b>(&self, params: &[&ToColumnType]) -> TdsResult<QueryResult<'b>> {
         if self.stmt.borrow().handle.is_none() {
             try!(self.do_prepare(params));
         }
-        Ok(())
+        try!(self.do_internal_exec(params));
+        let mut conn = self.conn.borrow_mut();
+        let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
+        handle_query_packet(packet, self.stmt.clone())
     }
 }

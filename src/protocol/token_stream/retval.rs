@@ -1,5 +1,5 @@
 use std::io::Cursor;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt};
 use protocol::DecodeTokenStream;
 use protocol::types::*;
 use protocol::util::ReadCharStream;

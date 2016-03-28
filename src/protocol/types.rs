@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::io::prelude::*;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
-use encoding::{Encoding, EncoderTrap, DecoderTrap};
+use encoding::{Encoding, DecoderTrap};
 use encoding::all::UTF_16LE;
 use protocol::util::{FromPrimitive, ReadCharStream};
 use types::{ColumnValue, ColumnType, Guid};

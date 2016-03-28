@@ -1,15 +1,10 @@
-use std::borrow::Cow;
 use std::io::Cursor;
-use std::io::prelude::*;
-use encoding::{Encoding, DecoderTrap};
-use encoding::all::UTF_16LE;
-use byteorder::{LittleEndian, ReadBytesExt};
+use encoding::{Encoding};
 use super::{DecodeTokenStream, DecodeStmtTokenStream};
-use protocol::types::*;
 use stmt::StatementInfo;
-use types::{ColumnValue, ColumnType, Guid};
+use types::ColumnValue;
 
-use ::{TdsResult, TdsError, TdsProtocolError};
+use ::TdsResult;
 
 
 /*enum VarByte {

@@ -42,6 +42,7 @@ pub trait ReadCharStream {
 
 pub trait WriteCharStream {
     fn write_varchar(&mut self, s: &str) -> TdsResult<Vec<u8>>;
+    fn write_us_varchar(&mut self, s: &str) -> TdsResult<()>;
     fn write_b_varchar(&mut self, s: &str) -> TdsResult<()>;
 }
 
@@ -69,6 +70,15 @@ impl<R: Read> ReadCharStream for R {
 impl<W: Write> WriteCharStream for W {
     fn write_varchar(&mut self, s: &str) -> TdsResult<Vec<u8>> {
         Ok(try!(UTF_16LE.encode(&s, EncoderTrap::Strict)))
+    }
+
+    fn write_us_varchar(&mut self, s: &str) -> TdsResult<()> {
+        let bytes = try!(self.write_varchar(s));
+        let len = s.len();
+        assert!(len < 0xFFFF);
+        try!(self.write_u16::<LittleEndian>(len as u16));
+        try!(self.write_all(&bytes));
+        Ok(())
     }
 
     fn write_b_varchar(&mut self, s: &str) -> TdsResult<()> {

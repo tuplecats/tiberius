@@ -1,6 +1,8 @@
+use std::borrow::Cow;
 use std::io::prelude::*;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, WriteBytesExt};
 use types::ColumnType;
+use protocol::util::WriteCharStream;
 use ::TdsResult;
 
 #[repr(u8)]
@@ -21,15 +23,15 @@ pub const fByRefValue: u8 = 0x01;
 
 #[derive(Debug)]
 pub struct RpcParamData<'a> {
-    pub name: &'a str,
+    pub name: Cow<'a, str>,
     // fByRefValue[1b], fDefaultValue[1b], reserved[1b], fEncrypted[1b], reserved[4b]
     pub status_flags: u8,
     pub value: ColumnType<'a>,
 }
 
 #[derive(Debug)]
-pub enum RpcProcIdValue {
-    Name(String),
+pub enum RpcProcIdValue<'a> {
+    Name(Cow<'a, str>),
     Id(RpcProcId)
 }
 
@@ -40,12 +42,11 @@ pub trait WriteRpcProcId {
 impl<W: Write> WriteRpcProcId for W {
     fn write_rpc_procid(&mut self, proc_id: &RpcProcIdValue) -> TdsResult<()> {
         match proc_id {
-            //RpcProcIdValue::Name(ref name) => try!(self.write_b_varchar(name)),
+            &RpcProcIdValue::Name(ref name) => try!(self.write_us_varchar(name)),
             &RpcProcIdValue::Id(ref id) => {
                 try!(self.write_u16::<LittleEndian>(0xFFFF));
                 try!(self.write_u16::<LittleEndian>((*id).clone() as u16))
-            },
-            _ => panic!("write_rpc_procid: not implemented for Name")
+            }
         }
         Ok(())
     }
@@ -55,7 +56,7 @@ impl<W: Write> WriteRpcProcId for W {
 #[derive(Debug)]
 pub struct RpcRequestData<'a> {
     // NameLenProcID: US_VARCHAR || (0xFFFF USHORT(ProcId))
-    pub proc_id: RpcProcIdValue,
+    pub proc_id: RpcProcIdValue<'a>,
     // fWithRecomp[1b], fNoMetaData[1b], fReuseMetaData[1b], reserved[5b]
     pub flags: u16,
     // reserved[8b]
