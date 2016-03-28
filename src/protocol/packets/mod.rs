@@ -1,8 +1,7 @@
 use std::io::prelude::*;
 use std::io::Cursor;
 use byteorder::{LittleEndian, BigEndian, ReadBytesExt, WriteBytesExt};
-use encoding::{Encoding, EncoderTrap};
-use encoding::all::UTF_16LE;
+use encoding::Encoding;
 
 #[macro_use]
 mod login;
@@ -13,9 +12,7 @@ pub use self::login::Login7;
 
 use protocol::util::{WriteUtf16, WriteCharStream};
 use protocol::token_stream::*;
-use protocol::types::{VarLenType};
 use stmt::StatementInfo;
-use types::ColumnType;
 use ::{TdsResult, TdsError, TdsProtocolError};
 
 pub trait ReadPacket {
@@ -279,106 +276,18 @@ impl<W: Write> WritePacket for W
                     try!(buf.write_b_varchar(&meta.name));
                     try!(buf.write_u8(meta.status_flags));
                     //write TYPE_INFo
-                    match meta.value {
-                        ColumnType::I32(ref val) => {
-                            try!(buf.write_u8(VarLenType::Intn as u8));
-                            try!(buf.write_u8(4));
-                            try!(buf.write_u8(4));
-                            try!(buf.write_i32::<LittleEndian>(*val));
-                        },
-                        ColumnType::String(ref val) => {
-                            let len = (val.len() as u32 * 2) as u16;
-                            try!(buf.write_u8(VarLenType::NVarchar as u8));
-                            try!(buf.write_u16::<LittleEndian>(len));
-                            try!(buf.write_all(&[0, 0, 0, 0, 0])); //todo use a non-hardcoded collation
-                            try!(buf.write_u16::<LittleEndian>(len));
-                            try!(buf.write_as_utf16(&val));
-                        },
-                        _ => panic!("rpc: encoding of ColumnType {:?} not supported", meta.value)
-                    }
+                    try!(buf.write_token_stream(&meta.value));
                 }
             },
             Packet::PreLogin(ref token_vec) => {
-                let mut cursor = Cursor::new(buf);
                 header.status = PacketStatus::EndOfMessage;
                 header.ptype = PacketType::PreLogin;
-                // write prelogin options (token, offset, length) [5 bytes] OR terminator
-                let mut data_offset: u16 = 5 * token_vec.len() as u16 + 1;
-                for option in token_vec {
-                    let old_position = cursor.position();
-                    cursor.set_position(data_offset as u64);
-                    try!(cursor.write_option_token(option));
-                    let option_len = (cursor.position() - data_offset as u64) as u16;
-                    cursor.set_position(old_position);
-
-                    try!(cursor.write_u8(option.token()));
-                    try!(cursor.write_u16::<BigEndian>(data_offset));
-                    try!(cursor.write_u16::<BigEndian>(option_len));
-                    data_offset += option_len;
-                }
-                try!(cursor.write_u8(OptionTokenPair::Terminator.token()));
-                buf = cursor.into_inner();
+                try!(buf.write_token_stream(&token_vec[..]));
             },
             Packet::Login(ref login7) => {
-                let mut cursor = Cursor::new(buf);
                 header.status = PacketStatus::EndOfMessage;
                 header.ptype = PacketType::Login;
-                let pos = cursor.position();
-                // write the length at the end, skip 4 bytes for it (u32)
-                cursor.set_position(pos + 4);
-                try!(cursor.write_u32::<BigEndian>(login7.tds_version));
-                try!(cursor.write_u32::<LittleEndian>(login7.packet_size));
-                try!(cursor.write_u32::<LittleEndian>(login7.client_prog_ver));
-                try!(cursor.write_u32::<LittleEndian>(login7.client_pid));
-                try!(cursor.write_u32::<LittleEndian>(login7.conn_id));
-                try!(cursor.write_u8(login7.flags1));
-                try!(cursor.write_u8(login7.flags2));
-                try!(cursor.write_u8(login7.type_flags));
-                try!(cursor.write_u8(login7.flags3));
-                try!(cursor.write_i32::<LittleEndian>(login7.timezone));
-                try!(cursor.write_u32::<LittleEndian>(login7.lcid)); //LE? unused anyways
-                let data_start: u16 = cursor.position() as u16 + (13 * 4) + 6;
-                let mut data_pos = data_start;
-
-                for (i, val) in [&login7.hostname, &login7.username, &login7.password, &login7.app_name, &login7.server_name,
-                    &login7.library_name, &login7.language, &login7.default_db].iter().enumerate() {
-                    let old_pos = cursor.position();
-                    cursor.set_position(data_pos as u64);
-                    //try!(cursor.write_cstr(val));
-                    let mut data_len = 0;
-                    if val.len() > 0 {
-                        // encode password
-                        if i == 2 {
-                            let mut bytes = try!(UTF_16LE.encode(val, EncoderTrap::Strict));
-                            for byte in bytes.iter_mut() {
-                                *byte = (*byte >> 4) | ((*byte & 0x0f) << 4);
-                                *byte ^= 0xa5;
-                            }
-                            try!(cursor.write_all(&bytes));
-                            data_len = bytes.len() as u16;
-                        } else {
-                            data_len = try!(cursor.write_as_utf16(val)) as u16;
-                        }
-                    }
-                    cursor.set_position(old_pos);
-                    write_login_offset!(cursor, data_pos, val.len() as u16, data_len);      //1,2,3,4,6,7,8,9
-
-                    if i == 4 {
-                        write_login_offset!(cursor, data_pos, 0);                           //5 [unused in TDSV7.3]
-                    }
-                }
-                try!(cursor.write(&login7.client_id));                                      //client unique ID
-                write_login_offset!(cursor, data_pos, 0);                                   //10 [ibSSPI & cbSSPI]
-                write_login_offset!(cursor, data_pos, 0);                                   //11 [ibAtchDBFile & cchAtchDBFile]
-                write_login_offset!(cursor, data_pos, 0);                                   //12 [ibChangePassword & cchChangePassword]
-                try!(cursor.write_u32::<LittleEndian>(0));                                  //13 [cbSSPILong]
-
-                // write remaining data
-                assert_eq!(cursor.position() as u16, data_start);
-                // write length
-                cursor.set_position(0);
-                try!(cursor.write_u32::<LittleEndian>(data_pos as u32));
-                buf = cursor.into_inner();
+                try!(buf.write_token_stream(login7));
             },
             _ => panic!("Writing of {:?} not supported!", packet)
         }

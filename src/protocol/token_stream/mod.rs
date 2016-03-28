@@ -43,6 +43,10 @@ pub trait DecodeTokenStream {
     fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<Self> where Self: Sized;
 }
 
+pub trait WriteTokenStream<T> {
+    fn write_token_stream(&mut self, data: T) -> TdsResult<()>;
+}
+
 pub trait DecodeStmtTokenStream {
     fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut StatementInfo) -> TdsResult<Self> where Self: Sized;
 }

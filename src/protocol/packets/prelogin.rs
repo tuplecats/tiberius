@@ -1,8 +1,10 @@
 use std::io;
 use std::io::prelude::*;
+use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use protocol::FromPrimitive;
 use protocol::util::WriteCStr;
+use protocol::WriteTokenStream;
 use ::{TdsResult, TdsError, TdsProtocolError};
 
 #[derive(Copy, Clone, Debug)]
@@ -30,6 +32,30 @@ pub enum OptionTokenPair
     Nonce([u8; 32]),
     /// 0xFF
     Terminator
+}
+
+impl<'a, W: Write> WriteTokenStream<&'a [OptionTokenPair]> for W {
+    fn write_token_stream(&mut self, tokens: &'a [OptionTokenPair]) -> TdsResult<()> {
+        let buf = vec![];
+        let mut cursor = Cursor::new(buf);
+        // write prelogin options (token, offset, length) [5 bytes] OR terminator
+        let mut data_offset: u16 = 5 * tokens.len() as u16 + 1;
+        for option in tokens {
+            let old_position = cursor.position();
+            cursor.set_position(data_offset as u64);
+            try!(cursor.write_option_token(option));
+            let option_len = (cursor.position() - data_offset as u64) as u16;
+            cursor.set_position(old_position);
+
+            try!(cursor.write_u8(option.token()));
+            try!(cursor.write_u16::<BigEndian>(data_offset));
+            try!(cursor.write_u16::<BigEndian>(option_len));
+            data_offset += option_len;
+        }
+        try!(cursor.write_u8(OptionTokenPair::Terminator.token()));
+        try!(self.write_all(&cursor.into_inner()));
+        Ok(())
+    }
 }
 
 impl OptionTokenPair {

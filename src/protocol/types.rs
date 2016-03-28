@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 use std::io::prelude::*;
 use std::io::Cursor;
-use byteorder::{LittleEndian, ReadBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::UTF_16LE;
-use protocol::util::{FromPrimitive, ReadCharStream};
+use protocol::WriteTokenStream;
+use protocol::util::{FromPrimitive, ReadCharStream, WriteUtf16};
 use types::{ColumnValue, ColumnType, Guid};
 use super::{DecodeTokenStream};
 use ::{TdsResult, TdsError, TdsProtocolError};
@@ -238,6 +239,29 @@ impl ColumnData {
     #[inline]
     pub fn is_nullable(&self) -> bool {
         (self.flags & 1) == 1
+    }
+}
+
+impl<'a, W: Write> WriteTokenStream<&'a ColumnType<'a>> for W {
+    fn write_token_stream(&mut self, data: &'a ColumnType<'a>) -> TdsResult<()> {
+        match *data {
+            ColumnType::I32(ref val) => {
+                try!(self.write_u8(VarLenType::Intn as u8));
+                try!(self.write_u8(4));
+                try!(self.write_u8(4));
+                try!(self.write_i32::<LittleEndian>(*val));
+            },
+            ColumnType::String(ref val) => {
+                let len = (val.len() as u32 * 2) as u16;
+                try!(self.write_u8(VarLenType::NVarchar as u8));
+                try!(self.write_u16::<LittleEndian>(len));
+                try!(self.write_all(&[0, 0, 0, 0, 0])); //todo use a non-hardcoded collation
+                try!(self.write_u16::<LittleEndian>(len));
+                try!(self.write_as_utf16(&val));
+            },
+            _ => panic!("rpc: encoding of ColumnType {:?} not supported", data)
+        }
+        Ok(())
     }
 }
 
