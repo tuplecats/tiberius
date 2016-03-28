@@ -6,8 +6,8 @@ use test::get_connection;
 
 #[test]
 fn test_simple_prepared() {
-    let mut cl = get_connection();
-    let mut stmt = cl.prepare("SELECT * FROM [test].[dbo].[test] WHERE id=@P1;").unwrap();
+    let cl = get_connection();
+    let stmt = cl.prepare("SELECT * FROM [test].[dbo].[test] WHERE id=@P1;").unwrap();
     {
         let rows = stmt.query(&[&3i32]);
         println!("{:?}", rows)

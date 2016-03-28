@@ -28,11 +28,16 @@ pub enum ColumnValue<'a> {
 
 pub trait ToColumnType {
     fn to_column_type(&self) -> ColumnType;
+    fn column_type<'a>(&self) -> &'a str;
 }
 
 impl ToColumnType for i32 {
     fn to_column_type(&self) -> ColumnType {
         ColumnType::I32(*self)
+    }
+
+    fn column_type(&self) -> &'static str {
+        "int"
     }
 }
 

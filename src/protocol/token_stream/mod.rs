@@ -10,7 +10,7 @@ mod retval;
 use std::io::Cursor;
 use std::io::prelude::*;
 use byteorder::{LittleEndian, WriteBytesExt};
-use stmt::Statement;
+use stmt::StatementInfo;
 use ::{TdsResult};
 
 pub use self::err::*;
@@ -28,6 +28,7 @@ pub enum MessageTypeToken
 {
     Done = 0xFD,
     DoneProc = 0xFE,
+    DoneInProc = 0xFF,
     EnvChange = 0xE3,
     Error = 0xAA,
     LoginAck = 0xAD,
@@ -36,14 +37,14 @@ pub enum MessageTypeToken
     ReturnValue = 0xAC,
     Row = 0xD1,
 }
-impl_from_primitive!(MessageTypeToken, Done, DoneProc, EnvChange, Error, LoginAck, ReturnStatus, Colmetadata, ReturnValue, Row);
+impl_from_primitive!(MessageTypeToken, Done, DoneProc, DoneInProc, EnvChange, Error, LoginAck, ReturnStatus, Colmetadata, ReturnValue, Row);
 
 pub trait DecodeTokenStream {
     fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<Self> where Self: Sized;
 }
 
 pub trait DecodeStmtTokenStream {
-    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<Self> where Self: Sized;
+    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut StatementInfo) -> TdsResult<Self> where Self: Sized;
 }
 
 #[derive(Debug)]
@@ -53,6 +54,7 @@ pub enum TokenStream<'a> {
     EnvChange(TokenStreamEnvChange),
     Done(TokenStreamDone),
     DoneProc(TokenStreamDone),
+    DoneInProc(TokenStreamDone),
     Colmetadata(TokenStreamColmetadata),
     Row(TokenStreamRow<'a>),
     ReturnStatus(i32),

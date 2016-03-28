@@ -14,7 +14,7 @@ pub use self::login::Login7;
 use protocol::util::{WriteUtf16, WriteCharStream};
 use protocol::token_stream::*;
 use protocol::types::{VarLenType};
-use stmt::Statement;
+use stmt::StatementInfo;
 use types::ColumnType;
 use ::{TdsResult, TdsError, TdsProtocolError};
 
@@ -50,6 +50,9 @@ fn handle_token_stream<'a, C: AsRef<[u8]>>(token_type: MessageTypeToken, cursor:
         },
         MessageTypeToken::DoneProc => {
             Ok(TokenStream::DoneProc(try!(TokenStreamDone::decode(cursor))))
+        },
+        MessageTypeToken::DoneInProc => {
+            Ok(TokenStream::DoneInProc(try!(TokenStreamDone::decode(cursor))))
         },
         MessageTypeToken::ReturnStatus => {
             Ok(TokenStream::ReturnStatus(try!(cursor.read_i32::<LittleEndian>())))
@@ -103,7 +106,7 @@ impl RawPacket {
         Ok(Packet::TokenStream(streams))
     }
 
-    pub fn into_stmt_token_stream<'a>(self, stmt: &mut Statement) -> TdsResult<Packet<'a>> {
+    pub fn into_stmt_token_stream<'a>(self, stmt: &mut StatementInfo) -> TdsResult<Packet<'a>> {
         let mut streams: Vec<TokenStream> = vec![];
         {
             let packet_len = self.data.len();

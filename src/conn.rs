@@ -1,5 +1,8 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::io::prelude::*;
 use std::net::TcpStream;
+use std::ops::Deref;
 
 use protocol::*;
 use stmt::{StatementInternal, QueryResult, PreparedStatement};
@@ -13,23 +16,39 @@ pub enum ClientState {
 }
 
 /// A connection to a MSSQL server
-pub struct Connection<S: Write>(InternalConnection<S>);
+
+pub struct Connection<S: Write>(Rc<RefCell<InternalConnection<S>>>);
+
+// manual impl since autoderef seemed to mess up when cloning
+impl<S: Read + Write> Connection<S> {
+    pub fn clone(&self) -> Connection<S> {
+        Connection(self.0.clone())
+    }
+}
 
 impl<S: Read + Write> Connection<S> {
     /// Execute the given query and return the resulting rows
-    pub fn query<'a>(&'a mut self, sql: &'a str) -> TdsResult<QueryResult> {
-        let stmt = StatementInternal::new(&mut self.0, sql);
+    pub fn query<'a>(&'a self, sql: &'a str) -> TdsResult<QueryResult> {
+        let stmt = StatementInternal::new(self.clone(), sql);
         Ok(try!(stmt.execute_into_query()))
     }
 
     /// Execute a sql statement and return the number of affected rows
-    pub fn exec(&mut self, sql: &str) -> TdsResult<usize> {
-        let mut stmt = StatementInternal::new(&mut self.0, sql);
+    pub fn exec(&self, sql: &str) -> TdsResult<usize> {
+        let mut stmt = StatementInternal::new(self.clone(), sql);
         Ok(try!(stmt.execute()))
     }
 
-    pub fn prepare<'a>(&'a mut self, sql: &'a str) -> TdsResult<PreparedStatement<S>> {
-        Ok(try!(PreparedStatement::new(&mut self.0, sql)))
+    pub fn prepare<'a>(&self, sql: &'a str) -> TdsResult<PreparedStatement<'a, S>> {
+        Ok(try!(PreparedStatement::new(self.clone(), sql)))
+    }
+}
+
+impl<S: Read + Write> Deref for Connection<S> {
+    type Target = Rc<RefCell<InternalConnection<S>>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -37,7 +56,7 @@ impl Connection<TcpStream> {
     pub fn connect_tcp(host: &str, port: u16) -> TdsResult<Connection<TcpStream>> {
         let mut conn = InternalConnection::new(try!(TcpStream::connect(&(host, port))));
         try!(conn.initialize());
-        Ok(Connection(conn))
+        Ok(Connection(Rc::new(RefCell::new(conn))))
     }
 }
 

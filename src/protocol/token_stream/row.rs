@@ -6,7 +6,7 @@ use encoding::all::UTF_16LE;
 use byteorder::{LittleEndian, ReadBytesExt};
 use super::{DecodeTokenStream, DecodeStmtTokenStream};
 use protocol::types::*;
-use stmt::Statement;
+use stmt::StatementInfo;
 use types::{ColumnValue, ColumnType, Guid};
 
 use ::{TdsResult, TdsError, TdsProtocolError};
@@ -33,7 +33,7 @@ pub struct TokenStreamRow<'a> {
 
 /// This does not implement `DecodeTokenStream` since it requires access to meta information
 impl<'a> DecodeStmtTokenStream for TokenStreamRow<'a> {
-    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<TokenStreamRow<'a>> {
+    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut StatementInfo) -> TdsResult<TokenStreamRow<'a>> {
         let mut values = Vec::with_capacity(stmt.column_infos.len());
         for column in &stmt.column_infos {
             /*text_ptr: ??? let text_len = try!(cursor.read_u8());

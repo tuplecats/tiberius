@@ -2,7 +2,7 @@ use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 use super::{DecodeTokenStream, DecodeStmtTokenStream};
 use protocol::types::*;
-use stmt::Statement;
+use stmt::StatementInfo;
 use ::{TdsResult};
 
 /// 2.2.7.4
@@ -12,7 +12,7 @@ pub enum TokenStreamColmetadata {
 }
 
 impl DecodeStmtTokenStream for TokenStreamColmetadata {
-    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut Statement) -> TdsResult<TokenStreamColmetadata> {
+    fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut StatementInfo) -> TdsResult<TokenStreamColmetadata> {
         let count = try!(cursor.read_u16::<LittleEndian>());
 
         // TODO: for prepared statements we may have to cache a stack of column types (for multi-queries)

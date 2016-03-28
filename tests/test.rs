@@ -4,9 +4,7 @@ use tiberius::{Guid, Connection};
 
 fn main()
 {
-    //let mut test = vec![];
-    //let mut cl = Client::new(test);
-    let mut cl = Connection::connect_tcp("127.0.0.1", 1433).unwrap();
+    let cl = Connection::connect_tcp("127.0.0.1", 1433).unwrap();
     let rows = cl.query("SELECT * FROM [test].[dbo].[test];").unwrap();
     println!("rows: {:?}", rows);
     for row in rows {
@@ -17,10 +15,6 @@ fn main()
         }
         println!("data: {:?}", d);
     }
-    //let mut buffer = [0; 4096];
-    //cl.stream.read(&mut buffer).unwrap();
-    //println!("{:?}", buffer.to_vec());
-    //println!("{:?}", cl.stream);
 }
 
 pub fn get_connection() -> Connection<TcpStream> {
@@ -29,7 +23,7 @@ pub fn get_connection() -> Connection<TcpStream> {
 
 #[test]
 fn test_datatypes_nullable() {
-    let mut cl = get_connection();
+    let cl = get_connection();
     println!("--0");
     let rows = cl.query("SELECT * FROM [test].[dbo].[test];").unwrap();
     assert_eq!(rows.len(), 5);
@@ -60,7 +54,7 @@ fn test_datatypes_nullable() {
 
 #[test]
 fn test_datatypes_not_nullable() {
-    let mut cl = get_connection();
+    let cl = get_connection();
     let rows = cl.query("SELECT * FROM [test].[dbo].[test_not_nullable];").unwrap();
     assert_eq!(rows.len(), 1);
     // varchar(50)
