@@ -15,8 +15,7 @@ pub struct TokenStreamRetVal<'a> {
     pub status: u8,
     pub user_type: u32,
     pub flags: u16,
-    pub tyinfo: TypeInfo,
-    pub data: ColumnValue<'a>,
+    pub data: Option<ColumnValue<'a>>,
 }
 
 impl<'a> DecodeTokenStream for TokenStreamRetVal<'a> {
@@ -26,17 +25,21 @@ impl<'a> DecodeTokenStream for TokenStreamRetVal<'a> {
         let status = try!(cursor.read_u8());
         let user_type = try!(cursor.read_u32::<LittleEndian>());
         let flags = try!(cursor.read_u16::<LittleEndian>());
-        let tyinfo = try!(TypeInfo::decode(cursor));
-        let data = try!(ColumnValue::decode(cursor, &tyinfo));
 
-        Ok(TokenStreamRetVal {
+        let mut retval = TokenStreamRetVal {
             pos: pos,
             name: name,
             status: status,
             user_type: user_type,
             flags: flags,
-            tyinfo: tyinfo,
-            data: data,
-        })
+            data: None,
+        };
+
+        // the typeinfo is not sent when fNoMetaData was specified previously
+        let tyinfo = try!(TypeInfo::decode(cursor));
+        let data = try!(ColumnValue::decode(cursor, &tyinfo));
+        retval.data = Some(data);
+
+        Ok(retval)
     }
 }

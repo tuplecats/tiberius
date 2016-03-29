@@ -111,11 +111,11 @@ impl RawPacket {
 
             while cursor.position() < packet_len as u64 {
                 let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
-                match token_type {
-                    MessageTypeToken::Colmetadata => streams.push(TokenStream::Colmetadata(try!(TokenStreamColmetadata::decode_stmt(&mut cursor, stmt)))),
-                    MessageTypeToken::Row => streams.push(TokenStream::Row(try!(TokenStreamRow::decode_stmt(&mut cursor, stmt)))),
-                    _ => { streams.push(try!(handle_token_stream(token_type, &mut cursor))); }
-                }
+                streams.push(match token_type {
+                    MessageTypeToken::Colmetadata => TokenStream::Colmetadata(try!(TokenStreamColmetadata::decode_stmt(&mut cursor, stmt))),
+                    MessageTypeToken::Row => TokenStream::Row(try!(TokenStreamRow::decode_stmt(&mut cursor, stmt))),
+                    _ => try!(handle_token_stream(token_type, &mut cursor))
+                })
             }
             assert_eq!(cursor.position(), packet_len as u64);
         }

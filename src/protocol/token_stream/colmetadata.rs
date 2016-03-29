@@ -15,12 +15,16 @@ impl DecodeStmtTokenStream for TokenStreamColmetadata {
     fn decode_stmt<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, stmt: &mut StatementInfo) -> TdsResult<TokenStreamColmetadata> {
         let count = try!(cursor.read_u16::<LittleEndian>());
 
-        // TODO: for prepared statements we may have to cache a stack of column types (for multi-queries)
-        stmt.column_infos.clear();
+        // This is not documented but nothing is sent after the count
+        if count == 0xFFFF {
+            return Ok(TokenStreamColmetadata::None)
+        }
+
         // NoMetaData 0xFFFF / (1 *ColumnData)
         match try!(cursor.read_u16::<LittleEndian>()) {
             0xFFFF => (),
             _ => {
+                stmt.column_infos.clear();
                 let pos = cursor.position() - 2;
                 cursor.set_position(pos);
                 for _ in 0..count {

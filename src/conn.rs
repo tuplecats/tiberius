@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::io::prelude::*;
@@ -28,19 +29,19 @@ impl<S: Read + Write> Connection<S> {
 
 impl<S: Read + Write> Connection<S> {
     /// Execute the given query and return the resulting rows
-    pub fn query<'a>(&'a self, sql: &'a str) -> TdsResult<QueryResult> {
-        let stmt = StatementInternal::new(self.clone(), sql);
+    pub fn query<'a, L>(&'a self, sql: L) -> TdsResult<QueryResult> where L: Into<Cow<'a, str>> {
+        let stmt = StatementInternal::new(self.clone(), sql.into());
         Ok(try!(stmt.execute_into_query()))
     }
 
     /// Execute a sql statement and return the number of affected rows
-    pub fn exec(&self, sql: &str) -> TdsResult<usize> {
-        let mut stmt = StatementInternal::new(self.clone(), sql);
+    pub fn exec<'a, L>(&self, sql: L) -> TdsResult<usize> where L: Into<Cow<'a, str>> {
+        let mut stmt = StatementInternal::new(self.clone(), sql.into());
         Ok(try!(stmt.execute()))
     }
 
-    pub fn prepare<'a>(&self, sql: &'a str) -> TdsResult<PreparedStatement<'a, S>> {
-        Ok(try!(PreparedStatement::new(self.clone(), sql)))
+    pub fn prepare<'a, L>(&self, sql: L) -> TdsResult<PreparedStatement<'a, S>> where L: Into<Cow<'a, str>> {
+        Ok(try!(PreparedStatement::new(self.clone(), sql.into())))
     }
 }
 

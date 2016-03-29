@@ -114,7 +114,7 @@ impl<'a> IntoIterator for QueryResult<'a> {
 #[doc(hidden)]
 pub struct StatementInternal<'a, S: 'a> where S: Read + Write {
     conn: Connection<S>,
-    query: &'a str,
+    query: Cow<'a, str>,
     stmt: Rc<RefCell<StatementInfo>>,
 }
 
@@ -162,7 +162,7 @@ fn handle_query_packet<'a>(packet: Packet<'a>, stmt: Rc<RefCell<StatementInfo>>)
 }
 
 impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
-    pub fn new(conn: Connection<S>, query: &'a str) -> StatementInternal<'a, S> {
+    pub fn new(conn: Connection<S>, query: Cow<'a, str>) -> StatementInternal<'a, S> {
         StatementInternal {
             conn: conn,
             query: query,
@@ -172,14 +172,14 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
 
     pub fn execute_into_query(self) -> TdsResult<QueryResult<'a>> {
         let mut conn = self.conn.borrow_mut();
-        try!(conn.internal_exec(self.query));
+        try!(conn.internal_exec(&self.query));
         let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
         handle_query_packet(packet, self.stmt)
     }
 
     pub fn execute(&mut self) -> TdsResult<usize> {
         let mut conn = self.conn.borrow_mut();
-        try!(conn.internal_exec(self.query));
+        try!(conn.internal_exec(&self.query));
         let packet = try!(try!(conn.stream.read_packet()).into_general_token_stream());
         handle_execute_packet(&packet)
     }
@@ -188,11 +188,11 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
 pub struct PreparedStatement<'a, S: 'a> where S: Read + Write {
     conn: Connection<S>,
     stmt: Rc<RefCell<StatementInfo>>,
-    sql: &'a str,
+    sql: Cow<'a, str>,
 }
 
 impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
-    pub fn new(conn: Connection<S>, sql: &'a str) -> TdsResult<PreparedStatement<'a, S>> {
+    pub fn new(conn: Connection<S>, sql: Cow<'a, str>) -> TdsResult<PreparedStatement<'a, S>> {
         Ok(PreparedStatement{
             conn: conn,
             sql: sql,
@@ -201,7 +201,7 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
     }
 
     /// Prepares the actual statement (sp_prepare)
-    fn do_prepare(&self, params: &[&ToColumnType]) -> TdsResult<()> {
+    fn do_prepare(&self, stmt: &mut StatementInfo, params: &[&ToColumnType]) -> TdsResult<()> {
         let mut param_str = String::new();
         // determine the types from the given params
         let mut i = 0;
@@ -229,7 +229,7 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
             RpcParamData {
                 name: Cow::Borrowed("stmt"),
                 status_flags: 0,
-                value: ColumnType::String(Cow::Borrowed(self.sql)),
+                value: ColumnType::String(self.sql.clone()),
             }
         ];
         let rpc_req = RpcRequestData {
@@ -241,15 +241,15 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
         let mut conn = self.conn.borrow_mut();
         try!(conn.send_packet(&rpc_packet));
         {
-            let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
-            //try!(packet.catch_error());
+            let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(stmt));
+            try!(packet.catch_error());
             match packet {
                 Packet::TokenStream(ref tokens) => {
                     for token in tokens {
                         match *token {
                             TokenStream::ReturnValue(ref retval) if retval.name == "handle" => {
-                                if let ColumnValue::Some(ColumnType::I32(ihandle)) = retval.data {
-                                    self.stmt.borrow_mut().handle = Some(ihandle as u32);
+                                if let Some(ColumnValue::Some(ColumnType::I32(ihandle))) = retval.data {
+                                    stmt.handle = Some(ihandle as u32);
                                 } else {
                                     return Err(TdsError::Other(format!("prepare: invalid handle id {:?}", tokens)))
                                 }
@@ -260,7 +260,7 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
                 },
                 _ => return Err(TdsError::Other(format!("exec: Unexpected packet {:?}", packet)))
             }
-            if self.stmt.borrow().handle.is_none() {
+            if stmt.handle.is_none() {
                 return Err(TdsError::Other(format!("prepare: did not receive a handle id {:?}", packet)))
             }
         }
@@ -268,12 +268,13 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
     }
 
     /// Execute the statement (sp_execute)
-    fn do_internal_exec(&self, params: &[&ToColumnType]) -> TdsResult<()> {
+    #[inline]
+    fn do_internal_exec(&self, stmt: &mut StatementInfo, params: &[&ToColumnType]) -> TdsResult<()> {
         let mut params_meta = vec![
             RpcParamData {
                 name: Cow::Borrowed("handle"),
                 status_flags: rpc::fByRefValue,
-                value: ColumnType::I32(self.stmt.borrow().handle.unwrap() as i32),
+                value: ColumnType::I32(stmt.handle.unwrap() as i32),
             },
         ];
         for (i, param) in params.iter().enumerate() {
@@ -283,10 +284,11 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
                 value: param.to_column_type(),
             });
         }
+
         let rpc_req = RpcRequestData {
             // as freeTDS, use sp_execute since SpPrepare (as int) seems broken, even microsofts odbc driver seems to use this
             proc_id: RpcProcIdValue::Name(Cow::Borrowed("sp_execute")),
-            flags: 0,
+            flags: rpc::fNoMetaData,
             params: params_meta,
         };
         let rpc_packet = Packet::RpcRequest(&rpc_req);
@@ -298,12 +300,16 @@ impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
     /// Makes sure the statement is prepared, since we lazily prepare statements
     /// and then executes the statement, handling it as a query and therefore returning the results as rows
     pub fn query<'b>(&self, params: &[&ToColumnType]) -> TdsResult<QueryResult<'b>> {
-        if self.stmt.borrow().handle.is_none() {
-            try!(self.do_prepare(params));
+        let packet;
+        {
+            let mut stmt = &mut * self.stmt.borrow_mut();
+            if stmt.handle.is_none() {
+                try!(self.do_prepare(stmt, params));
+            }
+            try!(self.do_internal_exec(stmt, params));
+            let mut conn = self.conn.borrow_mut();
+            packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(stmt));
         }
-        try!(self.do_internal_exec(params));
-        let mut conn = self.conn.borrow_mut();
-        let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
         handle_query_packet(packet, self.stmt.clone())
     }
 }

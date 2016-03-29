@@ -21,6 +21,11 @@ pub enum RpcProcId {
 /// pass the parameter by reference (e.g. OUTPUT)
 pub const fByRefValue: u8 = 0x01;
 
+pub const fWithRecomp: u16 = 0x01;
+/// client already cached meta data
+pub const fNoMetaData: u16 = 0x02;
+pub const fReuseMetaData: u16 = 0x04;
+
 #[derive(Debug)]
 pub struct RpcParamData<'a> {
     pub name: Cow<'a, str>,

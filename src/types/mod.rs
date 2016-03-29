@@ -41,6 +41,16 @@ impl ToColumnType for i32 {
     }
 }
 
+impl<'a> ToColumnType for &'a str {
+    fn to_column_type(&self) -> ColumnType {
+        ColumnType::String(Cow::Borrowed(self))
+    }
+
+    fn column_type(&self) -> &'static str {
+        "nvarchar"
+    }
+}
+
 macro_rules! column_conv_unpack {
     (pack, true, $val:expr) => (Some($val));
     (pack, false, $val:expr) => ($val);
