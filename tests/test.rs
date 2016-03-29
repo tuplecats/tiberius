@@ -1,21 +1,8 @@
 extern crate tiberius;
+extern crate chrono;
 use std::net::TcpStream;
+use self::chrono::{NaiveDateTime};
 use tiberius::{Guid, Connection};
-
-fn main()
-{
-    let cl = Connection::connect_tcp("127.0.0.1", 1433).unwrap();
-    let rows = cl.query("SELECT * FROM [test].[dbo].[test];").unwrap();
-    println!("rows: {:?}", rows);
-    for row in rows {
-        let d: Option<&Guid> = row.get("test3");
-        match d {
-            None => (),
-            Some(ref x) => println!("{}", x.as_str())
-        }
-        println!("data: {:?}", d);
-    }
-}
 
 pub fn get_connection() -> Connection<TcpStream> {
     Connection::connect_tcp("127.0.0.1", 1433).unwrap()
@@ -78,4 +65,19 @@ fn test_datatypes_not_nullable() {
     // smallmoney
     let money: f32 = rows.get(0).get("col_money4");
     assert_eq!(money, 52.10);
+    // money
+    let money: f64 = rows.get(0).get("col_money8");
+    assert_eq!(money, 42.66);
+    // datetime4
+    let mut time: &NaiveDateTime = rows.get(0).get("col_datetime4");
+    assert_eq!(time.to_string(), "2016-03-29 12:16:00");
+    // datetime4
+    time = rows.get(0).get("col_datetime8");
+    assert_eq!(time.to_string(), "2015-02-26 12:42:00");
+    // decimal(4, 2)
+    let dec: f64 = rows.get(0).get("col_decimal");
+    assert_eq!(dec, 42.42);
+    // numeric(18, 0)
+    let dec: f64 = rows.get(0).get("col_numeric");
+    assert_eq!(dec, -43f64);
 }

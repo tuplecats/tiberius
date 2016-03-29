@@ -1,6 +1,4 @@
 extern crate tiberius;
-use std::net::TcpStream;
-use tiberius::{Guid, Connection};
 mod test;
 use test::get_connection;
 

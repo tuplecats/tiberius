@@ -2,6 +2,7 @@
 use std::borrow::Cow;
 use std::io::Cursor;
 use byteorder::{ReadBytesExt};
+use chrono::NaiveDateTime;
 use protocol::{DecodeTokenStream};
 use ::{TdsResult};
 
@@ -17,6 +18,7 @@ pub enum ColumnType<'a> {
     F64(f64),
     String(Cow<'a, str>),
     Guid(Guid),
+    Datetime(NaiveDateTime),
     Binary(Vec<u8>),
 }
 
@@ -100,6 +102,7 @@ column_conv!(f64, F64);
 column_conv!(&'a str, String, true);
 column_conv!(&'a Guid, Guid, true);
 column_conv!(&'a [u8], Binary, true);
+column_conv!(&'a NaiveDateTime, Datetime, true);
 
 /// A TSQL uniqueidentifier/GUID
 #[derive(Debug)]

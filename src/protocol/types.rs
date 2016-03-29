@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::io::prelude::*;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use chrono::{NaiveDateTime, NaiveDate, Duration};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::UTF_16LE;
 use protocol::WriteTokenStream;
@@ -40,25 +41,21 @@ impl DecodeTokenStream for Collation {
 #[derive(PartialEq, Debug, Clone)]
 #[repr(u8)]
 pub enum FixedLenType {
-    // not supported yet, TODO: what is this?
-    Null = 0x1F,
+    // NULLTYPE (0x1F) is never emitted from the SQL-server so we do not list it here
     Int1 = 0x30,
     Bit = 0x32,
     Int2 = 0x34,
     Int4 = 0x38,
     /// Small Date Time
-    // not supported yet
-    DateTim4 = 0x3A,
+    DateTime4 = 0x3A,
     Float4 = 0x3B,
-    // not supported yet
     Money8 = 0x3C,
-    // not supported yet
     DateTime = 0x3D,
     Float8 = 0x3E,
     Money4 = 0x7A,
     Int8 = 0x7F,
 }
-impl_from_primitive!(FixedLenType, Null, Int1, Bit, Int2, Int4, DateTim4, Float4, Money8, DateTime, Float8, Money4, Int8);
+impl_from_primitive!(FixedLenType, Int1, Bit, Int2, Int4, DateTime4, Float4, Money8, DateTime, Float8, Money4, Int8);
 
 /// 2.2.5.4.2
 #[repr(u8)]
@@ -66,36 +63,19 @@ impl_from_primitive!(FixedLenType, Null, Int1, Bit, Int2, Int4, DateTim4, Float4
 pub enum VarLenType {
     Guid = 0x24,
     Intn = 0x26,
-    // not supported yet (scale, precision)
-    Decimal = 0x37,
-    // not supported yet "
-    Numeric = 0x3F,
     // not supported yet
     Bitn = 0x68,
-    // not supported yet "
     Decimaln = 0x6A,
-    // not supported yet "
     Numericn = 0x6C,
     // not supported yet
     Floatn = 0x6D,
     // not supported yet
     Money = 0x6E,
-    // not supported yet
     Datetimen = 0x6F,
     //Daten = 0x28 ; (introduced in TDS 7.3 TODO add support)
     //Timen = 0x29 ; (introduced in TDS 7.3)
     //Datetime2 = 0x2A ; (introduced in TDS 7.3)
     //DatetimeOffsetn = 0x2B ; (introduced in TDS 7.3)
-    /// legacy types
-
-    // not supported yet
-    Char = 0x2F,
-    // not supported yet
-    VarChar = 0x27,
-    // not supported yet
-    Binary = 0x2D,
-    // not supported yet
-    VarBinary = 0x25,
     /// big types
 
     // not supported yet
@@ -117,24 +97,24 @@ pub enum VarLenType {
     NText = 0x63,
     // not supported yet
     SSVariant = 0x62
+    // legacy types:
+    // Char = 0x2F,
+    // VarChar = 0x27,
+    // Binary = 0x2D,
+    // VarBinary = 0x25,
+    // Numeric = 0x3F,
+    // Decimal = 0x37,
 }
-impl_from_primitive!(VarLenType, Guid, Intn, Decimal, Numeric, Bitn, Decimaln, Numericn, Floatn, Money, Datetimen, Char, VarChar, Binary, VarBinary,
+impl_from_primitive!(VarLenType, Guid, Intn, Bitn, Decimaln, Numericn, Floatn, Money, Datetimen,
     BigVarBin, BigVarChar, BigBinary, BigChar, NVarchar, NChar, Xml, Udt, Text, Image, NText, SSVariant);
-
-#[derive(Debug)]
-pub enum VarLen {
-    Byte(u8),
-    UShortCharBin(u16),
-    Long(i32)
-}
 
 #[derive(Debug)]
 pub enum TypeInfo {
     FixedLenType(FixedLenType),
     /// VARLENTYPE TYPE_VARLEN [COLLATION]
-    VarLenType(VarLenType, VarLen, Option<Collation>),
+    VarLenType(VarLenType, u32, Option<Collation>),
     /// VARLENTYPE TYPE_VARLEN [PRECISION SCALE]
-    VarLenTypeP(VarLenType, VarLen, u8, u8),
+    VarLenTypeP(VarLenType, u32, u8, u8),
 }
 
 impl DecodeTokenStream for TypeInfo {
@@ -149,27 +129,32 @@ impl DecodeTokenStream for TypeInfo {
                     None => return Err(TdsError::Other(format!("column data type {} not supported", tyid))),
                     Some(var_len_type) => {
                         let mut has_collation = false;
+                        let mut has_precision = false;
 
                         let len = match var_len_type {
-                            VarLenType::Guid | VarLenType::Intn => VarLen::Byte(try!(cursor.read_u8())),
+                            VarLenType::Guid | VarLenType::Intn | VarLenType::Datetimen => try!(cursor.read_u8()) as u32,
                             VarLenType::NVarchar | VarLenType::BigChar | VarLenType::BigVarChar => {
                                 // TODO: BIGCHARTYPE, BIGVARCHRTYPE, TEXTTYPE, NTEXTTYPE,NCHARTYPE, NVARCHARTYPE also include collation
                                 has_collation = true;
-                                VarLen::UShortCharBin(try!(cursor.read_u16::<LittleEndian>()))
+                                try!(cursor.read_u16::<LittleEndian>()) as u32
                             },
                             VarLenType::BigBinary => {
-                                VarLen::UShortCharBin(try!(cursor.read_u16::<LittleEndian>()))
+                                try!(cursor.read_u16::<LittleEndian>()) as u32
                             },
                             VarLenType::Text => {
                                 has_collation = true;
-                                VarLen::Long(try!(cursor.read_i32::<LittleEndian>()))
+                                try!(cursor.read_i32::<LittleEndian>()) as u32
+                            },
+                            VarLenType::Decimaln | VarLenType::Numericn => {
+                                has_precision = true;
+                                try!(cursor.read_u8()) as u32
                             },
                             _ => return Err(TdsError::Other(format!("variable length type {:?} not supported", var_len_type)))
                         };
-                        if has_collation {
-                            TypeInfo::VarLenType(var_len_type, len, Some(try!(Collation::decode(cursor))))
-                        } else {
-                            TypeInfo::VarLenType(var_len_type, len, None)
+                        match true {
+                            true if has_collation => TypeInfo::VarLenType(var_len_type, len, Some(try!(Collation::decode(cursor)))),
+                            true if has_precision => TypeInfo::VarLenTypeP(var_len_type, len, try!(cursor.read_u8()), try!(cursor.read_u8())),
+                            _ => TypeInfo::VarLenType(var_len_type, len, None)
                         }
                     }
                 }
@@ -265,6 +250,30 @@ impl<'a, W: Write> WriteTokenStream<&'a ColumnType<'a>> for W {
     }
 }
 
+#[inline]
+fn decode_datetime<T: AsRef<[u8]>>(ty: FixedLenType, cursor: &mut Cursor<T>) -> TdsResult<NaiveDateTime> {
+    let days: i64;
+    let duration = match ty {
+        FixedLenType::DateTime4 => {
+            // days since 1.1.1900
+            days = try!(cursor.read_u16::<LittleEndian>()) as i64;
+            // number of minutes since 12:00 (AM)
+            let mins = try!(cursor.read_u16::<LittleEndian>());
+            Duration::minutes(mins as i64)
+        },
+        FixedLenType::DateTime => {
+            // days since 1.1.1900
+            days = try!(cursor.read_u32::<LittleEndian>()) as i64;
+            // number of 1/300 since 12am
+            let ticks = try!(cursor.read_u32::<LittleEndian>());
+            Duration::nanoseconds((1E9/300f64 * ticks as f64) as i64)
+        },
+        _ => unreachable!()
+    };
+    let date = NaiveDate::from_ymd(1900, 1, 1) + Duration::days(days as i64);
+    Ok(date.and_hms(0, 0, 0) + duration)
+}
+
 /// basically decodes a TYPE_VARBYTE
 impl<'a> ColumnValue<'a> {
     pub fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, tyinfo: &TypeInfo) -> TdsResult<ColumnValue<'a>> {
@@ -279,8 +288,14 @@ impl<'a> ColumnValue<'a> {
                     FixedLenType::Float4 => ColumnValue::Some(ColumnType::F32(try!(cursor.read_f32::<LittleEndian>()))),
                     FixedLenType::Money4 => ColumnValue::Some(ColumnType::F32(try!(cursor.read_i32::<LittleEndian>()) as f32 / (10u32.pow(4) as f32))),
                     FixedLenType::Float8 => ColumnValue::Some(ColumnType::F64(try!(cursor.read_f64::<LittleEndian>()))),
-                    //FixedLenType::Money8 => ColumnValue::Some(ColumnType::F64(try!(cursor.read_i64::<BigEndian>()) as f64 / (10u32.pow(4) as f64))),
-                    _ => panic!("unsupported ftype {:?}", f_type)
+                    FixedLenType::Money8 => {
+                        let mut val: i64 = (try!(cursor.read_i32::<LittleEndian>()) as i64) << 32;
+                        val |= try!(cursor.read_i32::<LittleEndian>()) as i64;
+                        ColumnValue::Some(ColumnType::F64(val as f64 / (10u32.pow(4) as f64)))
+                    },
+                    FixedLenType::DateTime4 | FixedLenType::DateTime => {
+                        ColumnValue::Some(ColumnType::Datetime(try!(decode_datetime(f_type.clone(), cursor))))
+                    }
                 }
             },
             TypeInfo::VarLenType(ref v_type, _, ref collation) => {
@@ -369,10 +384,37 @@ impl<'a> ColumnValue<'a> {
                             _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("guid: length of {} is invalid", len))))
                         }
                     },
+                    VarLenType::Datetimen => {
+                        let len = try!(cursor.read_u8());
+                        match len {
+                            0 => ColumnValue::None,
+                            4 => ColumnValue::Some(ColumnType::Datetime(try!(decode_datetime(FixedLenType::DateTime4, cursor)))),
+                            8 => ColumnValue::Some(ColumnType::Datetime(try!(decode_datetime(FixedLenType::DateTime, cursor)))),
+                            _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetimen: length of {} is invalid", len))))
+                        }
+                    },
                     _ => panic!("unsupported vtype {:?}", v_type)
                 }
             },
-            _ => panic!("unsupported type {:?}", tyinfo)
+            TypeInfo::VarLenTypeP(ref v_type, _, ref precision, ref scale) => {
+                match *v_type {
+                    VarLenType::Decimaln | VarLenType::Numericn => {
+                        let len = try!(cursor.read_u8());
+                        let sign = try!(cursor.read_u8()) == 0;
+                        let f = match sign {
+                            true => -1.0,
+                            false => 1.0,
+                        };
+
+                        match len {
+                            5 => ColumnValue::Some(ColumnType::F64(f * try!(cursor.read_u32::<LittleEndian>()) as f64 / (10f64).powi(*scale as i32))),
+                            9 => ColumnValue::Some(ColumnType::F64(f * try!(cursor.read_u64::<LittleEndian>()) as f64 / (10f64).powi(*scale as i32))),
+                            _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("decimal: length of {} is unsupported", *precision))))
+                        }
+                    },
+                    _ => panic!("unsupported scaled vtype {:?}", v_type)
+                }
+            }
         })
     }
 }
