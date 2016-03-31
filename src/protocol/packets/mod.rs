@@ -94,7 +94,7 @@ impl RawPacket {
             let mut cursor = Cursor::new(self.data);
 
             while cursor.position() < packet_len as u64 {
-                let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
+                let token_type = read_packet_data!(None, cursor, read_u8, from_u8, "unknown message token '0x{:x}'", cursor.position());
                 let stream = try!(handle_token_stream(token_type, &mut cursor));
                 streams.push(stream);
             }
@@ -110,7 +110,7 @@ impl RawPacket {
             let mut cursor = Cursor::new(self.data);
 
             while cursor.position() < packet_len as u64 {
-                let token_type = read_packet_data!(cursor, read_u8, from_u8, "unknown message token '0x{:x}'");
+                let token_type = read_packet_data!(None, cursor, read_u8, from_u8, "unknown message token '0x{:x}'", cursor.position());
                 streams.push(match token_type {
                     MessageTypeToken::Colmetadata => TokenStream::Colmetadata(try!(TokenStreamColmetadata::decode_stmt(&mut cursor, stmt))),
                     MessageTypeToken::Row => TokenStream::Row(try!(TokenStreamRow::decode_stmt(&mut cursor, stmt))),
@@ -226,13 +226,13 @@ impl<R: Read> ReadPacket for R
 {
     fn read_packet(&mut self) -> TdsResult<RawPacket> {
         let mut header = PacketHeader::new();
-        header.ptype = read_packet_data!(self, read_u8, from_u8, "header: unknown packet type {}");
-        header.status = read_packet_data!(self, read_u8, from_u8, "header: unknown status {}");
-        header.length = read_packet_data!(self, read_u16, BigEndian, from_u16, "header: invalid header length {}");
-        header.spid[0] = read_packet_data!(self, read_u8, from_u8, "header: invalid spid[0] {}");
-        header.spid[1] = read_packet_data!(self, read_u8, from_u8, "header: invalid spid[1] {}");
-        header.id = read_packet_data!(self, read_u8, from_u8, "header: invalid id {}");
-        header.window = read_packet_data!(self, read_u8, from_u8, "header: invalid window {}");
+        header.ptype = read_packet_data!(None, self, read_u8, from_u8, "header: unknown packet type {}");
+        header.status = read_packet_data!(None, self, read_u8, from_u8, "header: unknown status {}");
+        header.length = read_packet_data!(BigEndian, self, read_u16, from_u16, "header: invalid header length {}");
+        header.spid[0] = read_packet_data!(None, self, read_u8, from_u8, "header: invalid spid[0] {}");
+        header.spid[1] = read_packet_data!(None, self, read_u8, from_u8, "header: invalid spid[1] {}");
+        header.id = read_packet_data!(None, self, read_u8, from_u8, "header: invalid id {}");
+        header.window = read_packet_data!(None, self, read_u8, from_u8, "header: invalid window {}");
 
         let mut buf = vec![0 as u8; header.length as usize - 8];
         let read_bytes = try!(self.read(&mut buf[..]));

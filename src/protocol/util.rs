@@ -132,12 +132,14 @@ macro_rules! impl_from_primitive {
 }
 
 macro_rules! read_packet_data {
-    ($_self:expr,$read_fn:ident,$from_fn:ident,$msg:expr) => ({
+    (None, $_self:expr,$read_fn:ident,$from_fn:ident,$msg:expr) => { read_packet_data!(None, $_self, $read_fn, $from_fn, $msg, 0) };
+    (None, $_self:expr,$read_fn:ident,$from_fn:ident,$msg:expr, $line:expr) => ({
         let read_data = try!($_self.$read_fn());
-        try!(::protocol::util::FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
+        try!(::protocol::util::FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data), $line)))
     });
-    ($_self:expr,$read_fn:ident,$read_gen:ty,$from_fn:ident,$msg:expr) => ({
+    ($read_gen:ty,$_self:expr,$read_fn:ident,$from_fn:ident,$msg:expr) => { read_packet_data!($read_gen, $_self, $read_fn, $from_fn, $msg, 0) };
+    ($read_gen:ty,$_self:expr,$read_fn:ident,$from_fn:ident,$msg:expr,$line:expr) => ({
         let read_data = try!($_self.$read_fn::<$read_gen>());
-        try!(::protocol::util::FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data))))
-    })
+        try!(::protocol::util::FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!($msg, read_data), $line)))
+    });
 }

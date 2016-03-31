@@ -63,41 +63,32 @@ impl_from_primitive!(FixedLenType, Int1, Bit, Int2, Int4, DateTime4, Float4, Mon
 pub enum VarLenType {
     Guid = 0x24,
     Intn = 0x26,
-    // not supported yet
     Bitn = 0x68,
     Decimaln = 0x6A,
     Numericn = 0x6C,
-    // not supported yet
     Floatn = 0x6D,
-    // not supported yet
     Money = 0x6E,
     Datetimen = 0x6F,
     //Daten = 0x28 ; (introduced in TDS 7.3 TODO add support)
     //Timen = 0x29 ; (introduced in TDS 7.3)
     //Datetime2 = 0x2A ; (introduced in TDS 7.3)
     //DatetimeOffsetn = 0x2B ; (introduced in TDS 7.3)
-    /// big types
-
-    // not supported yet
     BigVarBin = 0xA5,
     BigVarChar = 0xA7,
     BigBinary = 0xAD,
     BigChar = 0xAF,
     NVarchar = 0xE7,
-    // not supported yet
     NChar = 0xEF,
     // not supported yet
     Xml = 0xF1,
     // not supported yet
     Udt = 0xF0,
     Text = 0x23,
-    // not supported yet
     Image = 0x22,
-    // not supported yet
     NText = 0x63,
     // not supported yet
     SSVariant = 0x62
-    // legacy types:
+    // legacy types (not supported since post-7.2):
     // Char = 0x2F,
     // VarChar = 0x27,
     // Binary = 0x2D,
@@ -132,19 +123,20 @@ impl DecodeTokenStream for TypeInfo {
                         let mut has_precision = false;
 
                         let len = match var_len_type {
-                            VarLenType::Guid | VarLenType::Intn | VarLenType::Datetimen => try!(cursor.read_u8()) as u32,
-                            VarLenType::NVarchar | VarLenType::BigChar | VarLenType::BigVarChar => {
-                                // TODO: BIGCHARTYPE, BIGVARCHRTYPE, TEXTTYPE, NTEXTTYPE,NCHARTYPE, NVARCHARTYPE also include collation
+                            VarLenType::Guid | VarLenType::Intn | VarLenType::Datetimen | VarLenType::Floatn | VarLenType::Money | VarLenType::Bitn => try!(cursor.read_u8()) as u32,
+                            VarLenType::NVarchar | VarLenType::BigChar | VarLenType::BigVarChar | VarLenType::NChar => {
+                                // TODO: BIGCHARTYPE, NVARCHARTYPE also include collation
                                 has_collation = true;
                                 try!(cursor.read_u16::<LittleEndian>()) as u32
                             },
-                            VarLenType::BigBinary => {
+                            VarLenType::BigBinary | VarLenType::BigVarBin => {
                                 try!(cursor.read_u16::<LittleEndian>()) as u32
                             },
-                            VarLenType::Text => {
+                            VarLenType::Text | VarLenType::NText => {
                                 has_collation = true;
                                 try!(cursor.read_i32::<LittleEndian>()) as u32
                             },
+                            VarLenType::Image => try!(cursor.read_u32::<LittleEndian>()),
                             VarLenType::Decimaln | VarLenType::Numericn => {
                                 has_precision = true;
                                 try!(cursor.read_u8()) as u32
@@ -185,7 +177,7 @@ impl DecodeTokenStream for ColumnData {
         let has_tablename = match type_info {
             TypeInfo::VarLenType(ref ty, _, _) | TypeInfo::VarLenTypeP(ref ty, _, _, _) => {
                 match *ty {
-                    VarLenType::Text => true,
+                    VarLenType::Text | VarLenType::NText | VarLenType::Image => true,
                     _ => false
                 }
             },
@@ -274,6 +266,19 @@ fn decode_datetime<T: AsRef<[u8]>>(ty: FixedLenType, cursor: &mut Cursor<T>) -> 
     Ok(date.and_hms(0, 0, 0) + duration)
 }
 
+#[inline]
+fn decode_money<'a, T: AsRef<[u8]>>(ty: FixedLenType, cursor: &mut Cursor<T>) -> TdsResult<ColumnType<'a>> {
+    Ok(match ty {
+        FixedLenType::Money4 => ColumnType::F32(try!(cursor.read_i32::<LittleEndian>()) as f32 / (10u32.pow(4) as f32)),
+        FixedLenType::Money8 => {
+            let mut val: i64 = (try!(cursor.read_i32::<LittleEndian>()) as i64) << 32;
+            val |= try!(cursor.read_i32::<LittleEndian>()) as i64;
+            ColumnType::F64(val as f64 / (10u32.pow(4) as f64))
+        },
+        _ => unreachable!()
+    })
+}
+
 /// basically decodes a TYPE_VARBYTE
 impl<'a> ColumnValue<'a> {
     pub fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, tyinfo: &TypeInfo) -> TdsResult<ColumnValue<'a>> {
@@ -286,13 +291,9 @@ impl<'a> ColumnValue<'a> {
                     FixedLenType::Int4 => ColumnValue::Some(ColumnType::I32(try!(cursor.read_i32::<LittleEndian>()))),
                     FixedLenType::Int8 => ColumnValue::Some(ColumnType::I64(try!(cursor.read_i64::<LittleEndian>()))),
                     FixedLenType::Float4 => ColumnValue::Some(ColumnType::F32(try!(cursor.read_f32::<LittleEndian>()))),
-                    FixedLenType::Money4 => ColumnValue::Some(ColumnType::F32(try!(cursor.read_i32::<LittleEndian>()) as f32 / (10u32.pow(4) as f32))),
+                    FixedLenType::Money4 => ColumnValue::Some(try!(decode_money(FixedLenType::Money4, cursor))),
                     FixedLenType::Float8 => ColumnValue::Some(ColumnType::F64(try!(cursor.read_f64::<LittleEndian>()))),
-                    FixedLenType::Money8 => {
-                        let mut val: i64 = (try!(cursor.read_i32::<LittleEndian>()) as i64) << 32;
-                        val |= try!(cursor.read_i32::<LittleEndian>()) as i64;
-                        ColumnValue::Some(ColumnType::F64(val as f64 / (10u32.pow(4) as f64)))
-                    },
+                    FixedLenType::Money8 => ColumnValue::Some(try!(decode_money(FixedLenType::Money8, cursor))),
                     FixedLenType::DateTime4 | FixedLenType::DateTime => {
                         ColumnValue::Some(ColumnType::Datetime(try!(decode_datetime(f_type.clone(), cursor))))
                     }
@@ -314,7 +315,7 @@ impl<'a> ColumnValue<'a> {
                             }
                         }
                     },
-                    VarLenType::NVarchar => {
+                    VarLenType::NVarchar | VarLenType::NChar => {
                         let len = try!(cursor.read_u16::<LittleEndian>());
                         match len == 0xFFFF {
                             true => ColumnValue::None,
@@ -325,7 +326,7 @@ impl<'a> ColumnValue<'a> {
                             }
                         }
                     },
-                    VarLenType::BigBinary => {
+                    VarLenType::BigBinary | VarLenType::BigVarBin => {
                         let len = try!(cursor.read_u16::<LittleEndian>());
                         match len == 0xFFFF {
                             true => ColumnValue::None,
@@ -336,7 +337,7 @@ impl<'a> ColumnValue<'a> {
                             }
                         }
                     },
-                    VarLenType::Text => {
+                    VarLenType::Text | VarLenType::NText | VarLenType::Image => {
                         // TODO what is textptr dummy stuff...
                         match try!(cursor.read_u8()) {
                             0 => ColumnValue::None,
@@ -356,9 +357,18 @@ impl<'a> ColumnValue<'a> {
                                     false => {
                                         let mut buf = vec![0; len as usize];
                                         try!(cursor.read(&mut buf));
-                                        match String::from_utf8(buf) {
-                                            Err(x) => return Err(TdsError::Conversion(Box::new(x))),
-                                            Ok(x) => ColumnValue::Some(ColumnType::String(Cow::Owned(x)))
+                                        match *v_type {
+                                            VarLenType::Text => match String::from_utf8(buf) {
+                                                Err(x) => return Err(TdsError::Conversion(Box::new(x))),
+                                                Ok(x) => ColumnValue::Some(ColumnType::String(Cow::Owned(x)))
+                                            },
+                                            VarLenType::NText => {
+                                                ColumnValue::Some(ColumnType::String(Cow::Owned(try!(UTF_16LE.decode(&buf, DecoderTrap::Strict)))))
+                                            },
+                                            VarLenType::Image => {
+                                                ColumnValue::Some(ColumnType::Binary(buf))
+                                            }
+                                            _ => unreachable!(),
                                         }
                                     }
                                 }
@@ -391,6 +401,33 @@ impl<'a> ColumnValue<'a> {
                             4 => ColumnValue::Some(ColumnType::Datetime(try!(decode_datetime(FixedLenType::DateTime4, cursor)))),
                             8 => ColumnValue::Some(ColumnType::Datetime(try!(decode_datetime(FixedLenType::DateTime, cursor)))),
                             _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetimen: length of {} is invalid", len))))
+                        }
+                    },
+                    /// 2.2.5.5.1.5 IEEE754
+                    VarLenType::Floatn => {
+                        let len = try!(cursor.read_u8());
+                        match len {
+                            0 => ColumnValue::None,
+                            4 => ColumnValue::Some(ColumnType::F32(try!(cursor.read_f32::<LittleEndian>()))),
+                            8 => ColumnValue::Some(ColumnType::F64(try!(cursor.read_f64::<LittleEndian>()))),
+                            _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("floatn: length of {} is invalid", len))))
+                        }
+                    },
+                    VarLenType::Money => {
+                        let len = try!(cursor.read_u8());
+                        match len {
+                            0 => ColumnValue::None,
+                            4 => ColumnValue::Some(try!(decode_money(FixedLenType::Money4, cursor))),
+                            8 => ColumnValue::Some(try!(decode_money(FixedLenType::Money8, cursor))),
+                            _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("money: length of {} is invalid", len))))
+                        }
+                    },
+                    VarLenType::Bitn => {
+                        let len = try!(cursor.read_u8());
+                        match len {
+                            0 => ColumnValue::None,
+                            1 => ColumnValue::Some(ColumnType::Bool(try!(cursor.read_u8()) != 0)),
+                            _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("bitn: length of {} is invalid", len))))
                         }
                     },
                     _ => panic!("unsupported vtype {:?}", v_type)

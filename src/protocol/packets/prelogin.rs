@@ -88,12 +88,12 @@ impl<R: BufRead> ReadOptionToken for R {
             0 => OptionTokenPair::Version(try!(self.read_u32::<BigEndian>()), try!(self.read_u16::<BigEndian>())),
             1 => {
                 let read_data = try!(self.read_u8());
-                OptionTokenPair::Encryption(try!(FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!("prelogin: could not parse encryption: {}", read_data)))))
+                OptionTokenPair::Encryption(try!(FromPrimitive::from(read_data).ok_or(TdsProtocolError::InvalidValue(format!("prelogin: could not parse encryption: {}", read_data), 0))))
             },
             2 => {
                 let mut buf = vec![0 as u8; max_len as usize - 1];
                 try!(self.read(&mut buf));
-                OptionTokenPair::Instance(try!(String::from_utf8(buf).map_err(|_| TdsProtocolError::InvalidValue(format!("prelogin: invalid string for instance name")))))
+                OptionTokenPair::Instance(try!(String::from_utf8(buf).map_err(|_| TdsProtocolError::InvalidValue(format!("prelogin: invalid string for instance name"), 0))))
             },
             3 =>  OptionTokenPair::ThreadId(if max_len > 0 { try!(self.read_u32::<BigEndian>()) } else { 0 }),
             4 => OptionTokenPair::Mars(try!(self.read_u8())),
@@ -111,7 +111,7 @@ impl<R: BufRead> ReadOptionToken for R {
                 OptionTokenPair::Nonce(nonce)
             },
             255 => OptionTokenPair::Terminator,
-            _ => return Err(TdsError::from(TdsProtocolError::InvalidValue(format!("prelogin: option_token: invalid value {}", token))))
+            _ => return Err(TdsError::from(TdsProtocolError::InvalidValue(format!("prelogin: option_token: invalid value {}", token), 0)))
         })
     }
 }

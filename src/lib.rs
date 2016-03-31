@@ -23,7 +23,7 @@ pub type ServerError = protocol::TokenStreamError;
 
 #[derive(Debug)]
 pub enum TdsProtocolError {
-    InvalidValue(String),
+    InvalidValue(String, u64),
     InvalidLength(String)
 }
 

@@ -11,7 +11,6 @@ pub fn get_connection() -> Connection<TcpStream> {
 #[test]
 fn test_datatypes_nullable() {
     let cl = get_connection();
-    println!("--0");
     let rows = cl.query("SELECT * FROM [test].[dbo].[test];").unwrap();
     assert_eq!(rows.len(), 5);
     // varchar(50): nullable
@@ -37,6 +36,18 @@ fn test_datatypes_nullable() {
     // binary(50)
     let binary: &[u8] = rows.get(4).get("col_binary");
     assert!(binary.iter().take(6).eq([1, 2, 3, 4, 5, 6].iter()));
+    // float
+    let fl: f64 = rows.get(2).get("col_float");
+    assert_eq!(fl, 42.42);
+    // money
+    let m: f64 = rows.get(3).get("col_money");
+    assert_eq!(m, 52.26);
+    // bit
+    let b: bool = rows.get(1).get("col_bit");
+    assert_eq!(b, true);
+    // ntext
+    let ntext: &str = rows.get(4).get("col_ntext");
+    assert_eq!(ntext, "chinese:莊子");
 }
 
 #[test]
@@ -80,4 +91,15 @@ fn test_datatypes_not_nullable() {
     // numeric(18, 0)
     let dec: f64 = rows.get(0).get("col_numeric");
     assert_eq!(dec, -43f64);
+    // varbinary(5=)
+    let bytes: &[u8] = rows.get(0).get("col_varbinary");
+    assert_eq!(bytes, [0x00, 0x00, 0x01, 0x00]);
+    // nchar(5)
+    let nc: &str = rows.get(0).get("col_nchar");
+    assert_eq!(nc, "abc       ");
+    // col_image
+    let mut test = [0u8; 30];
+    test[28] = 2;
+    let b: &[u8] = rows.get(0).get("col_image");
+    assert_eq!(b, test);
 }

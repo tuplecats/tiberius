@@ -49,7 +49,7 @@ impl DecodeTokenStream for TokenStreamEnvChange {
     fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<TokenStreamEnvChange> {
         let start_pos = cursor.position();
         let end_pos = start_pos + try!(cursor.read_u16::<LittleEndian>()) as u64;
-        let token_type: EnvChangeType = read_packet_data!(cursor, read_u8, from_u8, "unknown envchange token type '0x{:x}'");
+        let token_type: EnvChangeType = read_packet_data!(None, cursor, read_u8, from_u8, "unknown envchange token type '0x{:x}'");
         Ok(match token_type {
             EnvChangeType::PacketSize => TokenStreamEnvChange::PacketSize(try!(cursor.read_b_varchar()), if cursor.position() < end_pos { Some(try!(cursor.read_b_varchar())) } else { None }),
             _ => panic!("unsupported envchange token: 0x{:x}", token_type as u8)
