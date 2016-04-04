@@ -14,8 +14,8 @@ pub fn get_connection<'a>() -> Connection<'a> {
 #[test]
 fn test_datatypes_nullable() {
     let cl = get_connection();
-    let rows = cl.query("SELECT * FROM [test].[dbo].[test];").unwrap();
-    assert_eq!(rows.len(), 5);
+    let rows = cl.query("SELECT * FROM [test].[dbo].[test] ORDER BY id;").unwrap();
+    assert_eq!(rows.len(), 6);
     // varchar(50): nullable
     let mut str1: Option<&str> = rows.get(0).get("col_varchar_50");
     assert_eq!(str1, Some("HelloWorld"));
@@ -49,8 +49,12 @@ fn test_datatypes_nullable() {
     let b: bool = rows.get(1).get("col_bit");
     assert_eq!(b, true);
     // ntext
-    let ntext: &str = rows.get(4).get("col_ntext");
+    let mut ntext: &str = rows.get(4).get("col_ntext");
     assert_eq!(ntext, "chinese:莊子");
+    // text (16k)
+    ntext = rows.get(5).get("col_text");
+    assert_eq!(ntext.len(), 4096);
+    assert!(ntext.chars().all(|c| c == 't'));
 }
 
 #[test]

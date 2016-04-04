@@ -17,6 +17,8 @@ use ::{TdsResult, TdsError, TdsProtocolError};
 
 pub trait ReadPacket {
     fn read_packet(&mut self) -> TdsResult<RawPacket>;
+    /// bundles multiple subsequent (NormalPacket) packets until the last packet (EOM) into one
+    fn read_message(&mut self) -> TdsResult<RawPacket>;
 }
 
 pub trait WritePacket {
@@ -56,6 +58,11 @@ fn handle_token_stream<'a, C: AsRef<[u8]>>(token_type: MessageTypeToken, cursor:
         },
         MessageTypeToken::ReturnValue => {
             Ok(TokenStream::ReturnValue(try!(TokenStreamRetVal::decode(cursor))))
+        },
+        MessageTypeToken::Order => {
+            let len = try!(cursor.read_u16::<LittleEndian>()) / 2;
+            let order = try!((0..len).map(|_| cursor.read_u16::<LittleEndian>()).collect());
+            Ok(TokenStream::Order(order))
         },
         _ => Err(TdsError::Other(format!("token {:?} not supported yet", token_type)))
     }
@@ -224,6 +231,7 @@ impl_from_primitive!(PacketStatus, NormalMessage, EndOfMessage, IgnoreEvent, Res
 
 impl<R: Read> ReadPacket for R
 {
+    #[inline]
     fn read_packet(&mut self) -> TdsResult<RawPacket> {
         let mut header = PacketHeader::new();
         header.ptype = read_packet_data!(None, self, read_u8, from_u8, "header: unknown packet type {}");
@@ -238,6 +246,29 @@ impl<R: Read> ReadPacket for R
         let read_bytes = try!(self.read(&mut buf[..]));
         assert_eq!(read_bytes, buf.len());
         Ok(RawPacket { header: header, data: buf })
+    }
+
+    fn read_message(&mut self) -> TdsResult<RawPacket> {
+        let mut header = PacketHeader::new();
+        let mut data = vec![];
+        loop {
+            let packet = try!(self.read_packet());
+
+            if data.len() == 0 {
+                data = packet.data;
+            } else {
+                data.extend(packet.data);
+            }
+
+            if packet.header.status == PacketStatus::NormalMessage {
+                continue
+            } else {
+                header.ptype = packet.header.ptype;
+                header.status = packet.header.status;
+                break
+            }
+        }
+        Ok(RawPacket { header: header, data: data })
     }
 }
 

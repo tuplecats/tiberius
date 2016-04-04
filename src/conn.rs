@@ -198,8 +198,8 @@ impl<'c> InternalConnection<'c> {
     }
 
     /// read and parse "simple" packets
-    fn read_packet<'a>(&mut self) -> TdsResult<Packet<'a>> {
-        let packet = try!(self.stream.read_packet());
+    pub fn read_packet<'a>(&mut self) -> TdsResult<Packet<'a>> {
+        let packet = try!(self.stream.read_message());
         Ok(match self.state {
             ClientState::Initial => {
                 try!(packet.into_prelogin())

@@ -36,8 +36,9 @@ pub enum MessageTypeToken
     Colmetadata = 0x81,
     ReturnValue = 0xAC,
     Row = 0xD1,
+    Order = 0xA9,
 }
-impl_from_primitive!(MessageTypeToken, Done, DoneProc, DoneInProc, EnvChange, Error, LoginAck, ReturnStatus, Colmetadata, ReturnValue, Row);
+impl_from_primitive!(MessageTypeToken, Done, DoneProc, DoneInProc, EnvChange, Error, LoginAck, ReturnStatus, Colmetadata, ReturnValue, Row, Order);
 
 pub trait DecodeTokenStream {
     fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<Self> where Self: Sized;
@@ -62,6 +63,7 @@ pub enum TokenStream<'a> {
     Colmetadata(TokenStreamColmetadata),
     Row(TokenStreamRow<'a>),
     ReturnStatus(i32),
+    Order(Vec<u16>),
     ReturnValue(TokenStreamRetVal<'a>),
 }
 

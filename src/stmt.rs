@@ -172,14 +172,14 @@ impl<'a> StatementInternal<'a> {
     pub fn execute_into_query(self) -> TdsResult<QueryResult<'a>> {
         let mut conn = self.conn.borrow_mut();
         try!(conn.internal_exec(&self.query));
-        let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
+        let packet = try!(try!(conn.stream.read_message()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
         handle_query_packet(packet, self.stmt)
     }
 
     pub fn execute(&mut self) -> TdsResult<usize> {
         let mut conn = self.conn.borrow_mut();
         try!(conn.internal_exec(&self.query));
-        let packet = try!(try!(conn.stream.read_packet()).into_general_token_stream());
+        let packet = try!(conn.read_packet());
         handle_execute_packet(&packet)
     }
 }
@@ -240,7 +240,7 @@ impl<'a> PreparedStatement<'a> {
         let mut conn = self.conn.borrow_mut();
         try!(conn.send_packet(&rpc_packet));
         {
-            let packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(stmt));
+            let packet = try!(try!(conn.stream.read_message()).into_stmt_token_stream(stmt));
             try!(packet.catch_error());
             match packet {
                 Packet::TokenStream(ref tokens) => {
@@ -307,7 +307,7 @@ impl<'a> PreparedStatement<'a> {
             }
             try!(self.do_internal_exec(stmt, params));
             let mut conn = self.conn.borrow_mut();
-            packet = try!(try!(conn.stream.read_packet()).into_stmt_token_stream(stmt));
+            packet = try!(try!(conn.stream.read_message()).into_stmt_token_stream(stmt));
         }
         handle_query_packet(packet, self.stmt.clone())
     }
