@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
+use std::fmt;
 use std::rc::Rc;
 use std::io::prelude::*;
-use std::net::TcpStream;
+use std::net::{TcpStream, ToSocketAddrs};
 use std::ops::Deref;
 
 use protocol::*;
@@ -18,63 +19,137 @@ pub enum ClientState {
 
 /// A connection to a MSSQL server
 
-pub struct Connection<S: Write>(Rc<RefCell<InternalConnection<S>>>);
+pub trait TargetStream: Read + Write + fmt::Debug {}
+impl<T: Read + Write + fmt::Debug> TargetStream for T {}
+
+pub struct Connection<'a>(Rc<RefCell<InternalConnection<'a>>>);
+
+#[derive(Debug)]
+pub enum AuthenticationMethod<'a> {
+    /// username, password
+    InternalSqlServerAuth(Cow<'a, str>, Cow<'a, str>)
+}
+
+impl<'a> AuthenticationMethod<'a> {
+    pub fn internal<U: Into<Cow<'a, str>>, P: Into<Cow<'a, str>>>(username: U, password: P) -> AuthenticationMethod<'a> {
+        AuthenticationMethod::InternalSqlServerAuth(username.into(), password.into())
+    }
+}
+
+pub struct ConnectionOptBuilder<'a> {
+    auth: Option<AuthenticationMethod<'a>>,
+    database: Option<Cow<'a, str>>,
+}
+
+impl<'a> ConnectionOptBuilder<'a> {
+    pub fn new() -> ConnectionOptBuilder<'a> {
+        ConnectionOptBuilder {
+            auth: None,
+            database: None,
+        }
+    }
+    pub fn auth(mut self, method: AuthenticationMethod<'a>) -> ConnectionOptBuilder<'a> {
+        self.auth = Some(method);
+        self
+    }
+
+    pub fn db<D: Into<Cow<'a, str>>>(mut self, db: D) -> ConnectionOptBuilder<'a> {
+        self.database = Some(db.into());
+        self
+    }
+
+    pub fn build(self) -> ConnectionOptions<'a> {
+        ConnectionOptions {
+            auth: self.auth.unwrap(),
+            database: self.database.unwrap(),
+        }
+    }
+}
+
+// TODO: allow connecting via URL, ... (easier usage)
+#[derive(Debug)]
+pub struct ConnectionOptions<'a> {
+    pub auth: AuthenticationMethod<'a>,
+    pub database: Cow<'a, str>,
+}
+
+pub trait IntoConnectOpts<'a> {
+    fn into_connect_opts(self) -> TdsResult<ConnectionOptions<'a>>;
+}
+
+impl<'a> IntoConnectOpts<'a> for ConnectionOptions<'a> {
+    fn into_connect_opts(self) -> TdsResult<ConnectionOptions<'a>> {
+        Ok(self)
+    }
+}
 
 // manual impl since autoderef seemed to mess up when cloning
-impl<S: Read + Write> Connection<S> {
-    pub fn clone(&self) -> Connection<S> {
+impl<'a> Connection<'a> {
+    pub fn clone(&'a self) -> Connection<'a> {
         Connection(self.0.clone())
     }
 }
 
-impl<S: Read + Write> Connection<S> {
+impl<'c> Connection<'c> {
     /// Execute the given query and return the resulting rows
-    pub fn query<'a, L>(&'a self, sql: L) -> TdsResult<QueryResult> where L: Into<Cow<'a, str>> {
+    pub fn query<L>(&'c self, sql: L) -> TdsResult<QueryResult> where L: Into<Cow<'c, str>> {
         let stmt = StatementInternal::new(self.clone(), sql.into());
         Ok(try!(stmt.execute_into_query()))
     }
 
     /// Execute a sql statement and return the number of affected rows
-    pub fn exec<'a, L>(&self, sql: L) -> TdsResult<usize> where L: Into<Cow<'a, str>> {
+    pub fn exec<L>(&'c self, sql: L) -> TdsResult<usize> where L: Into<Cow<'c, str>> {
         let mut stmt = StatementInternal::new(self.clone(), sql.into());
         Ok(try!(stmt.execute()))
     }
 
-    pub fn prepare<'a, L>(&self, sql: L) -> TdsResult<PreparedStatement<'a, S>> where L: Into<Cow<'a, str>> {
+    pub fn prepare<L>(&'c self, sql: L) -> TdsResult<PreparedStatement<'c>> where L: Into<Cow<'c, str>> {
         Ok(try!(PreparedStatement::new(self.clone(), sql.into())))
     }
 }
 
-impl<S: Read + Write> Deref for Connection<S> {
-    type Target = Rc<RefCell<InternalConnection<S>>>;
+impl<'a> Deref for Connection<'a> {
+    type Target = Rc<RefCell<InternalConnection<'a>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl Connection<TcpStream> {
-    pub fn connect_tcp(host: &str, port: u16) -> TdsResult<Connection<TcpStream>> {
-        let mut conn = InternalConnection::new(try!(TcpStream::connect(&(host, port))));
+impl<'a> Connection<'a> {
+    pub fn connect<T: IntoConnectOpts<'a>>(stream: Box<TargetStream>, opts: T) -> TdsResult<Connection<'a>> {
+        let opts = try!(opts.into_connect_opts());
+        let mut conn = InternalConnection::new(stream, opts);
         try!(conn.initialize());
         Ok(Connection(Rc::new(RefCell::new(conn))))
     }
 }
 
-/// Internal representation of a Internal Connection
-#[doc(hidden)]
-pub struct InternalConnection<S: Write> {
-    pub stream: S,
-    pub state: ClientState,
-    last_packet_id: u8,
+pub struct TcpConnection;
+impl<'a> TcpConnection {
+    /// connect to the SQL server using the TCP protocol
+    pub fn connect<A: ToSocketAddrs, T: IntoConnectOpts<'a>>(addrs: A, opts: T) -> TdsResult<Connection<'a>> {
+        let stream = try!(TcpStream::connect(addrs));
+        Ok(try!(Connection::connect(Box::new(stream), opts)))
+    }
 }
 
-impl<S: Read + Write> InternalConnection<S> {
-    fn new(str: S) -> InternalConnection<S> {
+/// Internal representation of a Internal Connection
+#[doc(hidden)]
+pub struct InternalConnection<'a> {
+    pub state: ClientState,
+    last_packet_id: u8,
+    pub stream: Box<TargetStream>,
+    pub opts: ConnectionOptions<'a>,
+}
+
+impl<'c> InternalConnection<'c> {
+    fn new(stream: Box<TargetStream>, opts: ConnectionOptions<'c>) -> InternalConnection<'c> {
         InternalConnection {
-            stream: str,
+            stream: stream,
             state: ClientState::Initial,
-            last_packet_id: 0
+            last_packet_id: 0,
+            opts: opts,
         }
     }
 
@@ -99,8 +174,13 @@ impl<S: Read + Write> InternalConnection<S> {
             try!(response_packet.catch_error());
         }
         self.state = ClientState::PreloginPerformed;
-        let login_packet = Login7::new(0x02000972);
-        try!(self.send_packet(&Packet::Login(login_packet)));
+        let mut login_packet = Login7::new(0x02000972);
+        {
+            login_packet.set_auth(&self.opts.auth);
+            login_packet.set_db(self.opts.database.clone());
+        }
+        let packet = Packet::Login(login_packet);
+        try!(self.send_packet(&packet));
         {
             let response_packet = try!(self.read_packet());
             try!(response_packet.catch_error());

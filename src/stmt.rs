@@ -3,7 +3,6 @@ use std::convert::From;
 use std::cell::RefCell;
 use std::fmt::Debug;
 use std::rc::Rc;
-use std::io::prelude::*;
 use protocol::*;
 use conn::{Connection};
 use types::{ColumnType, ColumnValue, ToColumnType};
@@ -112,8 +111,8 @@ impl<'a> IntoIterator for QueryResult<'a> {
 }
 
 #[doc(hidden)]
-pub struct StatementInternal<'a, S: 'a> where S: Read + Write {
-    conn: Connection<S>,
+pub struct StatementInternal<'a> {
+    conn: Connection<'a>,
     query: Cow<'a, str>,
     stmt: Rc<RefCell<StatementInfo>>,
 }
@@ -161,8 +160,8 @@ fn handle_query_packet<'a>(packet: Packet<'a>, stmt: Rc<RefCell<StatementInfo>>)
     Ok(query_result)
 }
 
-impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
-    pub fn new(conn: Connection<S>, query: Cow<'a, str>) -> StatementInternal<'a, S> {
+impl<'a> StatementInternal<'a> {
+    pub fn new(conn: Connection<'a>, query: Cow<'a, str>) -> StatementInternal<'a> {
         StatementInternal {
             conn: conn,
             query: query,
@@ -185,14 +184,14 @@ impl<'a, S: 'a> StatementInternal<'a, S> where S: Read + Write {
     }
 }
 
-pub struct PreparedStatement<'a, S: 'a> where S: Read + Write {
-    conn: Connection<S>,
+pub struct PreparedStatement<'a> {
+    conn: Connection<'a>,
     stmt: Rc<RefCell<StatementInfo>>,
     sql: Cow<'a, str>,
 }
 
-impl<'a, S> PreparedStatement<'a, S> where S: Read + Write {
-    pub fn new(conn: Connection<S>, sql: Cow<'a, str>) -> TdsResult<PreparedStatement<'a, S>> {
+impl<'a> PreparedStatement<'a> {
+    pub fn new(conn: Connection<'a>, sql: Cow<'a, str>) -> TdsResult<PreparedStatement<'a>> {
         Ok(PreparedStatement{
             conn: conn,
             sql: sql,

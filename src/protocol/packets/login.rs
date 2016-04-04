@@ -1,4 +1,5 @@
 //TODO: make chrono optional
+use std::borrow::Cow;
 use std::io::prelude::*;
 use std::io::Cursor;
 use byteorder::{LittleEndian, BigEndian, WriteBytesExt};
@@ -7,7 +8,7 @@ use encoding::{Encoding, EncoderTrap};
 use encoding::all::UTF_16LE;
 use protocol::token_stream::WriteTokenStream;
 use protocol::util::WriteUtf16;
-use ::{LIB_NAME, TdsResult};
+use ::{LIB_NAME, TdsResult, AuthenticationMethod};
 
 macro_rules! write_login_offset {
     ($cursor:expr, $pos:expr, $len:expr) => (write_login_offset!($cursor, $pos, $len, $len));
@@ -20,7 +21,7 @@ macro_rules! write_login_offset {
 
 /// Login7 Packet as specified by 2.2.6.4
 #[derive(Debug)]
-pub struct Login7
+pub struct Login7<'a>
 {
     pub tds_version: u32,
     pub packet_size: u32,
@@ -40,23 +41,23 @@ pub struct Login7
     /// language code identifier
     pub lcid: u32,
     //OffsetLength
-    pub hostname: String,
-    pub username: String,
-    pub password: String,
-    pub app_name: String,
-    pub server_name: String,
-    pub library_name: String,
+    pub hostname: Cow<'a, str>,
+    pub username: Cow<'a, str>,
+    pub password: Cow<'a, str>,
+    pub app_name: Cow<'a, str>,
+    pub server_name: Cow<'a, str>,
+    pub library_name: Cow<'a, str>,
     /// initial lang
-    pub language: String,
+    pub language: Cow<'a, str>,
     /// initial db
-    pub default_db: String,
+    pub default_db: Cow<'a, str>,
     /// unique client identifier created by using the NIC-Address/MAC
     pub client_id: [u8; 6]
 }
 
-impl Login7 {
+impl<'a> Login7<'a> {
     /// Create a new Login7 packet for TDS7.3
-    pub fn new(tds_version: u32) -> Login7 {
+    pub fn new(tds_version: u32) -> Login7<'a> {
         Login7 {
             tds_version: tds_version,
             packet_size: 0x1000,
@@ -69,20 +70,36 @@ impl Login7 {
             type_flags: 0,
             timezone: Local::now().offset().local_minus_utc().num_minutes() as i32,
             lcid: 0x00000409,
-            hostname: "localhost".to_owned(), //TODO
-            username: "test".to_owned(),
-            password: "test".to_owned(),
-            app_name: LIB_NAME.to_owned(),
-            server_name: "localhost".to_owned(), //TODO
-            library_name: LIB_NAME.to_owned(),
-            language: "".to_owned(),
-            default_db: "tempdb".to_owned(),
-            client_id: [1, 2, 3, 4, 5, 6]
+            hostname: Cow::Borrowed(""),
+            username: Cow::Borrowed(""),
+            password: Cow::Borrowed(""),
+            app_name: Cow::Borrowed(LIB_NAME),
+            server_name: Cow::Borrowed(""),
+            library_name: Cow::Borrowed(LIB_NAME),
+            language: Cow::Borrowed(""),
+            default_db: Cow::Borrowed(""),
+            // todo make this unique?
+            client_id: [1, 2, 3, 4, 5, 6],
         }
+    }
+
+    /// Apply the authentication method to the login packet by e.g. extracting username and password
+    pub fn set_auth(&mut self, auth_method: &AuthenticationMethod<'a>) {
+        match auth_method {
+            &AuthenticationMethod::InternalSqlServerAuth(ref user, ref password) => {
+                self.username = user.clone();
+                self.password = password.clone();
+            }
+        }
+    }
+
+    /// Set the name of the default database
+    pub fn set_db<'b, D: Into<Cow<'a, str>>>(&'b mut self, db: D) {
+        self.default_db = db.into();
     }
 }
 
-impl<'a, W: Write> WriteTokenStream<&'a Login7> for W {
+impl<'a, W: Write> WriteTokenStream<&'a Login7<'a>> for W {
     fn write_token_stream(&mut self, login7: &'a Login7) -> TdsResult<()> {
         let buf = vec![];
         let mut cursor = Cursor::new(buf);

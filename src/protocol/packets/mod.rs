@@ -182,7 +182,7 @@ pub enum Packet<'a>
     /// as specified in 2.2.6.5
     PreLogin(Vec<OptionTokenPair>),
     /// as specified by 2.2.6.4
-    Login(Login7),
+    Login(Login7<'a>),
     /// as specified in 2.2.6.7
     RpcRequest(&'a RpcRequestData<'a>),
     SqlBatch(&'a str),

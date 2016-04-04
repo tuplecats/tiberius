@@ -1,11 +1,14 @@
 extern crate tiberius;
 extern crate chrono;
-use std::net::TcpStream;
 use self::chrono::{NaiveDateTime};
-use tiberius::{Guid, Connection};
+use tiberius::{AuthenticationMethod, Guid, Connection, ConnectionOptBuilder, TcpConnection};
 
-pub fn get_connection() -> Connection<TcpStream> {
-    Connection::connect_tcp("127.0.0.1", 1433).unwrap()
+pub fn get_connection<'a>() -> Connection<'a> {
+    let opts = ConnectionOptBuilder::new()
+        .auth(AuthenticationMethod::internal("test", "test"))
+        .db("test")
+        .build();
+    TcpConnection::connect(&("127.0.0.1", 1433), opts).unwrap()
 }
 
 #[test]
