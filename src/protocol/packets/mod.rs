@@ -15,6 +15,8 @@ use protocol::token_stream::*;
 use stmt::StatementInfo;
 use ::{TdsResult, TdsError, TdsProtocolError};
 
+pub const HEADER_SIZE: u16 = 8;
+
 pub trait ReadPacket {
     fn read_packet(&mut self) -> TdsResult<RawPacket>;
     /// bundles multiple subsequent (NormalPacket) packets until the last packet (EOM) into one
@@ -22,7 +24,8 @@ pub trait ReadPacket {
 }
 
 pub trait WritePacket {
-    fn write_packet(&mut self, header: &mut PacketHeader, data: &Packet) -> TdsResult<()>;
+    fn build_packet(&self, header: PacketHeader, data: &Packet) -> TdsResult<RawPacket>;
+    fn write_packet(&mut self, packet: &mut RawPacket) -> TdsResult<()>;
 }
 
 #[derive(Debug)]
@@ -69,6 +72,12 @@ fn handle_token_stream<'a, C: AsRef<[u8]>>(token_type: MessageTypeToken, cursor:
 }
 
 impl RawPacket {
+    #[inline]
+    pub fn update_len(&mut self) {
+        //length is 8 [header-size] + length of the packet data
+        self.header.length = HEADER_SIZE + self.data.len() as u16;
+    }
+
     pub fn into_prelogin<'a>(self) -> TdsResult<Packet<'a>> {
         assert_eq!(self.header.ptype, PacketType::TabularResult);
         assert_eq!(self.header.status, PacketStatus::EndOfMessage);
@@ -274,10 +283,8 @@ impl<R: Read> ReadPacket for R
 
 impl<W: Write> WritePacket for W
 {
-   fn write_packet(&mut self, header: &mut PacketHeader, packet: &Packet) -> TdsResult<()> {
-        // prealloc header size so we can return the packet as a whole [including header]
+    fn build_packet(&self, mut header: PacketHeader, packet: &Packet) -> TdsResult<RawPacket> {
         let mut buf = vec![];
-
         match *packet {
             Packet::SqlBatch(ref sql_) => {
                 header.status = PacketStatus::EndOfMessage;
@@ -320,20 +327,25 @@ impl<W: Write> WritePacket for W
                 header.ptype = PacketType::Login;
                 try!(buf.write_token_stream(login7));
             },
-            _ => panic!("Writing of {:?} not supported!", packet)
+            _ => panic!("write: Building of {:?} not supported!", packet)
         }
-        // write packet header, length is 8 [header-size, preallocated] + length of the packet data
-        header.length = 8 + buf.len() as u16;
+        let mut packet = RawPacket { data: buf, header: header };
+        packet.update_len();
+        Ok(packet)
+    }
+
+    fn write_packet(&mut self, packet: &mut RawPacket) -> TdsResult<()> {
+        // write packet header
         {
-            try!(self.write_u8(header.ptype as u8));
-            try!(self.write_u8(header.status as u8));
-            try!(self.write_u16::<BigEndian>(header.length));
-            try!(self.write_u8(header.spid[0]));
-            try!(self.write_u8(header.spid[1]));
-            try!(self.write_u8(header.id));
-            try!(self.write_u8(header.window));
+            try!(self.write_u8(packet.header.ptype as u8));
+            try!(self.write_u8(packet.header.status as u8));
+            try!(self.write_u16::<BigEndian>(packet.header.length));
+            try!(self.write_u8(packet.header.spid[0]));
+            try!(self.write_u8(packet.header.spid[1]));
+            try!(self.write_u8(packet.header.id));
+            try!(self.write_u8(packet.header.window));
         }
-        try!(self.write_all(&buf));
+        try!(self.write_all(&packet.data));
         Ok(())
     }
 }

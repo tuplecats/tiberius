@@ -110,3 +110,14 @@ fn test_datatypes_not_nullable() {
     let b: &[u8] = rows.get(0).get("col_image");
     assert_eq!(b, test);
 }
+
+#[test]
+fn test_send_long_packet() {
+    let cl = get_connection();
+    let query = format!("SELECT col_varchar_50 FROM [test].[dbo].[test_not_nullable];{:4096}", "");
+    let rows = cl.query(query).unwrap();
+    assert_eq!(rows.len(), 1);
+    // varchar(50)
+    let str1: &str = rows.get(0).get("col_varchar_50");
+    assert_eq!(str1, "textvalue");
+}

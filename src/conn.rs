@@ -8,7 +8,7 @@ use std::ops::Deref;
 
 use protocol::*;
 use stmt::{StatementInternal, QueryResult, PreparedStatement};
-use ::{TdsResult};
+use ::{TdsResult, TdsError};
 
 #[derive(Debug, PartialEq)]
 pub enum ClientState {
@@ -141,6 +141,7 @@ pub struct InternalConnection<'a> {
     last_packet_id: u8,
     pub stream: Box<TargetStream>,
     pub opts: ConnectionOptions<'a>,
+    packet_size: u16,
 }
 
 impl<'c> InternalConnection<'c> {
@@ -150,6 +151,7 @@ impl<'c> InternalConnection<'c> {
             state: ClientState::Initial,
             last_packet_id: 0,
             opts: opts,
+            packet_size: 0x1000,
         }
     }
 
@@ -171,6 +173,7 @@ impl<'c> InternalConnection<'c> {
         ])));
         {
             let response_packet = try!(self.read_packet());
+            // TODO: move catch_error and tokenstream env change handling into one general "generic handle" func?
             try!(response_packet.catch_error());
         }
         self.state = ClientState::PreloginPerformed;
@@ -178,12 +181,26 @@ impl<'c> InternalConnection<'c> {
         {
             login_packet.set_auth(&self.opts.auth);
             login_packet.set_db(self.opts.database.clone());
+            login_packet.packet_size = self.packet_size as u32;
         }
         let packet = Packet::Login(login_packet);
         try!(self.send_packet(&packet));
         {
             let response_packet = try!(self.read_packet());
             try!(response_packet.catch_error());
+            match response_packet {
+                Packet::TokenStream(tokens) => {
+                    for token in tokens {
+                        match token {
+                            TokenStream::EnvChange(TokenStreamEnvChange::PacketSize(x, _)) => {
+                                self.packet_size = try!(x.parse::<u16>().map_err(|e| TdsError::Other(format!("cannot convert packet size: {:?}", e))));
+                            },
+                            _ => ()
+                        }
+                    }
+                },
+                _ => return Err(TdsError::Other("expected a envchange setting a packet size after the login".to_owned()))
+            }
         }
         // TODO verify and use response data
         self.state = ClientState::Ready;
@@ -213,11 +230,39 @@ impl<'c> InternalConnection<'c> {
         })
     }
 
-    /// Allocate an id and send a packet with the given data
+    /// Convert a message-packet into a protocol-packet
+    /// ensure that packets are sent properly, respecting the
+    /// configured `max packet size` and allocate
+    /// a packet-id for each sent packet
     pub fn send_packet(&mut self, packet: &Packet) -> TdsResult<()> {
         let mut header = PacketHeader::new();
-        header.id = self.alloc_id();
-        try!(self.stream.write_packet(&mut header, packet));
+        let mut packet = try!(self.stream.build_packet(header, packet));
+        // if we don't have to split the packet due to max packet size, sent it
+        if packet.header.length < self.packet_size {
+            header.id = self.alloc_id();
+            try!(self.stream.write_packet(&mut packet));
+            return Ok(())
+        }
+        packet.header.status = PacketStatus::NormalMessage;
+        while packet.data.len() > 0 {
+            let next_data = match self.packet_size as usize > packet.data.len() + packets::HEADER_SIZE as usize {
+                true => {
+                    packet.header.status = PacketStatus::EndOfMessage;
+                    vec![]
+                },
+                false => {
+                    let idx = (self.packet_size - packets::HEADER_SIZE) as usize;
+                    let mut current = packet.data;
+                    let next = current.split_off(idx);
+                    packet.data = current;
+                    next
+                }
+            };
+            packet.header.id = self.alloc_id();
+            packet.update_len();
+            try!(self.stream.write_packet(&mut packet));
+            packet.data = next_data;
+        }
         Ok(())
     }
 }
