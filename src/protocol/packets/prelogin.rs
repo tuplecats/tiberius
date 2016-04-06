@@ -11,12 +11,12 @@ use ::{TdsResult, TdsError, TdsProtocolError};
 #[repr(u8)]
 pub enum EncryptionSetting
 {
-    EncryptOff = 0,
-    EncryptOn = 1,
-    EncryptNotSupported = 2,
-    EncryptRequired = 3
+    Off = 0,
+    On = 1,
+    NotSupported = 2,
+    Required = 3
 }
-impl_from_primitive!(EncryptionSetting, EncryptOff, EncryptOn, EncryptNotSupported, EncryptRequired);
+impl_from_primitive!(EncryptionSetting, Off, On, NotSupported, Required);
 
 #[derive(Debug)]
 pub enum OptionTokenPair
@@ -93,7 +93,7 @@ impl<R: BufRead> ReadOptionToken for R {
             2 => {
                 let mut buf = vec![0 as u8; max_len as usize - 1];
                 try!(self.read(&mut buf));
-                OptionTokenPair::Instance(try!(String::from_utf8(buf).map_err(|_| TdsProtocolError::InvalidValue(format!("prelogin: invalid string for instance name"), 0))))
+                OptionTokenPair::Instance(try!(String::from_utf8(buf).map_err(|_| TdsProtocolError::InvalidValue("prelogin: invalid string for instance name".to_owned(), 0))))
             },
             3 =>  OptionTokenPair::ThreadId(if max_len > 0 { try!(self.read_u32::<BigEndian>()) } else { 0 }),
             4 => OptionTokenPair::Mars(try!(self.read_u8())),
@@ -133,8 +133,8 @@ impl<W: Write> WriteOptionToken for W {
                 }
             },
             OptionTokenPair::FedAuthRequired(fedauth) => try!(self.write_u8(fedauth)),
-            OptionTokenPair::Nonce(nonce) => {
-                for b in nonce.iter() {
+            OptionTokenPair::Nonce(ref nonce) => {
+                for b in nonce {
                     try!(self.write_u8(*b));
                 }
             },

@@ -104,8 +104,8 @@ impl<W: Write> WriteDataHeader<PacketDataHeaderTransaction> for W {
 impl<W: Write> WriteDataHeader<PacketDataHeader> for W {
     fn write_data_header(&mut self, data: &PacketDataHeader) -> TdsResult<()> {
         let mut buf = vec![];
-        let header_type = match data {
-            &PacketDataHeader::Transaction(ref tx_header) => {
+        let header_type = match *data {
+            PacketDataHeader::Transaction(ref tx_header) => {
                 try!(buf.write_data_header(tx_header));
                 PacketDataHeaderType::TransactionDescriptor
             }

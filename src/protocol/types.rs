@@ -183,21 +183,20 @@ impl DecodeTokenStream for ColumnData {
             },
             _ => false
         };
-        let tablename = match has_tablename {
-            true => {
-                let parts = try!(cursor.read_u8());
-                match parts {
-                    0 => None,
-                    _ => {
-                        let mut data: Vec<String> = Vec::with_capacity(parts as usize);
-                        for _ in 0..parts {
-                            data.push(try!(cursor.read_us_varchar()));
-                        }
-                        Some(data)
+        let tablename = if has_tablename {
+            let parts = try!(cursor.read_u8());
+            match parts {
+                0 => None,
+                _ => {
+                    let mut data: Vec<String> = Vec::with_capacity(parts as usize);
+                    for _ in 0..parts {
+                        data.push(try!(cursor.read_us_varchar()));
                     }
+                    Some(data)
                 }
-            },
-            false => None
+            }
+        } else {
+            None
         };
 
         // colname
@@ -279,7 +278,7 @@ fn decode_money<'a, T: AsRef<[u8]>>(ty: FixedLenType, cursor: &mut Cursor<T>) ->
     })
 }
 
-/// basically decodes a TYPE_VARBYTE
+/// basically decodes a `TYPE_VARBYTE`
 impl<'a> ColumnValue<'a> {
     pub fn decode<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, tyinfo: &TypeInfo) -> TdsResult<ColumnValue<'a>> {
         Ok(match *tyinfo {
@@ -303,38 +302,35 @@ impl<'a> ColumnValue<'a> {
                 match *v_type {
                     VarLenType::BigChar | VarLenType::BigVarChar => {
                         let len = try!(cursor.read_u16::<LittleEndian>());
-                        match len == 0xFFFF {
-                            true => ColumnValue::None,
-                            false => {
-                                let mut buf = vec![0; len as usize];
-                                try!(cursor.read(&mut buf));
-                                match String::from_utf8(buf) {
-                                    Err(x) => return Err(TdsError::Conversion(Box::new(x))),
-                                    Ok(x) => ColumnValue::Some(ColumnType::String(Cow::Owned(x)))
-                                }
+                        if len == 0xFFFF {
+                            ColumnValue::None
+                        } else {
+                            let mut buf = vec![0; len as usize];
+                            try!(cursor.read(&mut buf));
+                            match String::from_utf8(buf) {
+                                Err(x) => return Err(TdsError::Conversion(Box::new(x))),
+                                Ok(x) => ColumnValue::Some(ColumnType::String(Cow::Owned(x)))
                             }
                         }
                     },
                     VarLenType::NVarchar | VarLenType::NChar => {
                         let len = try!(cursor.read_u16::<LittleEndian>());
-                        match len == 0xFFFF {
-                            true => ColumnValue::None,
-                            false => {
-                                let mut buf = vec![0; len as usize];
-                                try!(cursor.read(&mut buf));
-                                ColumnValue::Some(ColumnType::String(Cow::Owned(try!(UTF_16LE.decode(&buf, DecoderTrap::Strict)))))
-                            }
+                        if len == 0xFFFF {
+                            ColumnValue::None
+                        } else {
+                            let mut buf = vec![0; len as usize];
+                            try!(cursor.read(&mut buf));
+                            ColumnValue::Some(ColumnType::String(Cow::Owned(try!(UTF_16LE.decode(&buf, DecoderTrap::Strict)))))
                         }
                     },
                     VarLenType::BigBinary | VarLenType::BigVarBin => {
                         let len = try!(cursor.read_u16::<LittleEndian>());
-                        match len == 0xFFFF {
-                            true => ColumnValue::None,
-                            false => {
-                                let mut buf = vec![0; len as usize];
-                                try!(cursor.read(&mut buf));
-                                ColumnValue::Some(ColumnType::Binary(buf))
-                            }
+                        if len == 0xFFFF {
+                            ColumnValue::None
+                        } else {
+                            let mut buf = vec![0; len as usize];
+                            try!(cursor.read(&mut buf));
+                            ColumnValue::Some(ColumnType::Binary(buf))
                         }
                     },
                     VarLenType::Text | VarLenType::NText | VarLenType::Image => {
@@ -352,24 +348,23 @@ impl<'a> ColumnValue<'a> {
                                 if len < -1 {
                                     return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("text: invalid length of {}", len))));
                                 }
-                                match len < 0 {
-                                    true => ColumnValue::None,
-                                    false => {
-                                        let mut buf = vec![0; len as usize];
-                                        try!(cursor.read(&mut buf));
-                                        match *v_type {
-                                            VarLenType::Text => match String::from_utf8(buf) {
-                                                Err(x) => return Err(TdsError::Conversion(Box::new(x))),
-                                                Ok(x) => ColumnValue::Some(ColumnType::String(Cow::Owned(x)))
-                                            },
-                                            VarLenType::NText => {
-                                                ColumnValue::Some(ColumnType::String(Cow::Owned(try!(UTF_16LE.decode(&buf, DecoderTrap::Strict)))))
-                                            },
-                                            VarLenType::Image => {
-                                                ColumnValue::Some(ColumnType::Binary(buf))
-                                            }
-                                            _ => unreachable!(),
+                                if len < 0 {
+                                    ColumnValue::None
+                                } else {
+                                    let mut buf = vec![0; len as usize];
+                                    try!(cursor.read(&mut buf));
+                                    match *v_type {
+                                        VarLenType::Text => match String::from_utf8(buf) {
+                                            Err(x) => return Err(TdsError::Conversion(Box::new(x))),
+                                            Ok(x) => ColumnValue::Some(ColumnType::String(Cow::Owned(x)))
+                                        },
+                                        VarLenType::NText => {
+                                            ColumnValue::Some(ColumnType::String(Cow::Owned(try!(UTF_16LE.decode(&buf, DecoderTrap::Strict)))))
+                                        },
+                                        VarLenType::Image => {
+                                            ColumnValue::Some(ColumnType::Binary(buf))
                                         }
+                                        _ => unreachable!(),
                                     }
                                 }
                             }
@@ -438,10 +433,7 @@ impl<'a> ColumnValue<'a> {
                     VarLenType::Decimaln | VarLenType::Numericn => {
                         let len = try!(cursor.read_u8());
                         let sign = try!(cursor.read_u8()) == 0;
-                        let f = match sign {
-                            true => -1.0,
-                            false => 1.0,
-                        };
+                        let f = if sign { -1.0 } else { 1.0 };
 
                         match len {
                             5 => ColumnValue::Some(ColumnType::F64(f * try!(cursor.read_u32::<LittleEndian>()) as f64 / (10f64).powi(*scale as i32))),

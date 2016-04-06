@@ -46,9 +46,9 @@ pub trait WriteRpcProcId {
 
 impl<W: Write> WriteRpcProcId for W {
     fn write_rpc_procid(&mut self, proc_id: &RpcProcIdValue) -> TdsResult<()> {
-        match proc_id {
-            &RpcProcIdValue::Name(ref name) => try!(self.write_us_varchar(name)),
-            &RpcProcIdValue::Id(ref id) => {
+        match *proc_id {
+            RpcProcIdValue::Name(ref name) => try!(self.write_us_varchar(name)),
+            RpcProcIdValue::Id(ref id) => {
                 try!(self.write_u16::<LittleEndian>(0xFFFF));
                 try!(self.write_u16::<LittleEndian>((*id).clone() as u16))
             }

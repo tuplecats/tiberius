@@ -159,14 +159,14 @@ impl<'c> InternalConnection<'c> {
     fn alloc_id(&mut self) -> u8 {
         let id = self.last_packet_id;
         self.last_packet_id = (id + 1) % 255;
-        return id;
+        id
     }
 
     /// Send a prelogin packet with version number 9.0.0000 (>=TDS 7.2 ?), and US_SUBBUILD=0 (for MSSQL always 0)
     fn initialize(&mut self) -> TdsResult<()> {
         try!(self.send_packet(&Packet::PreLogin(vec![
             OptionTokenPair::Version(0x09000000, 0),
-            OptionTokenPair::Encryption(EncryptionSetting::EncryptNotSupported),
+            OptionTokenPair::Encryption(EncryptionSetting::NotSupported),
             OptionTokenPair::Instance("".to_owned()),
             OptionTokenPair::ThreadId(0),
             OptionTokenPair::Mars(0)
@@ -244,19 +244,16 @@ impl<'c> InternalConnection<'c> {
             return Ok(())
         }
         packet.header.status = PacketStatus::NormalMessage;
-        while packet.data.len() > 0 {
-            let next_data = match self.packet_size as usize > packet.data.len() + packets::HEADER_SIZE as usize {
-                true => {
+        while !packet.data.is_empty() {
+            let next_data = if self.packet_size as usize > packet.data.len() + packets::HEADER_SIZE as usize {
                     packet.header.status = PacketStatus::EndOfMessage;
                     vec![]
-                },
-                false => {
-                    let idx = (self.packet_size - packets::HEADER_SIZE) as usize;
-                    let mut current = packet.data;
-                    let next = current.split_off(idx);
-                    packet.data = current;
-                    next
-                }
+            } else {
+                let idx = (self.packet_size - packets::HEADER_SIZE) as usize;
+                let mut current = packet.data;
+                let next = current.split_off(idx);
+                packet.data = current;
+                next
             };
             packet.header.id = self.alloc_id();
             packet.update_len();

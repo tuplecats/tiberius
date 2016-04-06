@@ -263,7 +263,7 @@ impl<R: Read> ReadPacket for R
         loop {
             let packet = try!(self.read_packet());
 
-            if data.len() == 0 {
+            if data.is_empty() {
                 data = packet.data;
             } else {
                 data.extend(packet.data);

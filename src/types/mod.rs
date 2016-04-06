@@ -76,7 +76,7 @@ macro_rules! column_conv_nullable {
     ($ty:ty, $id:ident, $by_ref:ident) => {
         impl <'a> From<&'a ColumnValue<'a>> for Option<Option<$ty>> {
             fn from(val: &'a ColumnValue) -> Option<Option<$ty>> {
-                return column_conv_unpack!(*val, $by_ref, $id, true);
+                column_conv_unpack!(*val, $by_ref, $id, true)
             }
         }
     };
@@ -87,7 +87,7 @@ macro_rules! column_conv {
     ($ty:ty, $id:ident, $by_ref:ident) => {
         impl <'a> From<&'a ColumnValue<'a>> for Option<$ty> {
             fn from(val: &'a ColumnValue) -> Option<$ty> {
-                return column_conv_unpack!(*val, $by_ref, $id, false);
+                column_conv_unpack!(*val, $by_ref, $id, false)
             }
         }
 

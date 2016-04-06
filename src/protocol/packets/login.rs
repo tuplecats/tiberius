@@ -85,8 +85,8 @@ impl<'a> Login7<'a> {
 
     /// Apply the authentication method to the login packet by e.g. extracting username and password
     pub fn set_auth(&mut self, auth_method: &AuthenticationMethod<'a>) {
-        match auth_method {
-            &AuthenticationMethod::InternalSqlServerAuth(ref user, ref password) => {
+        match *auth_method {
+            AuthenticationMethod::InternalSqlServerAuth(ref user, ref password) => {
                 self.username = user.clone();
                 self.password = password.clone();
             }
@@ -94,7 +94,7 @@ impl<'a> Login7<'a> {
     }
 
     /// Set the name of the default database
-    pub fn set_db<'b, D: Into<Cow<'a, str>>>(&'b mut self, db: D) {
+    pub fn set_db<D: Into<Cow<'a, str>>>(&mut self, db: D) {
         self.default_db = db.into();
     }
 }
@@ -130,7 +130,7 @@ impl<'a, W: Write> WriteTokenStream<&'a Login7<'a>> for W {
                 // encode password
                 if i == 2 {
                     let mut bytes = try!(UTF_16LE.encode(val, EncoderTrap::Strict));
-                    for byte in bytes.iter_mut() {
+                    for byte in &mut bytes {
                         *byte = (*byte >> 4) | ((*byte & 0x0f) << 4);
                         *byte ^= 0xa5;
                     }

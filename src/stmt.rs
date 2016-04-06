@@ -78,7 +78,7 @@ pub struct QueryResult<'a> {
 impl<'a> QueryResult<'a> {
     /// return the number of contained rows
     pub fn len(&self) -> usize {
-        return match self.rows {
+        match self.rows {
             None => 0,
             Some(ref rows) => rows.len()
         }
@@ -118,32 +118,28 @@ pub struct StatementInternal<'a> {
 }
 
 fn handle_execute_packet(packet: &Packet) -> TdsResult<usize> {
-    match *packet {
-        Packet::TokenStream(ref tokens) => {
+    if let Packet::TokenStream(ref tokens) = *packet {
             for token in tokens {
                 match *token {
                     TokenStream::Error(ref err) => {
                         return Err(TdsError::ServerError(err.clone()))
                     },
                     TokenStream::Done(ref done_token) => {
-                        assert_eq!(done_token.status, TokenStreamDoneStatus::DoneCount as u16);
+                        assert_eq!(done_token.status, TokenStreamDoneStatus::Count as u16);
                         return Ok(done_token.done_row_count as usize)
                     },
                     _ => return Err(TdsError::Other(format!("exec: unexpected TOKEN {:?}", token)))
                 }
             }
-        },
-        _ => ()
     }
-    return Err(TdsError::Other(format!("exec: Unexpected packet {:?}", packet)))
+    Err(TdsError::Other(format!("exec: Unexpected packet {:?}", packet)))
 }
 
-fn handle_query_packet<'a>(packet: Packet<'a>, stmt: Rc<RefCell<StatementInfo>>) -> TdsResult<QueryResult<'a>> {
+fn handle_query_packet(packet: Packet, stmt: Rc<RefCell<StatementInfo>>) -> TdsResult<QueryResult> {
     let mut query_result = QueryResult {
         rows: None,
     };
-    match packet {
-        Packet::TokenStream(tokens) => {
+    if let Packet::TokenStream(tokens) = packet {
             let mut rows = Vec::with_capacity(tokens.len());
             for token in tokens {
                 match token {
@@ -154,8 +150,6 @@ fn handle_query_packet<'a>(packet: Packet<'a>, stmt: Rc<RefCell<StatementInfo>>)
             }
             query_result.rows = Some(rows);
             return Ok(query_result)
-        },
-        _ => ()
     }
     Ok(query_result)
 }
@@ -203,17 +197,15 @@ impl<'a> PreparedStatement<'a> {
     fn do_prepare(&self, stmt: &mut StatementInfo, params: &[&ToColumnType]) -> TdsResult<()> {
         let mut param_str = String::new();
         // determine the types from the given params
-        let mut i = 0;
-        for param in params.iter() {
+        for (i, param) in params.iter().enumerate() {
             if i > 0 {
                 param_str.push(',')
             }
-            i += 1;
-            param_str.push_str(&format!("@P{} ", i));
+            param_str.push_str(&format!("@P{} ", i + 1));
             param_str.push_str(param.column_type());
         }
         // for some reason mssql fails when we pass "handle" as int4 (fixed len) insteadof intn (varlen)
-        // because it does not know the type (0x38) ?? strange
+        // because it does not know the type (0x38) - probably since int4 was "deprecated" ages ago?
         let params_meta = vec![
             RpcParamData {
                 name: Cow::Borrowed("handle"),

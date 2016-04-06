@@ -15,13 +15,13 @@ pub struct TokenStreamDone {
 #[allow(dead_code)]
 #[repr(u16)]
 pub enum TokenStreamDoneStatus {
-    DoneFinal = 0x00,
-    DoneMore = 0x01,
-    DoneError = 0x02,
-    DoneInxact = 0x04,
-    DoneCount = 0x10,
-    DoneAttn = 0x20,
-    DoneSrvErr = 0x100
+    Final = 0x00,
+    More = 0x01,
+    Error = 0x02,
+    Inxact = 0x04,
+    Count = 0x10,
+    Attn = 0x20,
+    SrvErr = 0x100
 }
 
 impl DecodeTokenStream for TokenStreamDone {
