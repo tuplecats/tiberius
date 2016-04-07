@@ -151,7 +151,8 @@ impl DecodeTokenStream for TypeInfo {
                             VarLenType::Datetime2 => {
                                 has_scale = true;
                                 0
-                            }
+                            },
+                            VarLenType::Daten => 0,
                             _ => return Err(TdsError::Other(format!("variable length type {:?} not supported", var_len_type)))
                         };
                         match true {
@@ -275,6 +276,14 @@ fn decode_datetime<T: AsRef<[u8]>>(ty: FixedLenType, cursor: &mut Cursor<T>) -> 
     };
     let date = NaiveDate::from_ymd(1900, 1, 1) + Duration::days(days as i64);
     Ok(date.and_hms(0, 0, 0) + duration)
+}
+
+/// decode a TDS 7.3 date
+#[inline]
+fn decode_time<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<NaiveDate> {
+    // number of days since January 1, year 1
+    let days = try!(cursor.read_u16::<LittleEndian>()) as u32 | (try!(cursor.read_u8()) as u32) << 16;
+    Ok(NaiveDate::from_ymd(1, 1, 1) + Duration::days(days as i64))
 }
 
 #[inline]
@@ -437,6 +446,14 @@ impl<'a> ColumnValue<'a> {
                             _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("bitn: length of {} is invalid", len))))
                         }
                     },
+                    VarLenType::Daten => {
+                        let len = try!(cursor.read_u8());
+                        match len {
+                            0 => ColumnValue::None,
+                            3 => ColumnValue::Some(ColumnType::Date(try!(decode_time(cursor)))),
+                            _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("timen: length of {} is invalid", len))))
+                        }
+                    },
                     _ => panic!("unsupported vtype {:?}", v_type)
                 }
             },
@@ -460,20 +477,24 @@ impl<'a> ColumnValue<'a> {
                 match *v_type {
                     VarLenType::Datetime2 => {
                         let len = try!(cursor.read_u8());
-                        // 10^-n second increments since 12 AM
-                        let increments = match *scale {
-                            0...2 => try!(cursor.read_u16::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 16,
-                            3...4 => try!(cursor.read_u32::<LittleEndian>()) as u64,
-                            5...7 => try!(cursor.read_u32::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 32,
-                            _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetime2: length of {} is invalid", len))))
-                        };
-                        // number of days since January 1, year 1
-                        let days = try!(cursor.read_u16::<LittleEndian>()) as u32 | (try!(cursor.read_u8()) as u32) << 16;
 
-                        let duration = Duration::nanoseconds((increments as f64/(10u64.pow(*scale as u32) as f64)*1e9f64) as i64);
-                        let date = NaiveDate::from_ymd(1, 1, 1) + Duration::days(days as i64);
-                        let datetime = date.and_hms(0, 0, 0) + duration;
-                        ColumnValue::Some(ColumnType::Datetime(datetime))
+                        if len == 0 {
+                            ColumnValue::None
+                        } else if (len == 6 && *scale < 3) || (len == 7 && *scale < 5) || (len == 8 && *scale < 8) {
+                            // 10^-n second increments since 12 AM
+                            let increments = match *scale {
+                                0...2 => try!(cursor.read_u16::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 16,
+                                3...4 => try!(cursor.read_u32::<LittleEndian>()) as u64,
+                                5...7 => try!(cursor.read_u32::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 32,
+                                _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetime2: length of {} is invalid", len))))
+                            };
+                            let duration = Duration::nanoseconds((increments as f64/(10u64.pow(*scale as u32) as f64)*1e9f64) as i64);
+                            let date = try!(decode_time(cursor));
+                            let datetime = date.and_hms(0, 0, 0) + duration;
+                            ColumnValue::Some(ColumnType::Datetime(datetime))
+                        } else {
+                            return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetime2: length of {} with scale {} is unsupported", len, scale))))
+                        }
                     },
                     _ => panic!("unsupported scale-only vtype {:?}", v_type)
                 }

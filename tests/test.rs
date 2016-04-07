@@ -1,6 +1,6 @@
 extern crate tiberius;
 extern crate chrono;
-use self::chrono::{NaiveDateTime};
+use self::chrono::{NaiveDateTime, NaiveDate};
 use tiberius::{AuthenticationMethod, Guid, Connection, ConnectionOptBuilder, TcpConnection};
 
 pub fn get_connection<'a>() -> Connection<'a> {
@@ -129,4 +129,6 @@ fn test_v73_datatypes() {
     assert_eq!(rows.len(), 1);
     let time: &NaiveDateTime = rows.get(0).get("col_datetime2");
     assert_eq!(time.to_string(), "2016-04-07 23:19:27.587");
+    let date : &NaiveDate = rows.get(0).get("col_date");
+    assert_eq!(date.to_string(), "1985-02-26");
 }
