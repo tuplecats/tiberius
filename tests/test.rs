@@ -121,3 +121,12 @@ fn test_send_long_packet() {
     let str1: &str = rows.get(0).get("col_varchar_50");
     assert_eq!(str1, "textvalue");
 }
+
+#[test]
+fn test_v73_datatypes() {
+    let cl = get_connection();
+    let rows = cl.query("SELECT * FROM [test].[dbo].[test_v73]").unwrap();
+    assert_eq!(rows.len(), 1);
+    let time: &NaiveDateTime = rows.get(0).get("col_datetime2");
+    assert_eq!(time.to_string(), "2016-04-07 23:19:27.587");
+}

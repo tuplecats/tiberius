@@ -162,7 +162,7 @@ impl<'c> InternalConnection<'c> {
         id
     }
 
-    /// Send a prelogin packet with version number 9.0.0000 (>=TDS 7.2 ?), and US_SUBBUILD=0 (for MSSQL always 0)
+    /// Send a prelogin packet with version number 9.0.0000 (>=TDS 7.3 ?), and US_SUBBUILD=0 (for MSSQL always 0)
     fn initialize(&mut self) -> TdsResult<()> {
         try!(self.send_packet(&Packet::PreLogin(vec![
             OptionTokenPair::Version(0x09000000, 0),
@@ -177,7 +177,7 @@ impl<'c> InternalConnection<'c> {
             try!(response_packet.catch_error());
         }
         self.state = ClientState::PreloginPerformed;
-        let mut login_packet = Login7::new(0x02000972);
+        let mut login_packet = Login7::new(0x03000A73);
         {
             login_packet.set_auth(&self.opts.auth);
             login_packet.set_db(self.opts.database.clone());

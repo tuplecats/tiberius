@@ -69,10 +69,14 @@ pub enum VarLenType {
     Floatn = 0x6D,
     Money = 0x6E,
     Datetimen = 0x6F,
-    //Daten = 0x28 ; (introduced in TDS 7.3 TODO add support)
-    //Timen = 0x29 ; (introduced in TDS 7.3)
-    //Datetime2 = 0x2A ; (introduced in TDS 7.3)
-    //DatetimeOffsetn = 0x2B ; (introduced in TDS 7.3)
+    /// introduced in TDS 7.3
+    Daten = 0x28,
+    /// introduced in TDS 7.3
+    Timen = 0x29,
+    /// introduced in TDS 7.3
+    Datetime2 = 0x2A,
+    /// introduced in TDS 7.3
+    DatetimeOffsetn = 0x2B,
     BigVarBin = 0xA5,
     BigVarChar = 0xA7,
     BigBinary = 0xAD,
@@ -96,7 +100,7 @@ pub enum VarLenType {
     // Numeric = 0x3F,
     // Decimal = 0x37,
 }
-impl_from_primitive!(VarLenType, Guid, Intn, Bitn, Decimaln, Numericn, Floatn, Money, Datetimen,
+impl_from_primitive!(VarLenType, Guid, Intn, Bitn, Decimaln, Numericn, Floatn, Money, Datetimen, Daten, Timen, Datetime2, DatetimeOffsetn,
     BigVarBin, BigVarChar, BigBinary, BigChar, NVarchar, NChar, Xml, Udt, Text, Image, NText, SSVariant);
 
 #[derive(Debug)]
@@ -106,6 +110,8 @@ pub enum TypeInfo {
     VarLenType(VarLenType, u32, Option<Collation>),
     /// VARLENTYPE TYPE_VARLEN [PRECISION SCALE]
     VarLenTypeP(VarLenType, u32, u8, u8),
+    /// VARLENTYPE SCALE (>=TDS 7.3)
+    VarLenTypeS(VarLenType, u8)
 }
 
 impl DecodeTokenStream for TypeInfo {
@@ -121,11 +127,12 @@ impl DecodeTokenStream for TypeInfo {
                     Some(var_len_type) => {
                         let mut has_collation = false;
                         let mut has_precision = false;
+                        let mut has_scale = false;
 
                         let len = match var_len_type {
                             VarLenType::Guid | VarLenType::Intn | VarLenType::Datetimen | VarLenType::Floatn | VarLenType::Money | VarLenType::Bitn => try!(cursor.read_u8()) as u32,
                             VarLenType::NVarchar | VarLenType::BigChar | VarLenType::BigVarChar | VarLenType::NChar => {
-                                // TODO: BIGCHARTYPE, NVARCHARTYPE also include collation
+                                // TODO: BIGCHARTYPE also include collation
                                 has_collation = true;
                                 try!(cursor.read_u16::<LittleEndian>()) as u32
                             },
@@ -141,11 +148,16 @@ impl DecodeTokenStream for TypeInfo {
                                 has_precision = true;
                                 try!(cursor.read_u8()) as u32
                             },
+                            VarLenType::Datetime2 => {
+                                has_scale = true;
+                                0
+                            }
                             _ => return Err(TdsError::Other(format!("variable length type {:?} not supported", var_len_type)))
                         };
                         match true {
                             true if has_collation => TypeInfo::VarLenType(var_len_type, len, Some(try!(Collation::decode(cursor)))),
                             true if has_precision => TypeInfo::VarLenTypeP(var_len_type, len, try!(cursor.read_u8()), try!(cursor.read_u8())),
+                            true if has_scale => TypeInfo::VarLenTypeS(var_len_type, try!(cursor.read_u8())),
                             _ => TypeInfo::VarLenType(var_len_type, len, None)
                         }
                     }
@@ -443,7 +455,29 @@ impl<'a> ColumnValue<'a> {
                     },
                     _ => panic!("unsupported scaled vtype {:?}", v_type)
                 }
-            }
+            },
+            TypeInfo::VarLenTypeS(ref v_type, ref scale) => {
+                match *v_type {
+                    VarLenType::Datetime2 => {
+                        let len = try!(cursor.read_u8());
+                        // 10^-n second increments since 12 AM
+                        let increments = match *scale {
+                            0...2 => try!(cursor.read_u16::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 16,
+                            3...4 => try!(cursor.read_u32::<LittleEndian>()) as u64,
+                            5...7 => try!(cursor.read_u32::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 32,
+                            _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetime2: length of {} is invalid", len))))
+                        };
+                        // number of days since January 1, year 1
+                        let days = try!(cursor.read_u16::<LittleEndian>()) as u32 | (try!(cursor.read_u8()) as u32) << 16;
+
+                        let duration = Duration::nanoseconds((increments as f64/(10u64.pow(*scale as u32) as f64)*1e9f64) as i64);
+                        let date = NaiveDate::from_ymd(1, 1, 1) + Duration::days(days as i64);
+                        let datetime = date.and_hms(0, 0, 0) + duration;
+                        ColumnValue::Some(ColumnType::Datetime(datetime))
+                    },
+                    _ => panic!("unsupported scale-only vtype {:?}", v_type)
+                }
+            },
         })
     }
 }
