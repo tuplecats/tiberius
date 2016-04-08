@@ -2,7 +2,7 @@
 use std::borrow::Cow;
 use std::io::Cursor;
 use byteorder::{ReadBytesExt};
-use chrono::{NaiveDateTime, NaiveDate};
+use chrono::{NaiveDateTime, NaiveDate, NaiveTime, DateTime, TimeZone, UTC, Local};
 use protocol::{DecodeTokenStream};
 use ::{TdsResult};
 
@@ -20,6 +20,7 @@ pub enum ColumnType<'a> {
     Guid(Guid),
     Datetime(NaiveDateTime),
     Date(NaiveDate),
+    Time(NaiveTime),
     Binary(Vec<u8>),
 }
 
@@ -105,6 +106,26 @@ column_conv!(&'a Guid, Guid, true);
 column_conv!(&'a [u8], Binary, true);
 column_conv!(&'a NaiveDateTime, Datetime, true);
 column_conv!(&'a NaiveDate, Date, true);
+column_conv!(&'a NaiveTime, Time, true);
+
+impl <'a> From<&'a ColumnValue<'a>> for Option<DateTime<Local>> {
+    fn from(val: &'a ColumnValue) -> Option<DateTime<Local>> {
+        match *val {
+            ColumnValue::Some(ColumnType::Datetime(ref dt)) => Some(UTC.from_utc_datetime(dt).with_timezone(&Local)),
+            _ => None
+        }
+    }
+}
+
+impl <'a> From<&'a ColumnValue<'a>> for Option<Option<DateTime<Local>>> {
+    fn from(val: &'a ColumnValue) -> Option<Option<DateTime<Local>>> {
+        match *val {
+            ColumnValue::None => Some(None),
+            ColumnValue::Some(ColumnType::Datetime(ref dt)) => Some(Some(UTC.from_utc_datetime(dt).with_timezone(&Local))),
+            _ => None
+        }
+    }
+}
 
 /// A TSQL uniqueidentifier/GUID
 #[derive(Debug)]

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::io::prelude::*;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use chrono::{NaiveDateTime, NaiveDate, Duration};
+use chrono::{NaiveDateTime, NaiveDate, NaiveTime, Duration, FixedOffset, TimeZone};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::UTF_16LE;
 use protocol::WriteTokenStream;
@@ -148,7 +148,7 @@ impl DecodeTokenStream for TypeInfo {
                                 has_precision = true;
                                 try!(cursor.read_u8()) as u32
                             },
-                            VarLenType::Datetime2 => {
+                            VarLenType::Datetime2 | VarLenType::Timen | VarLenType::DatetimeOffsetn => {
                                 has_scale = true;
                                 0
                             },
@@ -280,10 +280,23 @@ fn decode_datetime<T: AsRef<[u8]>>(ty: FixedLenType, cursor: &mut Cursor<T>) -> 
 
 /// decode a TDS 7.3 date
 #[inline]
-fn decode_time<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<NaiveDate> {
+fn decode_date<T: AsRef<[u8]>>(cursor: &mut Cursor<T>) -> TdsResult<NaiveDate> {
     // number of days since January 1, year 1
     let days = try!(cursor.read_u16::<LittleEndian>()) as u32 | (try!(cursor.read_u8()) as u32) << 16;
     Ok(NaiveDate::from_ymd(1, 1, 1) + Duration::days(days as i64))
+}
+
+/// decode a TDS 7.3 time
+fn decode_time<T: AsRef<[u8]>>(scale: u8, cursor: &mut Cursor<T>) -> TdsResult<NaiveTime> {
+    // 10^-n second increments since 12 AM
+    let increments = match scale {
+        0...2 => try!(cursor.read_u16::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 16,
+        3...4 => try!(cursor.read_u32::<LittleEndian>()) as u64,
+        5...7 => try!(cursor.read_u32::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 32,
+        _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetime2: scale of {} is invalid", scale))))
+    };
+    let duration = Duration::nanoseconds((increments as f64/(10u64.pow(scale as u32) as f64)*1e9f64) as i64);
+    Ok(NaiveTime::from_hms(0, 0, 0) + duration)
 }
 
 #[inline]
@@ -450,7 +463,7 @@ impl<'a> ColumnValue<'a> {
                         let len = try!(cursor.read_u8());
                         match len {
                             0 => ColumnValue::None,
-                            3 => ColumnValue::Some(ColumnType::Date(try!(decode_time(cursor)))),
+                            3 => ColumnValue::Some(ColumnType::Date(try!(decode_date(cursor)))),
                             _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("timen: length of {} is invalid", len))))
                         }
                     },
@@ -481,19 +494,38 @@ impl<'a> ColumnValue<'a> {
                         if len == 0 {
                             ColumnValue::None
                         } else if (len == 6 && *scale < 3) || (len == 7 && *scale < 5) || (len == 8 && *scale < 8) {
-                            // 10^-n second increments since 12 AM
-                            let increments = match *scale {
-                                0...2 => try!(cursor.read_u16::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 16,
-                                3...4 => try!(cursor.read_u32::<LittleEndian>()) as u64,
-                                5...7 => try!(cursor.read_u32::<LittleEndian>()) as u64 | (try!(cursor.read_u8()) as u64) << 32,
-                                _ => return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetime2: length of {} is invalid", len))))
-                            };
-                            let duration = Duration::nanoseconds((increments as f64/(10u64.pow(*scale as u32) as f64)*1e9f64) as i64);
-                            let date = try!(decode_time(cursor));
-                            let datetime = date.and_hms(0, 0, 0) + duration;
+                            let time = try!(decode_time(*scale, cursor));
+                            let date = try!(decode_date(cursor));
+                            let datetime = NaiveDateTime::new(date, time);
                             ColumnValue::Some(ColumnType::Datetime(datetime))
                         } else {
-                            return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetime2: length of {} with scale {} is unsupported", len, scale))))
+                            return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetime2: length of {} with scale {} is unsupported", len, scale))));
+                        }
+                    },
+                    VarLenType::Timen => {
+                        let len = try!(cursor.read_u8());
+                        if len == 0 {
+                            ColumnValue::None
+                        } else if (len == 3 && *scale < 3) || (len == 4 && *scale < 5) || (len == 5 && *scale < 8) {
+                            let time = try!(decode_time(*scale, cursor));
+                            ColumnValue::Some(ColumnType::Time(time))
+                        } else {
+                            return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("timen: length of {} with scale {} is unsupported", len, scale))));
+                        }
+                    },
+                    VarLenType::DatetimeOffsetn => {
+                        let len = try!(cursor.read_u8());
+                        if len == 0 {
+                            ColumnValue::None
+                        } else if (len == 8 && *scale < 3) || (len == 9 && *scale < 5) || (len == 10 && *scale < 8) {
+                            let time = try!(decode_time(*scale, cursor));
+                            let date = try!(decode_date(cursor));
+                            let datetime = NaiveDateTime::new(date, time);
+                            // number of minutes from UTC
+                            let offset = try!(cursor.read_i16::<LittleEndian>());
+                            ColumnValue::Some(ColumnType::Datetime(FixedOffset::east(offset as i32 * 60).from_utc_datetime(&datetime).naive_utc()))
+                        } else {
+                            return Err(TdsError::ProtocolError(TdsProtocolError::InvalidLength(format!("datetimeoffset: length of {} with scale {} is unsupported", len, scale))));
                         }
                     },
                     _ => panic!("unsupported scale-only vtype {:?}", v_type)

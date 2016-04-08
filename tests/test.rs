@@ -1,6 +1,6 @@
 extern crate tiberius;
 extern crate chrono;
-use self::chrono::{NaiveDateTime, NaiveDate};
+use self::chrono::{NaiveDateTime, NaiveDate, NaiveTime, DateTime, Local};
 use tiberius::{AuthenticationMethod, Guid, Connection, ConnectionOptBuilder, TcpConnection};
 
 pub fn get_connection<'a>() -> Connection<'a> {
@@ -127,8 +127,14 @@ fn test_v73_datatypes() {
     let cl = get_connection();
     let rows = cl.query("SELECT * FROM [test].[dbo].[test_v73]").unwrap();
     assert_eq!(rows.len(), 1);
-    let time: &NaiveDateTime = rows.get(0).get("col_datetime2");
-    assert_eq!(time.to_string(), "2016-04-07 23:19:27.587");
+    let dtime: &NaiveDateTime = rows.get(0).get("col_datetime2");
+    assert_eq!(dtime.to_string(), "2016-04-07 23:19:27.587");
     let date : &NaiveDate = rows.get(0).get("col_date");
     assert_eq!(date.to_string(), "1985-02-26");
+    let time: &NaiveTime = rows.get(0).get("col_time");
+    assert_eq!(time.to_string(), "12:16:22.666");
+    let tzdtime: DateTime<Local> = rows.get(0).get("col_datetime_offset");
+    assert_eq!(tzdtime.to_string(), "2016-04-08 12:47:37.413 +02:00");
+    let tzdtime_optional: Option<DateTime<Local>> = rows.get(0).get("col_datetime_offset");
+    assert_eq!(format!("{:?}", tzdtime_optional), "Some(2016-04-08T12:47:37.413+02:00)");
 }

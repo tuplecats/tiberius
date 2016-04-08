@@ -10,6 +10,6 @@ license = "MIT"
 
 [dependencies]
 encoding = "0.2.32"
-chrono = "0.2.17"
+chrono = "0.2.21"
 byteorder="0.5"
 net2="0.2"
