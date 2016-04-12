@@ -234,11 +234,41 @@ impl ColumnData {
 impl<'a, W: Write> WriteTokenStream<&'a ColumnType<'a>> for W {
     fn write_token_stream(&mut self, data: &'a ColumnType<'a>) -> TdsResult<()> {
         match *data {
+            ColumnType::I8(ref val) => {
+                try!(self.write_u8(VarLenType::Intn as u8));
+                try!(self.write_u8(1));
+                try!(self.write_u8(1));
+                try!(self.write_i8(*val))
+            },
+            ColumnType::I16(ref val) => {
+                try!(self.write_u8(VarLenType::Intn as u8));
+                try!(self.write_u8(2));
+                try!(self.write_u8(2));
+                try!(self.write_i16::<LittleEndian>(*val));
+            },
             ColumnType::I32(ref val) => {
                 try!(self.write_u8(VarLenType::Intn as u8));
                 try!(self.write_u8(4));
                 try!(self.write_u8(4));
                 try!(self.write_i32::<LittleEndian>(*val));
+            },
+            ColumnType::I64(ref val) => {
+                try!(self.write_u8(VarLenType::Intn as u8));
+                try!(self.write_u8(8));
+                try!(self.write_u8(8));
+                try!(self.write_i64::<LittleEndian>(*val));
+            },
+            ColumnType::F32(ref val) => {
+                try!(self.write_u8(VarLenType::Floatn as u8));
+                try!(self.write_u8(4));
+                try!(self.write_u8(4));
+                try!(self.write_f32::<LittleEndian>(*val));
+            },
+            ColumnType::F64(ref val) => {
+                try!(self.write_u8(VarLenType::Floatn as u8));
+                try!(self.write_u8(8));
+                try!(self.write_u8(8));
+                try!(self.write_f64::<LittleEndian>(*val));
             },
             ColumnType::String(ref val) => {
                 let len = (val.len() as u32 * 2) as u16;

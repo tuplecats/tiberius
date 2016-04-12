@@ -35,15 +35,31 @@ pub trait ToColumnType {
     fn column_type<'a>(&self) -> &'a str;
 }
 
-impl ToColumnType for i32 {
-    fn to_column_type(&self) -> ColumnType {
-        ColumnType::I32(*self)
-    }
+macro_rules! column_sql {
+    ($ty:ty, $cty:ident, $name:expr) => { column_sql!($ty, $cty, $name, $ty); };
+    ($ty:ty, $cty:ident, $name:expr, $cast:ty) => {
+        impl ToColumnType for $ty {
+            fn to_column_type(&self) -> ColumnType {
+                ColumnType::$cty(*self as $cast)
+            }
 
-    fn column_type(&self) -> &'static str {
-        "int"
+            fn column_type(&self) -> &'static str {
+                $name
+            }
+        }
     }
 }
+column_sql!(i8, I8, "tinyint");
+column_sql!(i16, I16, "smallint");
+column_sql!(i32, I32, "int");
+column_sql!(i64, I64, "bigint");
+column_sql!(u8, I8, "tinyint", i8);
+column_sql!(u16, I16, "smallint", i16);
+column_sql!(u32, I32, "int", i32);
+column_sql!(u64, I64, "bigint", i64);
+// https://msdn.microsoft.com/en-us/library/ms173773.aspx
+column_sql!(f32, F32, "float(24)");
+column_sql!(f64, F64, "float(53)");
 
 impl<'a> ToColumnType for &'a str {
     fn to_column_type(&self) -> ColumnType {
