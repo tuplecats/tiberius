@@ -22,7 +22,7 @@ pub enum ClientState {
 pub trait TargetStream: Read + Write + fmt::Debug {}
 impl<T: Read + Write + fmt::Debug> TargetStream for T {}
 
-pub struct Connection<'a>(Rc<RefCell<InternalConnection<'a>>>);
+pub struct Connection<'a, S: 'a + TargetStream>(Rc<RefCell<InternalConnection<'a, S>>>);
 
 #[derive(Debug)]
 pub enum AuthenticationMethod<'a> {
@@ -36,61 +36,126 @@ impl<'a> AuthenticationMethod<'a> {
     }
 }
 
-pub struct ConnectionOptBuilder<'a> {
+pub struct ConnectionOptBuilder<'a, S: 'a + TargetStream> {
     auth: Option<AuthenticationMethod<'a>>,
     database: Option<Cow<'a, str>>,
+    stream: S,
 }
 
-impl<'a> ConnectionOptBuilder<'a> {
-    pub fn new() -> ConnectionOptBuilder<'a> {
+impl<'a, S: 'a + TargetStream> ConnectionOptBuilder<'a, S> {
+    pub fn new(stream: S) -> ConnectionOptBuilder<'a, S> {
         ConnectionOptBuilder {
             auth: None,
             database: None,
+            stream: stream,
         }
     }
-    pub fn auth(mut self, method: AuthenticationMethod<'a>) -> ConnectionOptBuilder<'a> {
+    pub fn auth(mut self, method: AuthenticationMethod<'a>) -> ConnectionOptBuilder<'a, S> {
         self.auth = Some(method);
         self
     }
 
-    pub fn db<D: Into<Cow<'a, str>>>(mut self, db: D) -> ConnectionOptBuilder<'a> {
+    pub fn db<D: Into<Cow<'a, str>>>(mut self, db: D) -> ConnectionOptBuilder<'a, S> {
         self.database = Some(db.into());
         self
     }
 
-    pub fn build(self) -> ConnectionOptions<'a> {
+    pub fn build(self) -> ConnectionOptions<'a, S> {
         ConnectionOptions {
             auth: self.auth.unwrap(),
             database: self.database.unwrap(),
+            stream: self.stream,
         }
     }
 }
 
-// TODO: allow connecting via URL, ... (easier usage)
 #[derive(Debug)]
-pub struct ConnectionOptions<'a> {
+pub struct ConnectionOptions<'a, S: 'a + TargetStream> {
     pub auth: AuthenticationMethod<'a>,
     pub database: Cow<'a, str>,
+    pub stream: S,
 }
 
-pub trait IntoConnectOpts<'a> {
-    fn into_connect_opts(self) -> TdsResult<ConnectionOptions<'a>>;
+pub trait IntoConnectOpts<'a, S: 'a + TargetStream> {
+    fn into_connect_opts(self) -> TdsResult<ConnectionOptions<'a, S>>;
 }
 
-impl<'a> IntoConnectOpts<'a> for ConnectionOptions<'a> {
-    fn into_connect_opts(self) -> TdsResult<ConnectionOptions<'a>> {
+impl<'a, S: 'a + TargetStream> IntoConnectOpts<'a, S> for ConnectionOptions<'a, S> {
+    fn into_connect_opts(self) -> TdsResult<ConnectionOptions<'a, S>> {
         Ok(self)
     }
 }
 
+/// allow construction connection options by using a ODBC connection string
+/// as specified in "ODBC Driver Connection String Keywords"
+/// https://msdn.microsoft.com/de-de/library/ms130822(v=sql.120).aspx
+///
+/// supported options: Server, Database, UID, PWD
+///
+/// a sample connection string could be something like:
+/// `Server=localhost;Database=testdb;UID=test;PWD=1234`
+impl <'a> IntoConnectOpts<'a, Box<TargetStream>> for &'a str {
+    fn into_connect_opts(self) -> TdsResult<ConnectionOptions<'a, Box<TargetStream>>> {
+        struct ParsedContext<'a> {
+            auth_method: Option<AuthenticationMethod<'a>>,
+            db: Option<Cow<'a, str>>
+        }
+
+        fn apply_opts<'a>(ctxt: Box<ParsedContext<'a>>, mut opts_builder: ConnectionOptBuilder<'a, Box<TargetStream>>) -> ConnectionOptions<'a, Box<TargetStream>> {
+            if let Some(ref x) = ctxt.db {
+                opts_builder = opts_builder.db(x.clone());
+            }
+            if let Some(x) = ctxt.auth_method {
+                opts_builder = opts_builder.auth(x);
+            }
+            opts_builder.build()
+        }
+
+        let mut ctxt = ParsedContext {
+            auth_method: None,
+            db: None
+        };
+        let mut builder = None;
+
+        for opt in self.split(";") {
+            let parts: Vec<&str> = opt.splitn(2, "=").collect();
+            assert_eq!(parts.len(), 2);
+            match &parts[0].to_lowercase()[..] {
+                "uid" => {
+                    ctxt.auth_method = match ctxt.auth_method {
+                        Some(AuthenticationMethod::InternalSqlServerAuth(_, p)) => Some(AuthenticationMethod::internal(parts[1], p)),
+                        _ => Some(AuthenticationMethod::internal(parts[1], ""))
+                    }
+                },
+                "pwd" => {
+                    ctxt.auth_method = match ctxt.auth_method {
+                        Some(AuthenticationMethod::InternalSqlServerAuth(u, _)) => Some(AuthenticationMethod::internal(u, parts[1])),
+                        _ => Some(AuthenticationMethod::internal("", parts[1]))
+                    }
+                },
+                "database" => ctxt.db = Some(Cow::Borrowed(parts[1])),
+                "server" => {
+                    let stream = try!(TcpStream::connect(parts[1]));
+                    builder = Some(ConnectionOptBuilder::new(Box::new(stream) as Box<TargetStream>));
+                },
+                _ => panic!("TODO! unknown parameter {}", parts[0])
+            }
+        }
+        if let Some(x) = builder {
+            return Ok(apply_opts(Box::new(ctxt), x))
+        }
+        Err(TdsError::Other("server not specified".to_owned()))
+    }
+}
+
 // manual impl since autoderef seemed to mess up when cloning
-impl<'a> Connection<'a> {
-    pub fn clone(&'a self) -> Connection<'a> {
+impl<'a, S: 'a + TargetStream> Connection<'a, S> {
+    pub fn clone(&'a self) -> Connection<'a, S> {
         Connection(self.0.clone())
     }
 }
 
-impl<'c> Connection<'c> {
+impl<'c, S: 'c + TargetStream> Connection<'c, S> {
     /// Execute the given query and return the resulting rows
     pub fn query<L>(&'c self, sql: L) -> TdsResult<QueryResult> where L: Into<Cow<'c, str>> {
         let stmt = StatementInternal::new(self.clone(), sql.into());
@@ -103,51 +168,48 @@ impl<'c> Connection<'c> {
         Ok(try!(stmt.execute()))
     }
 
-    pub fn prepare<L>(&'c self, sql: L) -> TdsResult<PreparedStatement<'c>> where L: Into<Cow<'c, str>> {
+    pub fn prepare<L>(&'c self, sql: L) -> TdsResult<PreparedStatement<'c, S>> where L: Into<Cow<'c, str>> {
         Ok(try!(PreparedStatement::new(self.clone(), sql.into())))
     }
 }
 
-impl<'a> Deref for Connection<'a> {
-    type Target = Rc<RefCell<InternalConnection<'a>>>;
+impl<'a, S: 'a + TargetStream> Deref for Connection<'a, S> {
+    type Target = Rc<RefCell<InternalConnection<'a, S>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<'a> Connection<'a> {
-    pub fn connect<T: IntoConnectOpts<'a>>(stream: Box<TargetStream>, opts: T) -> TdsResult<Connection<'a>> {
+impl<'a, S: 'a + TargetStream> Connection<'a, S> {
+    pub fn connect<T: IntoConnectOpts<'a, S>>(opts: T) -> TdsResult<Connection<'a, S>> {
         let opts = try!(opts.into_connect_opts());
-        let mut conn = InternalConnection::new(stream, opts);
+        let mut conn = InternalConnection::new(opts);
         try!(conn.initialize());
         Ok(Connection(Rc::new(RefCell::new(conn))))
     }
 }
 
-pub struct TcpConnection;
-impl<'a> TcpConnection {
-    /// connect to the SQL server using the TCP protocol
-    pub fn connect<A: ToSocketAddrs, T: IntoConnectOpts<'a>>(addrs: A, opts: T) -> TdsResult<Connection<'a>> {
-        let stream = try!(TcpStream::connect(addrs));
-        Ok(try!(Connection::connect(Box::new(stream), opts)))
+pub struct TcpConnectionBuilder;
+impl TcpConnectionBuilder {
+    /// connects to the SQL server using the TCP protocol and returns get a config builder for the connection
+    pub fn new_connect<'a, A: ToSocketAddrs>(addrs: A) -> TdsResult<ConnectionOptBuilder<'a, TcpStream>> {
+        Ok(ConnectionOptBuilder::new(try!(TcpStream::connect(addrs))))
     }
 }
 
 /// Internal representation of a Internal Connection
 #[doc(hidden)]
-pub struct InternalConnection<'a> {
+pub struct InternalConnection<'a, S: 'a + TargetStream> {
     pub state: ClientState,
     last_packet_id: u8,
-    pub stream: Box<TargetStream>,
-    pub opts: ConnectionOptions<'a>,
+    pub opts: ConnectionOptions<'a, S>,
     packet_size: u16,
 }
 
-impl<'c> InternalConnection<'c> {
-    fn new(stream: Box<TargetStream>, opts: ConnectionOptions<'c>) -> InternalConnection<'c> {
+impl<'c, S: 'c + TargetStream> InternalConnection<'c, S> {
+    fn new(opts: ConnectionOptions<'c, S>) -> InternalConnection<'c, S> {
         InternalConnection {
-            stream: stream,
             state: ClientState::Initial,
             last_packet_id: 0,
             opts: opts,
@@ -216,7 +278,7 @@ impl<'c> InternalConnection<'c> {
 
     /// read and parse "simple" packets
     pub fn read_packet<'a>(&mut self) -> TdsResult<Packet<'a>> {
-        let packet = try!(self.stream.read_message());
+        let packet = try!(self.opts.stream.read_message());
         Ok(match self.state {
             ClientState::Initial => {
                 try!(packet.into_prelogin())
@@ -236,11 +298,11 @@ impl<'c> InternalConnection<'c> {
     /// a packet-id for each sent packet
     pub fn send_packet(&mut self, packet: &Packet) -> TdsResult<()> {
         let mut header = PacketHeader::new();
-        let mut packet = try!(self.stream.build_packet(header, packet));
+        let mut packet = try!(self.opts.stream.build_packet(header, packet));
         // if we don't have to split the packet due to max packet size, sent it
         if packet.header.length < self.packet_size {
             header.id = self.alloc_id();
-            try!(self.stream.write_packet(&mut packet));
+            try!(self.opts.stream.write_packet(&mut packet));
             return Ok(())
         }
         packet.header.status = PacketStatus::NormalMessage;
@@ -257,7 +319,7 @@ impl<'c> InternalConnection<'c> {
             };
             packet.header.id = self.alloc_id();
             packet.update_len();
-            try!(self.stream.write_packet(&mut packet));
+            try!(self.opts.stream.write_packet(&mut packet));
             packet.data = next_data;
         }
         Ok(())

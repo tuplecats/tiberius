@@ -19,8 +19,8 @@ fn test_simple_prepared() {
 fn test_common_prepare_types() {
     let cl = get_connection();
     let stmt = cl.prepare("SELECT * FROM [test].[dbo].[test] WHERE id=@P1;").unwrap();
-    stmt.query(&[&1u8, &1u16, &1u32, &1u64]);
-    stmt.query(&[&1i8, &1i16, &1i32, &1i64]);
-    stmt.query(&[&12.12f32, &23.23f64]);
-    stmt.query(&[&"test"]);
+    stmt.query(&[&1u8, &1u16, &1u32, &1u64]).unwrap();
+    stmt.query(&[&1i8, &1i16, &1i32, &1i64]).unwrap();
+    stmt.query(&[&12.12f32, &23.23f64, &0f64, &0f64]).unwrap();
+    stmt.query(&[&"12", &0f64, &0f64, &0f64]).unwrap();
 }

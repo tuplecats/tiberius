@@ -6,7 +6,7 @@ use std::rc::Rc;
 use protocol::*;
 use conn::{Connection};
 use types::{ColumnType, ColumnValue, ToColumnType};
-use ::{TdsResult, TdsError};
+use ::{TargetStream, TdsResult, TdsError};
 
 #[derive(Debug)]
 #[doc(hidden)]
@@ -111,8 +111,8 @@ impl<'a> IntoIterator for QueryResult<'a> {
 }
 
 #[doc(hidden)]
-pub struct StatementInternal<'a> {
-    conn: Connection<'a>,
+pub struct StatementInternal<'a, S: 'a + TargetStream> {
+    conn: Connection<'a, S>,
     query: Cow<'a, str>,
     stmt: Rc<RefCell<StatementInfo>>,
 }
@@ -154,8 +154,8 @@ fn handle_query_packet(packet: Packet, stmt: Rc<RefCell<StatementInfo>>) -> TdsR
     Ok(query_result)
 }
 
-impl<'a> StatementInternal<'a> {
-    pub fn new(conn: Connection<'a>, query: Cow<'a, str>) -> StatementInternal<'a> {
+impl<'a, S: 'a + TargetStream> StatementInternal<'a, S> {
+    pub fn new(conn: Connection<'a, S>, query: Cow<'a, str>) -> StatementInternal<'a, S> {
         StatementInternal {
             conn: conn,
             query: query,
@@ -166,7 +166,7 @@ impl<'a> StatementInternal<'a> {
     pub fn execute_into_query(self) -> TdsResult<QueryResult<'a>> {
         let mut conn = self.conn.borrow_mut();
         try!(conn.internal_exec(&self.query));
-        let packet = try!(try!(conn.stream.read_message()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
+        let packet = try!(try!(conn.opts.stream.read_message()).into_stmt_token_stream(&mut *self.stmt.borrow_mut()));
         handle_query_packet(packet, self.stmt)
     }
 
@@ -178,14 +178,14 @@ impl<'a> StatementInternal<'a> {
     }
 }
 
-pub struct PreparedStatement<'a> {
-    conn: Connection<'a>,
+pub struct PreparedStatement<'a, S: 'a + TargetStream> {
+    conn: Connection<'a, S>,
     stmt: Rc<RefCell<StatementInfo>>,
     sql: Cow<'a, str>,
 }
 
-impl<'a> PreparedStatement<'a> {
-    pub fn new(conn: Connection<'a>, sql: Cow<'a, str>) -> TdsResult<PreparedStatement<'a>> {
+impl<'a, S: 'a + TargetStream> PreparedStatement<'a, S> {
+    pub fn new(conn: Connection<'a, S>, sql: Cow<'a, str>) -> TdsResult<PreparedStatement<'a, S>> {
         Ok(PreparedStatement{
             conn: conn,
             sql: sql,
@@ -232,7 +232,7 @@ impl<'a> PreparedStatement<'a> {
         let mut conn = self.conn.borrow_mut();
         try!(conn.send_packet(&rpc_packet));
         {
-            let packet = try!(try!(conn.stream.read_message()).into_stmt_token_stream(stmt));
+            let packet = try!(try!(conn.opts.stream.read_message()).into_stmt_token_stream(stmt));
             try!(packet.catch_error());
             match packet {
                 Packet::TokenStream(ref tokens) => {
@@ -299,7 +299,7 @@ impl<'a> PreparedStatement<'a> {
             }
             try!(self.do_internal_exec(stmt, params));
             let mut conn = self.conn.borrow_mut();
-            packet = try!(try!(conn.stream.read_message()).into_stmt_token_stream(stmt));
+            packet = try!(try!(conn.opts.stream.read_message()).into_stmt_token_stream(stmt));
         }
         handle_query_packet(packet, self.stmt.clone())
     }

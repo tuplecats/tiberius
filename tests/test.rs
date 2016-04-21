@@ -1,14 +1,11 @@
 extern crate tiberius;
 extern crate chrono;
 use self::chrono::{NaiveDateTime, NaiveDate, NaiveTime, DateTime, Local};
-use tiberius::{AuthenticationMethod, Guid, Connection, ConnectionOptBuilder, TcpConnection};
+use tiberius::{TargetStream, Guid, Connection};
 
-pub fn get_connection<'a>() -> Connection<'a> {
-    let opts = ConnectionOptBuilder::new()
-        .auth(AuthenticationMethod::internal("test", "test"))
-        .db("test")
-        .build();
-    TcpConnection::connect(&("127.0.0.1", 1433), opts).unwrap()
+pub fn get_connection<'a>() -> Connection<'a, Box<TargetStream>> {
+    let opts = "server=localhost:1433;UID=test;PWD=test;Database=test";
+    Connection::connect(opts).unwrap()
 }
 
 #[test]
