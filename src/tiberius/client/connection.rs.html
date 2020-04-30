@@ -437,7 +437,20 @@
 <span id="437">437</span>
 <span id="438">438</span>
 <span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
 </pre><div class="example-wrap"><pre class="rust ">
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">Error</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::{
         <span class="ident">tls</span>::{<span class="ident">MaybeTlsStream</span>, <span class="ident">TlsPreloginWrapper</span>},
@@ -451,7 +464,7 @@
         <span class="ident">stream</span>::<span class="ident">TokenStream</span>,
         <span class="ident">Context</span>, <span class="ident">HEADER_BYTES</span>,
     },
-    <span class="ident">EncryptionLevel</span>, <span class="ident">Error</span>, <span class="ident">SqlReadBytes</span>,
+    <span class="ident">EncryptionLevel</span>, <span class="ident">SqlReadBytes</span>,
 };
 <span class="kw">use</span> ::<span class="ident">std</span>::<span class="ident">str</span>;
 <span class="kw">use</span> <span class="ident">bytes</span>::<span class="ident">BytesMut</span>;
@@ -459,13 +472,16 @@
 <span class="kw">use</span> <span class="ident">codec</span>::<span class="ident">TokenSSPI</span>;
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">ready</span>, <span class="ident">SinkExt</span>, <span class="ident">Stream</span>, <span class="ident">TryStream</span>, <span class="ident">TryStreamExt</span>};
 <span class="kw">use</span> <span class="ident">pretty_hex</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">cmp</span>, <span class="ident">io</span>, <span class="ident">net</span>::<span class="ident">SocketAddr</span>, <span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>, <span class="ident">task</span>, <span class="ident">time</span>::<span class="ident">Duration</span>};
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">time</span>::<span class="ident">Duration</span>;
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">cmp</span>, <span class="ident">io</span>, <span class="ident">net</span>::<span class="ident">SocketAddr</span>, <span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>, <span class="ident">task</span>};
 <span class="kw">use</span> <span class="ident">task</span>::<span class="ident">Poll</span>;
 <span class="kw">use</span> <span class="ident">tokio</span>::{
     <span class="ident">io</span>::<span class="ident">AsyncRead</span>,
-    <span class="ident">net</span>::{<span class="ident">TcpStream</span>, <span class="ident">ToSocketAddrs</span>, <span class="ident">UdpSocket</span>},
-    <span class="ident">time</span>,
+    <span class="ident">net</span>::{<span class="ident">TcpStream</span>, <span class="ident">ToSocketAddrs</span>},
 };
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
+<span class="kw">use</span> <span class="ident">tokio</span>::{<span class="ident">net</span>::<span class="ident">UdpSocket</span>, <span class="ident">time</span>};
 <span class="kw">use</span> <span class="ident">tokio_util</span>::<span class="ident">codec</span>::<span class="ident">Framed</span>;
 <span class="kw">use</span> <span class="ident">tracing</span>::{<span class="ident">event</span>, <span class="ident">Level</span>};
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
@@ -752,8 +768,14 @@
         <span class="prelude-val">Ok</span>(())
     }
 
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">windows</span>))]</span>
+    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">find_tcp_port</span>(<span class="ident">addr</span>: <span class="ident">SocketAddr</span>, <span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SocketAddr</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Ok</span>(<span class="ident">addr</span>)
+    }
+
     <span class="doccomment">/// Use the SQL Browser to find the correct TCP port for the server</span>
     <span class="doccomment">/// instance.</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">find_tcp_port</span>(<span class="kw-2">mut</span> <span class="ident">addr</span>: <span class="ident">SocketAddr</span>, <span class="ident">instance_name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SocketAddr</span><span class="op">&gt;</span> {
         <span class="comment">// First resolve the instance to a port via the</span>
         <span class="comment">// SSRP protocol/MS-SQLR protocol [1]</span>

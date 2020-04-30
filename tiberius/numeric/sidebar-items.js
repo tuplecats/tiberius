@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Numeric","Represent a sql Decimal / Numeric type. It is stored in a i128 and has a maximum precision of 38 decimals."]]});
