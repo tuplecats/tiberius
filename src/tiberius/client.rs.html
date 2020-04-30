@@ -238,6 +238,19 @@
 <span id="238">238</span>
 <span id="239">239</span>
 <span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">mod</span> <span class="ident">builder</span>;
 <span class="kw">mod</span> <span class="ident">connection</span>;
@@ -257,46 +270,59 @@
 <span class="kw">use</span> <span class="ident">codec</span>::{<span class="ident">ColumnData</span>, <span class="ident">PacketHeader</span>, <span class="ident">RpcParam</span>, <span class="ident">RpcProcId</span>, <span class="ident">RpcProcIdValue</span>, <span class="ident">TokenRpcRequest</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Cow</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SqlServerAuth</span> {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">user</span>: <span class="ident">String</span>,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">password</span>: <span class="ident">String</span>,
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WindowsAuth</span> {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">user</span>: <span class="ident">String</span>,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">password</span>: <span class="ident">String</span>,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">domain</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">AuthMethod</span> {
-    <span class="prelude-val">None</span>,
-    <span class="doccomment">/// SQL Server integrated authentication</span>
-    <span class="ident">SqlServer</span> {
-        <span class="ident">user</span>: <span class="ident">String</span>,
-        <span class="ident">password</span>: <span class="ident">String</span>,
-    },
-    <span class="doccomment">/// Windows authentication</span>
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="ident">Windows</span> {
-        <span class="ident">user</span>: <span class="ident">String</span>,
-        <span class="ident">password</span>: <span class="ident">String</span>,
-        <span class="ident">domain</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    },
-    <span class="doccomment">/// Windows integrated authentication (current user)</span>
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
+    <span class="doccomment">/// Authenticate directly with SQL Server. The only authentication method</span>
+    <span class="doccomment">/// that works on all platforms.</span>
+    <span class="ident">SqlServer</span>(<span class="ident">SqlServerAuth</span>),
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">doc</span>))]</span>
+    <span class="doccomment">/// Authenticate with Windows credentials. Only available on Windows</span>
+    <span class="doccomment">/// platforms.</span>
+    <span class="ident">Windows</span>(<span class="ident">WindowsAuth</span>),
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">doc</span>))]</span>
+    <span class="doccomment">/// Authenticate as the currently logged in user. Only available on Windows</span>
+    <span class="doccomment">/// platforms.</span>
     <span class="ident">WindowsIntegrated</span>,
+    <span class="attribute">#[<span class="ident">doc</span>(<span class="ident">hidden</span>)]</span>
+    <span class="prelude-val">None</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">AuthMethod</span> {
+    <span class="doccomment">/// Construct a new SQL Server authentication configuration.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sql_server</span>(<span class="ident">user</span>: <span class="kw">impl</span> <span class="ident">ToString</span>, <span class="ident">password</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="self">Self</span>::<span class="ident">SqlServer</span> {
+        <span class="self">Self</span>::<span class="ident">SqlServer</span>(<span class="ident">SqlServerAuth</span> {
             <span class="ident">user</span>: <span class="ident">user</span>.<span class="ident">to_string</span>(),
             <span class="ident">password</span>: <span class="ident">password</span>.<span class="ident">to_string</span>(),
-        }
+        })
     }
 
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
+    <span class="doccomment">/// Construct a new Windows authentication configuration. Only available on</span>
+    <span class="doccomment">/// Windows platforms.</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">doc</span>))]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">windows</span>(<span class="ident">user</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">password</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="kw">let</span> (<span class="ident">domain</span>, <span class="ident">user</span>) <span class="op">=</span> <span class="kw">match</span> <span class="ident">user</span>.<span class="ident">as_ref</span>().<span class="ident">find</span>(<span class="string">&quot;\\&quot;</span>) {
             <span class="prelude-val">Some</span>(<span class="ident">idx</span>) <span class="op">=</span><span class="op">&gt;</span> (<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="ident">user</span>.<span class="ident">as_ref</span>()[..<span class="ident">idx</span>]), <span class="kw-2">&amp;</span><span class="ident">user</span>.<span class="ident">as_ref</span>()[<span class="ident">idx</span> <span class="op">+</span> <span class="number">1</span>..]),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="prelude-val">None</span>, <span class="ident">user</span>.<span class="ident">as_ref</span>()),
         };
 
-        <span class="self">Self</span>::<span class="ident">Windows</span> {
+        <span class="self">Self</span>::<span class="ident">Windows</span>(<span class="ident">WindowsAuth</span> {
             <span class="ident">user</span>: <span class="ident">user</span>.<span class="ident">to_string</span>(),
             <span class="ident">password</span>: <span class="ident">password</span>.<span class="ident">to_string</span>(),
             <span class="ident">domain</span>: <span class="ident">domain</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">to_string</span>()),
-        }
+        })
     }
 }
 

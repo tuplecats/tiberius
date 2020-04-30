@@ -91,6 +91,9 @@
 };
 <span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">sync</span>::<span class="ident">Mutex</span>;
 
+<span class="doccomment">/// The amount of bytes a packet header consists of</span>
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const</span> <span class="ident">HEADER_BYTES</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">8</span>;
+
 <span class="macro">uint_enum</span><span class="macro">!</span> {
     <span class="doccomment">/// The configured encryption level specifying if encryption is required</span>
     <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>
@@ -108,16 +111,16 @@
 
 <span class="doccomment">/// Context, that might be required to make sure we understand and are understood by the server</span>
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">Context</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">version</span>: <span class="ident">FeatureLevel</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">packet_size</span>: <span class="ident">AtomicU32</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">packet_id</span>: <span class="ident">AtomicU8</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">last_meta</span>: <span class="ident">Mutex</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">TokenColMetaData</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">FeatureLevel</span>,
+    <span class="kw">pub</span> <span class="ident">packet_size</span>: <span class="ident">AtomicU32</span>,
+    <span class="kw">pub</span> <span class="ident">packet_id</span>: <span class="ident">AtomicU8</span>,
+    <span class="kw">pub</span> <span class="ident">last_meta</span>: <span class="ident">Mutex</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">TokenColMetaData</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">spn</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">spn</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">Context</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Context</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Context</span> {
         <span class="ident">Context</span> {
             <span class="ident">version</span>: <span class="ident">FeatureLevel</span>::<span class="ident">SqlServerN</span>,
             <span class="ident">packet_size</span>: <span class="ident">AtomicU32</span>::<span class="ident">new</span>(<span class="number">4096</span>),
@@ -128,26 +131,23 @@
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new_header</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">length</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">PacketHeader</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new_header</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">length</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">PacketHeader</span> {
         <span class="ident">PacketHeader</span>::<span class="ident">new</span>(<span class="ident">length</span>, <span class="self">self</span>.<span class="ident">packet_id</span>.<span class="ident">fetch_add</span>(<span class="number">1</span>, <span class="ident">Ordering</span>::<span class="ident">SeqCst</span>))
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">set_last_meta</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">meta</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">TokenColMetaData</span><span class="op">&gt;</span>) {
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">set_last_meta</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">meta</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">TokenColMetaData</span><span class="op">&gt;</span>) {
         <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">last_meta</span>.<span class="ident">lock</span>().<span class="kw">await</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">meta</span>);
     }
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_spn</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">host</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">port</span>: <span class="ident">u16</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_spn</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">host</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">port</span>: <span class="ident">u16</span>) {
         <span class="self">self</span>.<span class="ident">spn</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;MSSQLSvc/{}:{}&quot;</span>, <span class="ident">host</span>.<span class="ident">as_ref</span>(), <span class="ident">port</span>));
     }
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">spn</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">spn</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">str</span> {
         <span class="self">self</span>.<span class="ident">spn</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">as_str</span>()).<span class="ident">unwrap_or</span>(<span class="string">&quot;&quot;</span>)
     }
 }
-
-<span class="doccomment">/// The amount of bytes a packet header consists of</span>
-<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">HEADER_BYTES</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">8</span>;
 </pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "tiberius";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>
