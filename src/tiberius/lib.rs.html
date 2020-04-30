@@ -32,28 +32,26 @@
 <span id="32">32</span>
 <span id="33">33</span>
 <span id="34">34</span>
-<span id="35">35</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! A pure-rust TDS implementation for Microsoft SQL Server (&gt;=2008)</span>
 <span class="attribute">#![<span class="ident">recursion_limit</span> <span class="op">=</span> <span class="string">&quot;512&quot;</span>]</span>
 
 <span class="kw">mod</span> <span class="ident">client</span>;
-<span class="kw">mod</span> <span class="ident">prepared</span>;
 <span class="kw">mod</span> <span class="ident">sql_read_bytes</span>;
+<span class="kw">mod</span> <span class="ident">to_sql</span>;
 
-<span class="kw">mod</span> <span class="ident">collation</span>;
 <span class="kw">mod</span> <span class="ident">error</span>;
 <span class="kw">mod</span> <span class="ident">macros</span>;
 <span class="kw">mod</span> <span class="ident">result</span>;
 <span class="kw">mod</span> <span class="ident">row</span>;
 <span class="kw">mod</span> <span class="ident">tds</span>;
-<span class="kw">mod</span> <span class="ident">tls</span>;
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">client</span>::{<span class="ident">AuthMethod</span>, <span class="ident">Client</span>, <span class="ident">ClientBuilder</span>};
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">error</span>::<span class="ident">Error</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">result</span>::<span class="kw-2">*</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">row</span>::{<span class="ident">Column</span>, <span class="ident">Row</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">tds</span>::<span class="ident">EncryptionLevel</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">tds</span>::{<span class="ident">numeric</span>::<span class="kw-2">*</span>, <span class="ident">time</span>::<span class="kw-2">*</span>, <span class="ident">EncryptionLevel</span>};
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">to_sql</span>::<span class="ident">ToSql</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">uuid</span>::<span class="ident">Uuid</span>;
 
 <span class="kw">use</span> <span class="ident">sql_read_bytes</span>::<span class="kw-2">*</span>;
