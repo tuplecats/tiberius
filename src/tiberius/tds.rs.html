@@ -73,6 +73,16 @@
 <span id="73">73</span>
 <span id="74">74</span>
 <span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">codec</span>;
 <span class="kw">mod</span> <span class="ident">collation</span>;
@@ -94,6 +104,7 @@
 <span class="doccomment">/// The amount of bytes a packet header consists of</span>
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const</span> <span class="ident">HEADER_BYTES</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">8</span>;
 
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
 <span class="macro">uint_enum</span><span class="macro">!</span> {
     <span class="doccomment">/// The configured encryption level specifying if encryption is required</span>
     <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>
@@ -106,6 +117,15 @@
         <span class="ident">NotSupported</span> <span class="op">=</span> <span class="number">2</span>,
         <span class="doccomment">/// Encrypt everything and fail if not possible</span>
         <span class="ident">Required</span> <span class="op">=</span> <span class="number">3</span>,
+    }
+
+}
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>))]</span>
+<span class="macro">uint_enum</span><span class="macro">!</span> {
+    <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">EncryptionLevel</span> {
+        <span class="doccomment">/// Do not encrypt anything</span>
+        <span class="ident">NotSupported</span> <span class="op">=</span> <span class="number">2</span>,
     }
 }
 

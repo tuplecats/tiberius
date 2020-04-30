@@ -112,6 +112,23 @@
 <span id="112">112</span>
 <span id="113">113</span>
 <span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">connection</span>::<span class="kw-2">*</span>, <span class="ident">AuthMethod</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">Context</span>, <span class="ident">Client</span>, <span class="ident">EncryptionLevel</span>};
@@ -126,7 +143,7 @@
     <span class="ident">database</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
     <span class="ident">instance_name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="ident">ssl</span>: <span class="ident">EncryptionLevel</span>,
+    <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>,
     <span class="ident">trust_cert</span>: <span class="ident">bool</span>,
     <span class="ident">auth</span>: <span class="ident">AuthMethod</span>,
 }
@@ -139,7 +156,10 @@
             <span class="ident">database</span>: <span class="prelude-val">None</span>,
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
             <span class="ident">instance_name</span>: <span class="prelude-val">None</span>,
-            <span class="ident">ssl</span>: <span class="ident">EncryptionLevel</span>::<span class="ident">NotSupported</span>,
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
+            <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>::<span class="ident">Required</span>,
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>))]</span>
+            <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>::<span class="ident">NotSupported</span>,
             <span class="ident">trust_cert</span>: <span class="bool-val">false</span>,
             <span class="ident">auth</span>: <span class="ident">AuthMethod</span>::<span class="prelude-val">None</span>,
         }
@@ -156,30 +176,43 @@
 
     <span class="doccomment">/// The server port.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// - Defaults to `1433`</span>
+    <span class="doccomment">/// - Defaults to `1433`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">port</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">port</span>: <span class="ident">u16</span>) {
         <span class="self">self</span>.<span class="ident">port</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">port</span>);
     }
 
-    <span class="doccomment">/// The database name to connect to.</span>
+    <span class="doccomment">/// The database to connect to.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// - Defaults to `master`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">database</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">database</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) {
         <span class="self">self</span>.<span class="ident">database</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">database</span>.<span class="ident">to_string</span>())
     }
 
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="doccomment">/// The instance name as defined in the SQL Browser.</span>
+    <span class="doccomment">/// The instance name as defined in the SQL Browser. Only available on</span>
+    <span class="doccomment">/// Windows platforms.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If specified, the port is replaced with the value returned from the</span>
+    <span class="doccomment">/// browser.</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">doc</span>))]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">instance_name</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) {
         <span class="self">self</span>.<span class="ident">instance_name</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">name</span>.<span class="ident">to_string</span>());
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ssl</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">ssl</span>: <span class="ident">EncryptionLevel</span>) {
-        <span class="self">self</span>.<span class="ident">ssl</span> <span class="op">=</span> <span class="ident">ssl</span>;
+    <span class="doccomment">/// Set the preferred encryption level.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encryption</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>) {
+        <span class="self">self</span>.<span class="ident">encryption</span> <span class="op">=</span> <span class="ident">encryption</span>;
     }
 
+    <span class="doccomment">/// If set, the server certificate will not be validated and it is accepted</span>
+    <span class="doccomment">/// as-is.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// On production setting, the certificate should be added to the local key</span>
+    <span class="doccomment">/// storage, using this setting is potentially dangerous.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">trust_cert</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="self">self</span>.<span class="ident">trust_cert</span> <span class="op">=</span> <span class="bool-val">true</span>;
     }
 
+    <span class="doccomment">/// Sets the authentication method.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">authentication</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">auth</span>: <span class="ident">AuthMethod</span>) {
         <span class="self">self</span>.<span class="ident">auth</span> <span class="op">=</span> <span class="ident">auth</span>;
     }
@@ -207,12 +240,13 @@
         <span class="ident">Context</span>::<span class="ident">new</span>()
     }
 
+    <span class="doccomment">/// Creates a new client and connects to the server.</span>
     <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">build</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Client</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">context</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">create_context</span>();
         <span class="kw">let</span> <span class="ident">addr</span> <span class="op">=</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}:{}&quot;</span>, <span class="self">self</span>.<span class="ident">get_host</span>(), <span class="self">self</span>.<span class="ident">get_port</span>());
 
         <span class="kw">let</span> <span class="ident">opts</span> <span class="op">=</span> <span class="ident">ConnectOpts</span> {
-            <span class="ident">ssl</span>: <span class="self">self</span>.<span class="ident">ssl</span>,
+            <span class="ident">encryption</span>: <span class="self">self</span>.<span class="ident">encryption</span>,
             <span class="ident">trust_cert</span>: <span class="self">self</span>.<span class="ident">trust_cert</span>,
             <span class="ident">auth</span>: <span class="self">self</span>.<span class="ident">auth</span>,
             <span class="ident">database</span>: <span class="self">self</span>.<span class="ident">database</span>,
