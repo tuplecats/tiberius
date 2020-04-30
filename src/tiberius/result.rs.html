@@ -292,19 +292,17 @@
 <span id="292">292</span>
 <span id="293">293</span>
 <span id="294">294</span>
-<span id="295">295</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::<span class="ident">Connection</span>,
-    <span class="ident">protocol</span>::{
+    <span class="ident">tds</span>::{
         <span class="ident">codec</span>::<span class="ident">DoneStatus</span>,
         <span class="ident">stream</span>::{<span class="ident">QueryStream</span>, <span class="ident">QueryStreamState</span>, <span class="ident">ReceivedToken</span>, <span class="ident">TokenStream</span>},
-        <span class="ident">Context</span>,
     },
     <span class="ident">Row</span>,
 };
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">ready</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStream</span>, <span class="ident">TryStreamExt</span>};
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">sync</span>::<span class="ident">Arc</span>, <span class="ident">task</span>};
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">task</span>};
 <span class="kw">use</span> <span class="ident">task</span>::<span class="ident">Poll</span>;
 
 <span class="doccomment">/// A set of `Streams` of [`Rows`] resulting from a `SELECT` query. The</span>
@@ -520,8 +518,8 @@
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">ExecuteResult</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">connection</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">Connection</span>, <span class="ident">context</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Context</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="ident">token_stream</span> <span class="op">=</span> <span class="ident">TokenStream</span>::<span class="ident">new</span>(<span class="ident">connection</span>, <span class="ident">context</span>).<span class="ident">try_unfold</span>();
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">connection</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">Connection</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="ident">token_stream</span> <span class="op">=</span> <span class="ident">TokenStream</span>::<span class="ident">new</span>(<span class="ident">connection</span>).<span class="ident">try_unfold</span>();
         <span class="self">Self</span> { <span class="ident">token_stream</span> }
     }
 
