@@ -741,7 +741,7 @@
     <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">DateTime</span>;
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
     <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">Date</span>, <span class="ident">DateTime2</span>, <span class="ident">DateTimeOffset</span>, <span class="ident">Time</span>};
-    <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">from_column_data</span>, <span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">to_sql</span>};
+    <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">ColumnData</span>;
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
     <span class="kw">use</span> <span class="ident">chrono</span>::<span class="ident">offset</span>::{<span class="ident">FixedOffset</span>, <span class="ident">Utc</span>};
     <span class="kw">use</span> <span class="ident">chrono</span>::{<span class="ident">Duration</span>, <span class="ident">NaiveDate</span>, <span class="ident">NaiveDateTime</span>, <span class="ident">NaiveTime</span>};
