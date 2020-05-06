@@ -922,7 +922,7 @@
     <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_server_parsing_no_browser</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">server_parsing_no_browser</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;server=tcp:my-server.com,4200&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">server</span> <span class="op">=</span> <span class="ident">ado</span>.<span class="ident">server</span>()<span class="question-mark">?</span>;
@@ -935,7 +935,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_server_parsing_no_tcp</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">server_parsing_no_tcp</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;server=my-server.com,4200&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">server</span> <span class="op">=</span> <span class="ident">ado</span>.<span class="ident">server</span>()<span class="question-mark">?</span>;
@@ -948,7 +948,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_server_parsing_with_browser</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">server_parsing_with_browser</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;server=tcp:my-server.com\\TIBERIUS&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">server</span> <span class="op">=</span> <span class="ident">ado</span>.<span class="ident">server</span>()<span class="question-mark">?</span>;
@@ -961,7 +961,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_server_parsing_with_browser_and_port</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">server_parsing_with_browser_and_port</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;server=tcp:my-server.com\\TIBERIUS,666&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">server</span> <span class="op">=</span> <span class="ident">ado</span>.<span class="ident">server</span>()<span class="question-mark">?</span>;
@@ -974,7 +974,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_database_parsing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">database_parsing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;database=Foo&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -984,7 +984,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_trust_cert_parsing_true</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">trust_cert_parsing_true</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;TrustServerCertificate=true&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -994,7 +994,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_trust_cert_parsing_false</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">trust_cert_parsing_false</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;TrustServerCertificate=false&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1004,7 +1004,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_trust_cert_parsing_yes</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">trust_cert_parsing_yes</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;TrustServerCertificate=yes&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1014,7 +1014,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_trust_cert_parsing_no</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">trust_cert_parsing_no</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;TrustServerCertificate=no&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1024,7 +1024,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_trust_cert_parsing_missing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">trust_cert_parsing_missing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;Something=foo;&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1034,7 +1034,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_trust_cert_parsing_faulty</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">trust_cert_parsing_faulty</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;TrustServerCertificate=musti;&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1044,7 +1044,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_parsing_sql_server_authentication</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">parsing_sql_server_authentication</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;uid=Musti; pwd=Naukio;&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1058,7 +1058,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="kw">fn</span> <span class="ident">test_parsing_sspi_authentication</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">parsing_sspi_authentication</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;IntegratedSecurity=SSPI&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1069,7 +1069,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="kw">fn</span> <span class="ident">test_parsing_windows_authentication</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">parsing_windows_authentication</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;uid=Musti;pwd=Naukio; IntegratedSecurity=SSPI;&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1082,7 +1082,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_parsing_database</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">parsing_database</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;database=Cats&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1093,7 +1093,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-    <span class="kw">fn</span> <span class="ident">test_encryption_parsing_on</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">encryption_parsing_on</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;encrypt=true&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1104,7 +1104,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-    <span class="kw">fn</span> <span class="ident">test_encryption_parsing_off</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">encryption_parsing_off</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;encrypt=false&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1115,7 +1115,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-    <span class="kw">fn</span> <span class="ident">test_encryption_parsing_missing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">encryption_parsing_missing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1126,7 +1126,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>))]</span>
-    <span class="kw">fn</span> <span class="ident">test_encryption_parsing_on</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">encryption_parsing_on</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;encrypt=true&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1137,7 +1137,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>))]</span>
-    <span class="kw">fn</span> <span class="ident">test_encryption_parsing_off</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">encryption_parsing_off</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;encrypt=false&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
@@ -1148,7 +1148,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>))]</span>
-    <span class="kw">fn</span> <span class="ident">test_encryption_parsing_missing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">encryption_parsing_missing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
