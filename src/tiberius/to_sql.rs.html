@@ -142,8 +142,14 @@
 <span id="142">142</span>
 <span id="143">143</span>
 <span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">ColumnData</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">xml</span>::<span class="ident">XmlData</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Cow</span>;
 <span class="kw">use</span> <span class="ident">uuid</span>::<span class="ident">Uuid</span>;
 
@@ -285,6 +291,12 @@
             }
             <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;VARBINARY(8000)&quot;</span>, <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
         }
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="ident">XmlData</span> {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+        (<span class="string">&quot;xml&quot;</span>, <span class="ident">ColumnData</span>::<span class="ident">Xml</span>(<span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="self">self</span>)))
     }
 }
 </pre></div>
