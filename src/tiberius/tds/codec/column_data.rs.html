@@ -779,6 +779,29 @@
 <span id="779">779</span>
 <span id="780">780</span>
 <span id="781">781</span>
+<span id="782">782</span>
+<span id="783">783</span>
+<span id="784">784</span>
+<span id="785">785</span>
+<span id="786">786</span>
+<span id="787">787</span>
+<span id="788">788</span>
+<span id="789">789</span>
+<span id="790">790</span>
+<span id="791">791</span>
+<span id="792">792</span>
+<span id="793">793</span>
+<span id="794">794</span>
+<span id="795">795</span>
+<span id="796">796</span>
+<span id="797">797</span>
+<span id="798">798</span>
+<span id="799">799</span>
+<span id="800">800</span>
+<span id="801">801</span>
+<span id="802">802</span>
+<span id="803">803</span>
+<span id="804">804</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">read_varchar</span>, <span class="ident">Encode</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">Collation</span>, <span class="ident">DateTime</span>, <span class="ident">SmallDateTime</span>};
@@ -1054,6 +1077,7 @@
             <span class="ident">VarLenType</span>::<span class="ident">BigBinary</span> <span class="op">|</span> <span class="ident">VarLenType</span>::<span class="ident">BigVarBin</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_binary</span>(<span class="ident">src</span>, <span class="ident">len</span>).<span class="kw">await</span><span class="question-mark">?</span>,
             <span class="ident">VarLenType</span>::<span class="ident">Text</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_text</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>,
             <span class="ident">VarLenType</span>::<span class="ident">NText</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_ntext</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>,
+            <span class="ident">VarLenType</span>::<span class="ident">Image</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_image</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>,
             <span class="ident">t</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">unimplemented</span><span class="macro">!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">t</span>),
         };
 
@@ -1248,6 +1272,28 @@
             <span class="kw">let</span> <span class="ident">text</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">text_len</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
             <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">text</span>.<span class="ident">into</span>()))
+        }
+    }
+
+    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">decode_image</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span>(<span class="ident">src</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">R</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>
+    <span class="kw">where</span>
+        <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
+    {
+        <span class="kw">let</span> <span class="ident">ptr_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
+
+        <span class="kw">if</span> <span class="ident">ptr_len</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="prelude-val">None</span>)
+        } <span class="kw">else</span> {
+            <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0</span>; <span class="ident">ptr_len</span>][<span class="number">0</span>..<span class="ident">ptr_len</span>]).<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// text ptr</span>
+
+            <span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// days</span>
+            <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// second fractions</span>
+
+            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0</span>; <span class="ident">len</span>];
+            <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buf</span>[<span class="number">0</span>..<span class="ident">len</span>]).<span class="kw">await</span><span class="question-mark">?</span>;
+
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">buf</span>.<span class="ident">into</span>()))
         }
     }
 
