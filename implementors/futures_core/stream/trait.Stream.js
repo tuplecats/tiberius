@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["tiberius"] = [{"text":"impl&lt;'a&gt; <a class=\"trait\" href=\"https://docs.rs/futures-core/0.3.0/futures_core/stream/trait.Stream.html\" title=\"trait futures_core::stream::Stream\">Stream</a> for <a class=\"struct\" href=\"tiberius/struct.QueryResult.html\" title=\"struct tiberius::QueryResult\">QueryResult</a>&lt;'a&gt;","synthetic":false,"types":["tiberius::result::QueryResult"]}];
+implementors["tiberius"] = [{"text":"impl&lt;'a&gt; <a class=\"trait\" href=\"https://docs.rs/futures-core/0.3.5/futures_core/stream/trait.Stream.html\" title=\"trait futures_core::stream::Stream\">Stream</a> for <a class=\"struct\" href=\"tiberius/struct.QueryResult.html\" title=\"struct tiberius::QueryResult\">QueryResult</a>&lt;'a&gt;","synthetic":false,"types":["tiberius::result::QueryResult"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
