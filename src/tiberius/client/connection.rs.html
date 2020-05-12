@@ -508,6 +508,17 @@
 <span id="508">508</span>
 <span id="509">509</span>
 <span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">client</span>::<span class="ident">tls</span>::<span class="ident">TlsPreloginWrapper</span>;
@@ -533,7 +544,7 @@
 <span class="kw">use</span> <span class="ident">pretty_hex</span>::<span class="kw-2">*</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">time</span>::<span class="ident">Duration</span>;
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">cmp</span>, <span class="ident">io</span>, <span class="ident">net</span>::<span class="ident">SocketAddr</span>, <span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>, <span class="ident">task</span>};
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">cmp</span>, <span class="ident">fmt</span>::<span class="ident">Debug</span>, <span class="ident">io</span>, <span class="ident">net</span>::<span class="ident">SocketAddr</span>, <span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">sync</span>::<span class="ident">atomic</span>::<span class="ident">Ordering</span>, <span class="ident">task</span>};
 <span class="kw">use</span> <span class="ident">task</span>::<span class="ident">Poll</span>;
 <span class="kw">use</span> <span class="ident">tokio</span>::{
     <span class="ident">io</span>::<span class="ident">AsyncRead</span>,
@@ -560,6 +571,17 @@
     <span class="ident">flushed</span>: <span class="ident">bool</span>,
     <span class="ident">context</span>: <span class="ident">Context</span>,
     <span class="ident">buf</span>: <span class="ident">BytesMut</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">Connection</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="ident">f</span>.<span class="ident">debug_struct</span>(<span class="string">&quot;Connection&quot;</span>)
+            .<span class="ident">field</span>(<span class="string">&quot;transport&quot;</span>, <span class="kw-2">&amp;</span><span class="string">&quot;Framed&lt;..&gt;&quot;</span>)
+            .<span class="ident">field</span>(<span class="string">&quot;flushed&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">flushed</span>)
+            .<span class="ident">field</span>(<span class="string">&quot;context&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">context</span>)
+            .<span class="ident">field</span>(<span class="string">&quot;buf&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">buf</span>.<span class="ident">as_ref</span>().<span class="ident">hex_dump</span>())
+            .<span class="ident">finish</span>()
+    }
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">ConnectOpts</span> {

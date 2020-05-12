@@ -255,6 +255,10 @@
 <span id="255">255</span>
 <span id="256">256</span>
 <span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">mod</span> <span class="ident">builder</span>;
 <span class="kw">mod</span> <span class="ident">connection</span>;
@@ -272,7 +276,7 @@
     <span class="ident">SqlReadBytes</span>, <span class="ident">ToSql</span>,
 };
 <span class="kw">use</span> <span class="ident">codec</span>::{<span class="ident">ColumnData</span>, <span class="ident">PacketHeader</span>, <span class="ident">RpcParam</span>, <span class="ident">RpcProcId</span>, <span class="ident">RpcProcIdValue</span>, <span class="ident">TokenRpcRequest</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Cow</span>;
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow</span>::<span class="ident">Cow</span>, <span class="ident">fmt</span>::<span class="ident">Debug</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SqlServerAuth</span> {
@@ -339,6 +343,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
+<span class="doccomment">/// # #[allow(unused)]</span>
 <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
 <span class="doccomment">/// let mut builder = Client::builder();</span>
 <span class="doccomment">///</span>
@@ -347,12 +352,13 @@
 <span class="doccomment">/// builder.authentication(AuthMethod::sql_server(&quot;SA&quot;, &quot;&lt;Mys3cureP4ssW0rD&gt;&quot;));</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// // Client is ready to use.</span>
-<span class="doccomment">/// let mut conn = builder.build().await?;</span>
+<span class="doccomment">/// let conn = builder.build().await?;</span>
 <span class="doccomment">/// # Ok(())</span>
 <span class="doccomment">/// # }</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// [`ClientBuilder`]: struct.ClientBuilder.html</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Client</span> {
     <span class="ident">connection</span>: <span class="ident">Connection</span>,
 }
@@ -374,8 +380,9 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::Client;</span>
+    <span class="doccomment">/// # #[allow(unused)]</span>
     <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-    <span class="doccomment">/// # let mut builder = Client::builder();</span>
+    <span class="doccomment">/// # let builder = Client::builder();</span>
     <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
     <span class="doccomment">/// let results = conn</span>
     <span class="doccomment">///     .execute(</span>
@@ -416,8 +423,9 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::Client;</span>
+    <span class="doccomment">/// # #[allow(unused)]</span>
     <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-    <span class="doccomment">/// # let mut builder = Client::builder();</span>
+    <span class="doccomment">/// # let builder = Client::builder();</span>
     <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
     <span class="doccomment">/// let rows = conn</span>
     <span class="doccomment">///     .query(</span>

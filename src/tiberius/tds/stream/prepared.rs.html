@@ -69,12 +69,26 @@
 <span id="69">69</span>
 <span id="70">70</span>
 <span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">ReceivedToken</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">DoneStatus</span>;
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">ready</span>, <span class="ident">Stream</span>};
 <span class="kw">use</span> <span class="ident">futures_util</span>::<span class="ident">StreamExt</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{
+    <span class="ident">fmt</span>::<span class="ident">Debug</span>,
     <span class="ident">pin</span>::<span class="ident">Pin</span>,
     <span class="ident">task</span>::{<span class="self">self</span>, <span class="ident">Poll</span>},
 };
@@ -82,6 +96,18 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">PreparedStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="ident">token_stream</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="ident">read_ahead</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span>,
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">PreparedStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="ident">Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="ident">f</span>.<span class="ident">debug_struct</span>(<span class="string">&quot;PreparedStream&quot;</span>)
+            .<span class="ident">field</span>(
+                <span class="string">&quot;token_stream&quot;</span>,
+                <span class="kw-2">&amp;</span><span class="string">&quot;Stream&lt;Item = crate::Result&lt;ReceivedToken&gt;&gt;&quot;</span>,
+            )
+            .<span class="ident">field</span>(<span class="string">&quot;read_ahead&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">read_ahead</span>)
+            .<span class="ident">finish</span>()
+    }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">PreparedStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {

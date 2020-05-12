@@ -84,6 +84,7 @@
 <span id="84">84</span>
 <span id="85">85</span>
 <span id="86">86</span>
+<span id="87">87</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">codec</span>;
 <span class="kw">mod</span> <span class="ident">collation</span>;
@@ -132,6 +133,7 @@
 }
 
 <span class="doccomment">/// Context, that might be required to make sure we understand and are understood by the server</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">Context</span> {
     <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">FeatureLevel</span>,
     <span class="kw">pub</span> <span class="ident">packet_size</span>: <span class="ident">AtomicU32</span>,

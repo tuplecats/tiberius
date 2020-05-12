@@ -277,6 +277,9 @@
 <span id="277">277</span>
 <span id="278">278</span>
 <span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::<span class="ident">Connection</span>,
@@ -287,7 +290,7 @@
     <span class="ident">Row</span>,
 };
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">task</span>};
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">fmt</span>::<span class="ident">Debug</span>, <span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">task</span>};
 <span class="kw">use</span> <span class="ident">task</span>::<span class="ident">Poll</span>;
 
 <span class="doccomment">/// A set of `Streams` of [`Rows`] resulting from a `SELECT` query. The</span>
@@ -304,6 +307,7 @@
 <span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
 <span class="doccomment">/// # use std::env;</span>
 <span class="doccomment">/// use futures::{StreamExt, TryStreamExt};</span>
+<span class="doccomment">/// # #[allow(unused)]</span>
 <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
 <span class="doccomment">/// # let mut builder = Client::builder();</span>
 <span class="doccomment">/// # if let Ok(host) = env::var(&quot;TIBERIUS_TEST_HOST&quot;) {</span>
@@ -357,6 +361,7 @@
 <span class="doccomment">/// [`Client`]: struct.Client.html</span>
 <span class="doccomment">/// [`Rows`]: struct.Row.html</span>
 <span class="doccomment">/// [`next_resultset`]: #method.next_resultset</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">QueryResult</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="ident">stream</span>: <span class="ident">QueryStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>,
 }
@@ -381,7 +386,7 @@
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
     <span class="doccomment">/// # use std::env;</span>
-    <span class="doccomment">/// use futures::{StreamExt, TryStreamExt};</span>
+    <span class="doccomment">/// # #[allow(unused)]</span>
     <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
     <span class="doccomment">/// # let mut builder = Client::builder();</span>
     <span class="doccomment">/// # if let Ok(host) = env::var(&quot;TIBERIUS_TEST_HOST&quot;) {</span>
@@ -467,7 +472,7 @@
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
 <span class="doccomment">/// # use std::env;</span>
-<span class="doccomment">/// use futures::{StreamExt, TryStreamExt};</span>
+<span class="doccomment">/// # #[allow(unused)]</span>
 <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
 <span class="doccomment">/// # let mut builder = Client::builder();</span>
 <span class="doccomment">/// # if let Ok(host) = env::var(&quot;TIBERIUS_TEST_HOST&quot;) {</span>
@@ -483,7 +488,7 @@
 <span class="doccomment">/// # };</span>
 <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// let mut stream = conn</span>
+<span class="doccomment">/// let stream = conn</span>
 <span class="doccomment">///     .execute(</span>
 <span class="doccomment">///         &quot;INSERT INTO #Test (id) VALUES (@P1); INSERT INTO #Test (id) VALUES (@P2, @P3)&quot;,</span>
 <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32, &amp;3i32],</span>
@@ -499,6 +504,7 @@
 <span class="doccomment">/// [`Client`]: struct.Client.html</span>
 <span class="doccomment">/// [`Rows`]: struct.Row.html</span>
 <span class="doccomment">/// [`next_resultset`]: #method.next_resultset</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ExecuteResult</span> {
     <span class="ident">rows_affected</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u64</span><span class="op">&gt;</span>,
 }
@@ -525,9 +531,9 @@
     <span class="doccomment">/// Aggregates all resulting row counts into a sum.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">///  use tiberius::{Client, AuthMethod, ClientBuilder};</span>
+    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
     <span class="doccomment">/// # use std::env;</span>
-    <span class="doccomment">/// # use futures::{StreamExt, TryStreamExt};</span>
+    <span class="doccomment">/// # #[allow(unused)]</span>
     <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
     <span class="doccomment">/// # let conn_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;)</span>
     <span class="doccomment">/// #    .unwrap_or(&quot;server=tcp:localhost,1433;TrustServerCertificate=true&quot;.to_owned());</span>

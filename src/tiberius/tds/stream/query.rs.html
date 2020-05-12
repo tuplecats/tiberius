@@ -147,6 +147,7 @@
 <span id="147">147</span>
 <span id="148">148</span>
 <span id="149">149</span>
+<span id="150">150</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{
     <span class="ident">codec</span>::<span class="ident">DoneStatus</span>,
@@ -168,6 +169,7 @@
     <span class="ident">Done</span>,
 }
 
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">QueryStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="ident">prepared_stream</span>: <span class="ident">PreparedStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>,
     <span class="ident">current_columns</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Column</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>,
