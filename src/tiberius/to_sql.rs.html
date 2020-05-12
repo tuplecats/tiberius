@@ -148,8 +148,27 @@
 <span id="148">148</span>
 <span id="149">149</span>
 <span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">xml</span>::<span class="ident">XmlData</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::{
+    <span class="ident">tds</span>::{<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">Numeric</span>},
+    <span class="ident">xml</span>::<span class="ident">XmlData</span>,
+};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Cow</span>;
 <span class="kw">use</span> <span class="ident">uuid</span>::<span class="ident">Uuid</span>;
 
@@ -166,137 +185,150 @@
         <span class="ident">Uuid</span>: (<span class="string">&quot;uniqueidentifier&quot;</span>, <span class="ident">ColumnData</span>::<span class="ident">Guid</span>(<span class="kw-2">*</span><span class="ident">self_</span>));
 );
 
+<span class="doccomment">/// A conversion trait from Rust to a TDS type.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ToSql</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>);
+    <span class="doccomment">/// Returns a tuple of the type name in TDS and the `ColumnData`</span>
+    <span class="doccomment">/// representation of the value.</span>
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>);
+}
+
+<span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="ident">Numeric</span> {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">type_name</span> <span class="op">=</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;numeric({},{})&quot;</span>, <span class="self">self</span>.<span class="ident">precision</span>(), <span class="self">self</span>.<span class="ident">scale</span>());
+        (<span class="ident">type_name</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">Numeric</span>(<span class="kw-2">*</span><span class="self">self</span>))
+    }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="ident">str</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">len</span>() {
-            <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(4000)&quot;</span>,
-            <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(MAX)&quot;</span>,
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NTEXT&quot;</span>,
+            <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(4000)&quot;</span>,
+            <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(MAX)&quot;</span>,
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;ntext&quot;</span>,
         };
 
-        (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="self">self</span>)))
+        (<span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="ident">sql_type</span>), <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="self">self</span>)))
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="ident">str</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">len</span>() {
-            <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(4000)&quot;</span>,
-            <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(MAX)&quot;</span>,
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NTEXT&quot;</span>,
+            <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(4000)&quot;</span>,
+            <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(MAX)&quot;</span>,
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;ntext&quot;</span>,
         };
 
-        (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="self">self</span>)))
+        (
+            <span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="ident">sql_type</span>),
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="self">self</span>)),
+        )
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="prelude-val">Some</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">s</span>.<span class="ident">len</span>() {
-                    <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(4000)&quot;</span>,
-                    <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(MAX)&quot;</span>,
-                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NTEXT&quot;</span>,
+                    <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(4000)&quot;</span>,
+                    <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(MAX)&quot;</span>,
+                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;ntext&quot;</span>,
                 };
 
-                (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="ident">s</span>)))
+                (<span class="ident">sql_type</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="ident">s</span>)))
             }
-            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;NVARCHAR(4000)&quot;</span>, <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;nvarchar(4000)&quot;</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
         }
     }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="ident">String</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">len</span>() {
-            <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(4000)&quot;</span>,
-            <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(MAX)&quot;</span>,
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NTEXT&quot;</span>,
+            <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(4000)&quot;</span>,
+            <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(MAX)&quot;</span>,
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;ntext&quot;</span>,
         };
 
-        (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="self">self</span>)))
+        (<span class="ident">sql_type</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="self">self</span>)))
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="prelude-val">Some</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">s</span>.<span class="ident">len</span>() {
-                    <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(4000)&quot;</span>,
-                    <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NVARCHAR(MAX)&quot;</span>,
-                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;NTEXT&quot;</span>,
+                    <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(4000)&quot;</span>,
+                    <span class="number">4001</span>..<span class="op">=</span><span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(MAX)&quot;</span>,
+                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;ntext&quot;</span>,
                 };
 
-                (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">s</span>)))
+                (<span class="ident">sql_type</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">s</span>)))
             }
-            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;NVARCHAR(4000)&quot;</span>, <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;nvarchar(4000)&quot;</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
         }
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">len</span>() {
-            <span class="number">0</span>..<span class="op">=</span><span class="number">8000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;VARBINARY(8000)&quot;</span>,
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;VARBINARY(MAX)&quot;</span>,
+            <span class="number">0</span>..<span class="op">=</span><span class="number">8000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(8000)&quot;</span>,
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(MAX)&quot;</span>,
         };
 
-        (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="self">self</span>)))
+        (<span class="ident">sql_type</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="self">self</span>)))
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="prelude-val">Some</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">s</span>.<span class="ident">len</span>() {
-                    <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;VARBINARY(8000)&quot;</span>,
-                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;VARBINARY(MAX)&quot;</span>,
+                    <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(8000)&quot;</span>,
+                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(MAX)&quot;</span>,
                 };
 
-                (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="ident">s</span>)))
+                (<span class="ident">sql_type</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="ident">s</span>)))
             }
-            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;VARBINARY(4000)&quot;</span>, <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;varbinary(4000)&quot;</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
         }
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">len</span>() {
-            <span class="number">0</span>..<span class="op">=</span><span class="number">8000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;VARBINARY(8000)&quot;</span>,
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;VARBINARY(MAX)&quot;</span>,
+            <span class="number">0</span>..<span class="op">=</span><span class="number">8000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(8000)&quot;</span>,
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(MAX)&quot;</span>,
         };
 
-        (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="self">self</span>)))
+        (<span class="ident">sql_type</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="self">self</span>)))
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="prelude-val">Some</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">sql_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">s</span>.<span class="ident">len</span>() {
-                    <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;VARBINARY(8000)&quot;</span>,
-                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;VARBINARY(MAX)&quot;</span>,
+                    <span class="number">0</span>..<span class="op">=</span><span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(8000)&quot;</span>,
+                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(MAX)&quot;</span>,
                 };
 
-                (<span class="ident">sql_type</span>, <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">s</span>)))
+                (<span class="ident">sql_type</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">s</span>)))
             }
-            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;VARBINARY(8000)&quot;</span>, <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="string">&quot;varbinary(8000)&quot;</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>),
         }
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ToSql</span> <span class="kw">for</span> <span class="ident">XmlData</span> {
-    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">ColumnData</span>) {
-        (<span class="string">&quot;xml&quot;</span>, <span class="ident">ColumnData</span>::<span class="ident">Xml</span>(<span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="self">self</span>)))
+    <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">ColumnData</span>) {
+        (<span class="string">&quot;xml&quot;</span>.<span class="ident">into</span>(), <span class="ident">ColumnData</span>::<span class="ident">Xml</span>(<span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="self">self</span>)))
     }
 }
 </pre></div>

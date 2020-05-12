@@ -98,7 +98,13 @@
 <span id="98"> 98</span>
 <span id="99"> 99</span>
 <span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
 </pre><div class="example-wrap"><pre class="rust ">
+<span class="doccomment">//! The XML containers</span>
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">codec</span>::<span class="ident">Encode</span>;
 <span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">BufMut</span>, <span class="ident">BytesMut</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
@@ -112,7 +118,11 @@
 }
 
 <span class="kw">impl</span> <span class="ident">XmlSchema</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">db_name</span>: <span class="kw">impl</span> <span class="ident">ToString</span>, <span class="ident">owner</span>: <span class="kw">impl</span> <span class="ident">ToString</span>, <span class="ident">collection</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>(
+        <span class="ident">db_name</span>: <span class="kw">impl</span> <span class="ident">ToString</span>,
+        <span class="ident">owner</span>: <span class="kw">impl</span> <span class="ident">ToString</span>,
+        <span class="ident">collection</span>: <span class="kw">impl</span> <span class="ident">ToString</span>,
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
             <span class="ident">db_name</span>: <span class="ident">db_name</span>.<span class="ident">to_string</span>(),
             <span class="ident">owner</span>: <span class="ident">owner</span>.<span class="ident">to_string</span>(),

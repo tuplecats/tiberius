@@ -254,6 +254,7 @@
 <span id="254">254</span>
 <span id="255">255</span>
 <span id="256">256</span>
+<span id="257">257</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">mod</span> <span class="ident">builder</span>;
 <span class="kw">mod</span> <span class="ident">connection</span>;
@@ -286,6 +287,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">domain</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
 }
 
+<span class="doccomment">/// Defines the method of authentication to the server.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">AuthMethod</span> {
     <span class="doccomment">/// Authenticate directly with SQL Server. The only authentication method</span>
@@ -485,7 +487,7 @@
             }
             <span class="ident">param_str</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;@P{} &quot;</span>, <span class="ident">i</span> <span class="op">+</span> <span class="number">1</span>));
             <span class="kw">let</span> (<span class="ident">sql_type</span>, <span class="ident">param_data</span>) <span class="op">=</span> <span class="ident">param</span>.<span class="ident">to_sql</span>();
-            <span class="ident">param_str</span>.<span class="ident">push_str</span>(<span class="ident">sql_type</span>);
+            <span class="ident">param_str</span>.<span class="ident">push_str</span>(<span class="ident">sql_type</span>.<span class="ident">as_ref</span>());
 
             <span class="ident">rpc_params</span>.<span class="ident">push</span>(<span class="ident">RpcParam</span> {
                 <span class="ident">name</span>: <span class="ident">Cow</span>::<span class="ident">Owned</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;@P{}&quot;</span>, <span class="ident">i</span> <span class="op">+</span> <span class="number">1</span>)),
