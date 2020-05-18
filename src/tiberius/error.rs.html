@@ -93,30 +93,25 @@
 <span id="93">93</span>
 <span id="94">94</span>
 <span id="95">95</span>
-<span id="96">96</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">TokenError</span>;
+<span class="doccomment">//! Error module</span>
+<span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">TokenError</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">ErrorKind</span> <span class="kw">as</span> <span class="ident">IoErrorKind</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow</span>::<span class="ident">Cow</span>, <span class="ident">convert</span>::<span class="ident">Infallible</span>, <span class="ident">io</span>};
 <span class="kw">use</span> <span class="ident">thiserror</span>::<span class="ident">Error</span>;
-
-<span class="comment">// TODO: keep private</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Error</span>)]</span>
-<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">_0</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CloneableIoError</span>(<span class="ident">io</span>::<span class="ident">Error</span>);
-
-<span class="kw">impl</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">CloneableIoError</span> {
-    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="self">Self</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="self">self</span>.<span class="number">0</span>.<span class="ident">kind</span>(), <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>)))
-    }
-}
 
 <span class="doccomment">/// A unified error enum that contains several errors that might occurr during</span>
 <span class="doccomment">/// the lifecycle of this driver</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Error</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Error</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;An error occured during the attempt of performing I/O: {}&quot;</span>, <span class="ident">_0</span>)]</span>
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;An error occured during the attempt of performing I/O: {}&quot;</span>, <span class="ident">message</span>)]</span>
     <span class="doccomment">/// An error occured when performing I/O to the server.</span>
-    <span class="ident">Io</span>(<span class="ident">CloneableIoError</span>),
+    <span class="ident">Io</span> {
+        <span class="doccomment">/// A list specifying general categories of I/O error.</span>
+        <span class="ident">kind</span>: <span class="ident">IoErrorKind</span>,
+        <span class="doccomment">/// The error description.</span>
+        <span class="ident">message</span>: <span class="ident">String</span>,
+    },
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Protocol error: {}&quot;</span>, <span class="ident">_0</span>)]</span>
     <span class="doccomment">/// An error happened during the request or response parsing.</span>
     <span class="ident">Protocol</span>(<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span>),
@@ -164,7 +159,10 @@
 
 <span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">io</span>::<span class="ident">Error</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Error</span> {
     <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">err</span>: <span class="ident">io</span>::<span class="ident">Error</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Error</span> {
-        <span class="ident">Error</span>::<span class="ident">Io</span>(<span class="ident">CloneableIoError</span>(<span class="ident">err</span>))
+        <span class="self">Self</span>::<span class="ident">Io</span> {
+            <span class="ident">kind</span>: <span class="ident">err</span>.<span class="ident">kind</span>(),
+            <span class="ident">message</span>: <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">err</span>),
+        }
     }
 }
 
