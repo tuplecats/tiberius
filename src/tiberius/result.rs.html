@@ -280,7 +280,7 @@
         <span class="ident">codec</span>::<span class="ident">DoneStatus</span>,
         <span class="ident">stream</span>::{<span class="ident">QueryStream</span>, <span class="ident">QueryStreamState</span>, <span class="ident">ReceivedToken</span>, <span class="ident">TokenStream</span>},
     },
-    <span class="ident">Row</span>,
+    <span class="ident">Column</span>, <span class="ident">Row</span>,
 };
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">fmt</span>::<span class="ident">Debug</span>, <span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">task</span>};
@@ -384,13 +384,13 @@
     <span class="doccomment">///     )</span>
     <span class="doccomment">///     .await?;</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// assert_eq!(vec![&quot;foo&quot;], result_set.columns());</span>
+    <span class="doccomment">/// assert_eq!(&quot;foo&quot;, result_set.columns()[0].name());</span>
     <span class="doccomment">/// result_set.next_resultset();</span>
-    <span class="doccomment">/// assert_eq!(vec![&quot;bar&quot;], result_set.columns());</span>
+    <span class="doccomment">/// assert_eq!(&quot;bar&quot;, result_set.columns()[0].name());</span>
     <span class="doccomment">/// # Ok(())</span>
     <span class="doccomment">/// # }</span>
     <span class="doccomment">/// ```</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">columns</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">columns</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">Column</span>] {
         <span class="self">self</span>.<span class="ident">stream</span>.<span class="ident">columns</span>()
     }
 
