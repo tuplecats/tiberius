@@ -187,8 +187,8 @@
 }
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CollationInfo</span> {
-    <span class="ident">lcid_encoding</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="kw">dyn</span> <span class="ident">Encoding</span><span class="op">&gt;</span>,
-    <span class="ident">sortid_encoding</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="kw">dyn</span> <span class="ident">Encoding</span><span class="op">&gt;</span>,
+    <span class="ident">lcid_encoding</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> (<span class="kw">dyn</span> <span class="ident">Encoding</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span>)<span class="op">&gt;</span>,
+    <span class="ident">sortid_encoding</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> (<span class="kw">dyn</span> <span class="ident">Encoding</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span>)<span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">CollationInfo</span> {

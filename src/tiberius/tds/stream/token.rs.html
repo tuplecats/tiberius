@@ -201,7 +201,6 @@
 <span id="201">201</span>
 <span id="202">202</span>
 <span id="203">203</span>
-<span id="204">204</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">TokenSSPI</span>;
@@ -213,10 +212,9 @@
     },
     <span class="ident">Error</span>, <span class="ident">SqlReadBytes</span>, <span class="ident">TokenType</span>,
 };
-<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">Stream</span>, <span class="ident">TryStreamExt</span>};
+<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">stream</span>::<span class="ident">BoxStream</span>, <span class="ident">TryStreamExt</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{
     <span class="ident">convert</span>::<span class="ident">TryFrom</span>,
-    <span class="ident">pin</span>::<span class="ident">Pin</span>,
     <span class="ident">sync</span>::{<span class="ident">atomic</span>::<span class="ident">Ordering</span>, <span class="ident">Arc</span>},
 };
 <span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
@@ -371,8 +369,8 @@
         <span class="prelude-val">Ok</span>(<span class="ident">ReceivedToken</span>::<span class="ident">SSPI</span>(<span class="ident">sspi</span>))
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_unfold</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Pin</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">s</span> <span class="op">=</span> <span class="ident">futures</span>::<span class="ident">stream</span>::<span class="ident">try_unfold</span>(<span class="self">self</span>, <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">this</span><span class="op">|</span> <span class="kw">async</span> <span class="kw">move</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_unfold</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">BoxStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">stream</span> <span class="op">=</span> <span class="ident">futures</span>::<span class="ident">stream</span>::<span class="ident">try_unfold</span>(<span class="self">self</span>, <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">this</span><span class="op">|</span> <span class="kw">async</span> <span class="kw">move</span> {
             <span class="kw">if</span> <span class="ident">this</span>.<span class="ident">conn</span>.<span class="ident">is_eof</span>() {
                 <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
             }
@@ -404,7 +402,7 @@
             <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((<span class="ident">token</span>, <span class="ident">this</span>)))
         });
 
-        <span class="ident">Box</span>::<span class="ident">pin</span>(<span class="ident">s</span>)
+        <span class="ident">Box</span>::<span class="ident">pin</span>(<span class="ident">stream</span>)
     }
 }
 </pre></div>

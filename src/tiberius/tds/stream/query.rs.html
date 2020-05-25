@@ -144,12 +144,10 @@
 <span id="144">144</span>
 <span id="145">145</span>
 <span id="146">146</span>
-<span id="147">147</span>
-<span id="148">148</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">codec</span>::<span class="ident">DoneStatus</span>, <span class="ident">stream</span>::<span class="ident">ReceivedToken</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">row</span>::<span class="ident">ColumnType</span>, <span class="ident">Column</span>, <span class="ident">Error</span>, <span class="ident">Row</span>};
-<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">ready</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
+<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">ready</span>, <span class="ident">stream</span>::<span class="ident">BoxStream</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{
     <span class="ident">fmt</span>::<span class="ident">Debug</span>,
     <span class="ident">pin</span>::<span class="ident">Pin</span>,
@@ -167,7 +165,7 @@
 
 <span class="doccomment">/// A stream of rows, needed for queries returning data.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">QueryStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="ident">token_stream</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">token_stream</span>: <span class="ident">BoxStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="ident">current_columns</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Column</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="ident">previous_columns</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Column</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">state</span>: <span class="ident">QueryStreamState</span>,
@@ -178,7 +176,7 @@
         <span class="ident">f</span>.<span class="ident">debug_struct</span>(<span class="string">&quot;Querystream&quot;</span>)
             .<span class="ident">field</span>(
                 <span class="string">&quot;token_stream&quot;</span>,
-                <span class="kw-2">&amp;</span><span class="string">&quot;Pin&lt;Box&lt;dyn Stream&lt;Item = crate::Result&lt;ReceivedToken&gt;&gt; + &#39;a&gt;&gt;&quot;</span>,
+                <span class="kw-2">&amp;</span><span class="string">&quot;BoxStream&lt;&#39;a, crate::Result&lt;ReceivedToken&gt;&gt;&quot;</span>,
             )
             .<span class="ident">field</span>(<span class="string">&quot;current_columns&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">current_columns</span>)
             .<span class="ident">field</span>(<span class="string">&quot;previous_columns&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">previous_columns</span>)
@@ -188,9 +186,7 @@
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">QueryStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">token_stream</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    ) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">token_stream</span>: <span class="ident">BoxStream</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
             <span class="ident">token_stream</span>,
             <span class="ident">current_columns</span>: <span class="prelude-val">None</span>,

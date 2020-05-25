@@ -413,7 +413,7 @@
     }
 
     <span class="doccomment">/// return an encoding for a given collation</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encoding</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="kw">dyn</span> <span class="ident">Encoding</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encoding</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> (<span class="kw">dyn</span> <span class="ident">Encoding</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span>)<span class="op">&gt;</span> {
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">sort_id</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
             <span class="ident">lcid_to_encoding</span>(<span class="self">self</span>.<span class="ident">lcid</span>())
         } <span class="kw">else</span> {
@@ -431,7 +431,7 @@
 <span class="doccomment">/// 3. replace: Encoding.UNICODE with encoding::all::UTF16_LE</span>
 <span class="comment">//</span>
 <span class="doccomment">/// the unimplemented!() one&#39;s are not supported by rust-encoding</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">lcid_to_encoding</span>(<span class="ident">locale</span>: <span class="ident">u16</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="kw">dyn</span> <span class="ident">Encoding</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">lcid_to_encoding</span>(<span class="ident">locale</span>: <span class="ident">u16</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> (<span class="kw">dyn</span> <span class="ident">Encoding</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span>)<span class="op">&gt;</span> {
     <span class="kw">match</span> <span class="ident">locale</span> {
         <span class="number">0x0401</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">encoding</span>::<span class="ident">all</span>::<span class="ident">WINDOWS_1256</span>),
         <span class="number">0x0402</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">encoding</span>::<span class="ident">all</span>::<span class="ident">WINDOWS_1251</span>),
@@ -652,7 +652,7 @@
 <span class="doccomment">/// generate the code below from source code:</span>
 <span class="doccomment">/// 1. (regex)replace .*\((.*?),.*?,(.*?)\) with $1 =&gt; $2</span>
 <span class="doccomment">/// 2. see above/as above</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sortid_to_encoding</span>(<span class="ident">sort_id</span>: <span class="ident">u8</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="kw">dyn</span> <span class="ident">Encoding</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sortid_to_encoding</span>(<span class="ident">sort_id</span>: <span class="ident">u8</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> (<span class="kw">dyn</span> <span class="ident">Encoding</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span>)<span class="op">&gt;</span> {
     <span class="kw">match</span> <span class="ident">sort_id</span> {
         <span class="comment">// 30 | 31 | 32 | 33 | 34 | 35 =&gt; Some(encoding::all::WINDOWS_437),</span>
         <span class="comment">// 40 | 41 | 42 | 43 | 44 | 45 | 49 =&gt; Some(encoding::all::WINDOWS_850),</span>
