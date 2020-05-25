@@ -70,7 +70,10 @@
 <span id="70">70</span>
 <span id="71">71</span>
 <span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
 </pre><div class="example-wrap"><pre class="rust ">
+<span class="kw">mod</span> <span class="ident">batch_request</span>;
 <span class="kw">mod</span> <span class="ident">column_data</span>;
 <span class="kw">mod</span> <span class="ident">decode</span>;
 <span class="kw">mod</span> <span class="ident">encode</span>;
@@ -83,6 +86,7 @@
 <span class="kw">mod</span> <span class="ident">type_info</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">SqlReadBytes</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">batch_request</span>::<span class="kw-2">*</span>;
 <span class="kw">use</span> <span class="ident">bytes</span>::<span class="ident">BytesMut</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">column_data</span>::<span class="kw-2">*</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">decode</span>::<span class="kw-2">*</span>;

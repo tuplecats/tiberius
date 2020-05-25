@@ -270,6 +270,14 @@
 <span id="270">270</span>
 <span id="271">271</span>
 <span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::<span class="ident">Connection</span>,
@@ -293,6 +301,8 @@
 <span class="doccomment">/// polling the next results, a call to [`next_resultset`] with a response of</span>
 <span class="doccomment">/// `true` is needed. When the [`next_resultset`] returns `false` the results</span>
 <span class="doccomment">/// should not be polled anymore.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Example</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
@@ -362,6 +372,8 @@
     <span class="doccomment">/// Names of the columns of the current resultset. Order is the same as the</span>
     <span class="doccomment">/// order of columns in the rows. Needs to be called separately for every</span>
     <span class="doccomment">/// result set.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Example</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
@@ -458,6 +470,8 @@
 <span class="doccomment">/// If executing multiple queries, the resulting counts will be come separately,</span>
 <span class="doccomment">/// marking the rows affected for each query.</span>
 <span class="doccomment">///</span>
+<span class="doccomment">/// # Example</span>
+<span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
 <span class="doccomment">/// # use std::env;</span>
@@ -509,6 +523,8 @@
     }
 
     <span class="doccomment">/// Aggregates all resulting row counts into a sum.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Example</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
