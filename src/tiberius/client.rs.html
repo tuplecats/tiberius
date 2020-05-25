@@ -259,6 +259,14 @@
 <span id="259">259</span>
 <span id="260">260</span>
 <span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">mod</span> <span class="ident">builder</span>;
 <span class="kw">mod</span> <span class="ident">connection</span>;
@@ -343,8 +351,8 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
-<span class="doccomment">/// # #[allow(unused)]</span>
-<span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
+<span class="doccomment">/// # #[tokio::main]</span>
+<span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
 <span class="doccomment">/// let mut builder = Client::builder();</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// builder.host(&quot;0.0.0.0&quot;);</span>
@@ -379,10 +387,14 @@
     <span class="doccomment">/// `@PN`, where N is the index of the parameter, starting from `1`.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">/// # use tiberius::Client;</span>
-    <span class="doccomment">/// # #[allow(unused)]</span>
-    <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-    <span class="doccomment">/// # let builder = Client::builder();</span>
+    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use std::env;</span>
+    <span class="doccomment">/// # #[tokio::main]</span>
+    <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
+    <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
+    <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
+    <span class="doccomment">/// # );</span>
+    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
     <span class="doccomment">/// let results = conn</span>
     <span class="doccomment">///     .execute(</span>
@@ -421,11 +433,15 @@
     <span class="doccomment">/// The `query` can define the parameter placement by annotating them with</span>
     <span class="doccomment">/// `@PN`, where N is the index of the parameter, starting from `1`.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">/// # use tiberius::Client;</span>
-    <span class="doccomment">/// # #[allow(unused)]</span>
-    <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-    <span class="doccomment">/// # let builder = Client::builder();</span>
+    <span class="doccomment">/// ```</span>
+    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use std::env;</span>
+    <span class="doccomment">/// # #[tokio::main]</span>
+    <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
+    <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
+    <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
+    <span class="doccomment">/// # );</span>
+    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
     <span class="doccomment">/// let rows = conn</span>
     <span class="doccomment">///     .query(</span>
@@ -468,12 +484,12 @@
             <span class="ident">RpcParam</span> {
                 <span class="ident">name</span>: <span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="string">&quot;stmt&quot;</span>),
                 <span class="ident">flags</span>: <span class="ident">RpcStatusFlags</span>::<span class="ident">empty</span>(),
-                <span class="ident">value</span>: <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">query</span>.<span class="ident">into</span>()),
+                <span class="ident">value</span>: <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="ident">query</span>.<span class="ident">into</span>())),
             },
             <span class="ident">RpcParam</span> {
                 <span class="ident">name</span>: <span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="string">&quot;params&quot;</span>),
                 <span class="ident">flags</span>: <span class="ident">RpcStatusFlags</span>::<span class="ident">empty</span>(),
-                <span class="ident">value</span>: <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="number">0</span>),
+                <span class="ident">value</span>: <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="prelude-val">Some</span>(<span class="number">0</span>)),
             },
         ]
     }
@@ -494,8 +510,8 @@
                 <span class="ident">param_str</span>.<span class="ident">push</span>(<span class="string">&#39;,&#39;</span>)
             }
             <span class="ident">param_str</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;@P{} &quot;</span>, <span class="ident">i</span> <span class="op">+</span> <span class="number">1</span>));
-            <span class="kw">let</span> (<span class="ident">sql_type</span>, <span class="ident">param_data</span>) <span class="op">=</span> <span class="ident">param</span>.<span class="ident">to_sql</span>();
-            <span class="ident">param_str</span>.<span class="ident">push_str</span>(<span class="ident">sql_type</span>.<span class="ident">as_ref</span>());
+            <span class="kw">let</span> <span class="ident">param_data</span> <span class="op">=</span> <span class="ident">param</span>.<span class="ident">to_sql</span>();
+            <span class="ident">param_str</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="ident">param_data</span>.<span class="ident">type_name</span>());
 
             <span class="ident">rpc_params</span>.<span class="ident">push</span>(<span class="ident">RpcParam</span> {
                 <span class="ident">name</span>: <span class="ident">Cow</span>::<span class="ident">Owned</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;@P{}&quot;</span>, <span class="ident">i</span> <span class="op">+</span> <span class="number">1</span>)),
@@ -505,7 +521,7 @@
         }
 
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">params</span>) <span class="op">=</span> <span class="ident">rpc_params</span>.<span class="ident">iter_mut</span>().<span class="ident">find</span>(<span class="op">|</span><span class="ident">x</span><span class="op">|</span> <span class="ident">x</span>.<span class="ident">name</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;params&quot;</span>) {
-            <span class="ident">params</span>.<span class="ident">value</span> <span class="op">=</span> <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">param_str</span>.<span class="ident">into</span>());
+            <span class="ident">params</span>.<span class="ident">value</span> <span class="op">=</span> <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="ident">param_str</span>.<span class="ident">into</span>()));
         }
 
         <span class="kw">let</span> <span class="ident">req</span> <span class="op">=</span> <span class="ident">TokenRpcRequest</span> {

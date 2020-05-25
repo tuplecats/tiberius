@@ -765,6 +765,45 @@
 <span id="765">765</span>
 <span id="766">766</span>
 <span id="767">767</span>
+<span id="768">768</span>
+<span id="769">769</span>
+<span id="770">770</span>
+<span id="771">771</span>
+<span id="772">772</span>
+<span id="773">773</span>
+<span id="774">774</span>
+<span id="775">775</span>
+<span id="776">776</span>
+<span id="777">777</span>
+<span id="778">778</span>
+<span id="779">779</span>
+<span id="780">780</span>
+<span id="781">781</span>
+<span id="782">782</span>
+<span id="783">783</span>
+<span id="784">784</span>
+<span id="785">785</span>
+<span id="786">786</span>
+<span id="787">787</span>
+<span id="788">788</span>
+<span id="789">789</span>
+<span id="790">790</span>
+<span id="791">791</span>
+<span id="792">792</span>
+<span id="793">793</span>
+<span id="794">794</span>
+<span id="795">795</span>
+<span id="796">796</span>
+<span id="797">797</span>
+<span id="798">798</span>
+<span id="799">799</span>
+<span id="800">800</span>
+<span id="801">801</span>
+<span id="802">802</span>
+<span id="803">803</span>
+<span id="804">804</span>
+<span id="805">805</span>
+<span id="806">806</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">read_varchar</span>, <span class="ident">Encode</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">Collation</span>, <span class="ident">DateTime</span>, <span class="ident">SmallDateTime</span>};
@@ -784,51 +823,89 @@
 <span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 <span class="kw">use</span> <span class="ident">uuid</span>::<span class="ident">Uuid</span>;
 
+<span class="kw">const</span> <span class="ident">MAX_NVARCHAR_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">1</span> <span class="op">&lt;</span><span class="op">&lt;</span> <span class="number">30</span>;
+
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
 <span class="doccomment">/// A container of a value that can be represented as a TDS value.</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// A missing value.</span>
-    <span class="prelude-val">None</span>,
     <span class="doccomment">/// 8-bit integer, signed.</span>
-    <span class="ident">I8</span>(<span class="ident">i8</span>),
+    <span class="ident">I8</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">i8</span><span class="op">&gt;</span>),
     <span class="doccomment">/// 16-bit integer, signed.</span>
-    <span class="ident">I16</span>(<span class="ident">i16</span>),
+    <span class="ident">I16</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">i16</span><span class="op">&gt;</span>),
     <span class="doccomment">/// 32-bit integer, signed.</span>
-    <span class="ident">I32</span>(<span class="ident">i32</span>),
+    <span class="ident">I32</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">i32</span><span class="op">&gt;</span>),
     <span class="doccomment">/// 64-bit integer, signed.</span>
-    <span class="ident">I64</span>(<span class="ident">i64</span>),
+    <span class="ident">I64</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">i64</span><span class="op">&gt;</span>),
     <span class="doccomment">/// 32-bit floating point number.</span>
-    <span class="ident">F32</span>(<span class="ident">f32</span>),
+    <span class="ident">F32</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">f32</span><span class="op">&gt;</span>),
     <span class="doccomment">/// 64-bit floating point number.</span>
-    <span class="ident">F64</span>(<span class="ident">f64</span>),
+    <span class="ident">F64</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">f64</span><span class="op">&gt;</span>),
     <span class="doccomment">/// Boolean.</span>
-    <span class="ident">Bit</span>(<span class="ident">bool</span>),
+    <span class="ident">Bit</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span>),
     <span class="doccomment">/// A string value.</span>
-    <span class="ident">String</span>(<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>),
+    <span class="ident">String</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>),
     <span class="doccomment">/// A Guid (UUID) value.</span>
-    <span class="ident">Guid</span>(<span class="ident">Uuid</span>),
+    <span class="ident">Guid</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Uuid</span><span class="op">&gt;</span>),
     <span class="doccomment">/// Binary data.</span>
-    <span class="ident">Binary</span>(<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, [<span class="ident">u8</span>]<span class="op">&gt;</span>),
+    <span class="ident">Binary</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, [<span class="ident">u8</span>]<span class="op">&gt;</span><span class="op">&gt;</span>),
     <span class="doccomment">/// Numeric value (a decimal).</span>
-    <span class="ident">Numeric</span>(<span class="ident">Numeric</span>),
+    <span class="ident">Numeric</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Numeric</span><span class="op">&gt;</span>),
     <span class="doccomment">/// XML data.</span>
-    <span class="ident">Xml</span>(<span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">XmlData</span><span class="op">&gt;</span>),
+    <span class="ident">Xml</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">XmlData</span><span class="op">&gt;</span><span class="op">&gt;</span>),
     <span class="doccomment">/// DateTime value.</span>
-    <span class="ident">DateTime</span>(<span class="ident">DateTime</span>),
+    <span class="ident">DateTime</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">DateTime</span><span class="op">&gt;</span>),
     <span class="doccomment">/// A small DateTime value.</span>
-    <span class="ident">SmallDateTime</span>(<span class="ident">SmallDateTime</span>),
+    <span class="ident">SmallDateTime</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SmallDateTime</span><span class="op">&gt;</span>),
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
     <span class="doccomment">/// Time value.</span>
-    <span class="ident">Time</span>(<span class="ident">Time</span>),
+    <span class="ident">Time</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Time</span><span class="op">&gt;</span>),
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
     <span class="doccomment">/// Date value.</span>
-    <span class="ident">Date</span>(<span class="ident">Date</span>),
+    <span class="ident">Date</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Date</span><span class="op">&gt;</span>),
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
     <span class="doccomment">/// DateTime2 value.</span>
-    <span class="ident">DateTime2</span>(<span class="ident">DateTime2</span>),
+    <span class="ident">DateTime2</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">DateTime2</span><span class="op">&gt;</span>),
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
     <span class="doccomment">/// DateTime2 value with an offset.</span>
-    <span class="ident">DateTimeOffset</span>(<span class="ident">DateTimeOffset</span>),
+    <span class="ident">DateTimeOffset</span>(<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">DateTimeOffset</span><span class="op">&gt;</span>),
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">type_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="ident">str</span><span class="op">&gt;</span> {
+        <span class="kw">match</span> <span class="self">self</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">I8</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;tinyint&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">I16</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;smallint&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;int&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">I64</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;bigint&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">F32</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;float(24)&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;float(53)&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;bit&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">None</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(4000)&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">s</span>)) <span class="kw">if</span> <span class="ident">s</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;nvarchar(4000)&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">s</span>)) <span class="kw">if</span> <span class="ident">s</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="ident">MAX_NVARCHAR_SIZE</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="string">&quot;nvarchar(max)&quot;</span>.<span class="ident">into</span>()
+            }
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;ntext(max)&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">Guid</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;uniqueidentifier&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">b</span>)) <span class="kw">if</span> <span class="ident">b</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="number">8000</span> <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(8000)&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;varbinary(max)&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">Numeric</span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">n</span>)) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;numeric({},{})&quot;</span>, <span class="ident">n</span>.<span class="ident">precision</span>(), <span class="ident">n</span>.<span class="ident">scale</span>()).<span class="ident">into</span>()
+            }
+            <span class="ident">ColumnData</span>::<span class="ident">Numeric</span>(<span class="prelude-val">None</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;numeric&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">Xml</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;xml&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">DateTime</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;datetime&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">ColumnData</span>::<span class="ident">SmallDateTime</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;smalldatetime&quot;</span>.<span class="ident">into</span>(),
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
+            <span class="ident">ColumnData</span>::<span class="ident">Time</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;time&quot;</span>.<span class="ident">into</span>(),
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
+            <span class="ident">ColumnData</span>::<span class="ident">Date</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;date&quot;</span>.<span class="ident">into</span>(),
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
+            <span class="ident">ColumnData</span>::<span class="ident">DateTime2</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;datetime2&quot;</span>.<span class="ident">into</span>(),
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
+            <span class="ident">ColumnData</span>::<span class="ident">DateTimeOffset</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="string">&quot;datetimeoffset&quot;</span>.<span class="ident">into</span>(),
+        }
+    }
 }
 
 <span class="doccomment">/// Mode for type reader.</span>
@@ -901,10 +978,7 @@
             }
             <span class="ident">TypeInfo</span>::<span class="ident">VarLenSizedPrecision</span> { <span class="ident">ty</span>, <span class="ident">scale</span>, .. } <span class="op">=</span><span class="op">&gt;</span> <span class="kw">match</span> <span class="ident">ty</span> {
                 <span class="ident">VarLenType</span>::<span class="ident">Decimaln</span> <span class="op">|</span> <span class="ident">VarLenType</span>::<span class="ident">Numericn</span> <span class="op">=</span><span class="op">&gt;</span> {
-                    <span class="kw">match</span> <span class="ident">Numeric</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="kw-2">*</span><span class="ident">scale</span>).<span class="kw">await</span><span class="question-mark">?</span> {
-                        <span class="prelude-val">Some</span>(<span class="ident">num</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Numeric</span>(<span class="ident">num</span>),
-                        <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-                    }
+                    <span class="ident">ColumnData</span>::<span class="ident">Numeric</span>(<span class="ident">Numeric</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="kw-2">*</span><span class="ident">scale</span>).<span class="kw">await</span><span class="question-mark">?</span>)
                 }
                 <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">todo</span><span class="macro">!</span>(),
             },
@@ -919,14 +993,14 @@
         <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
     {
         <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">ty</span> {
-            <span class="ident">FixedLenType</span>::<span class="ident">Null</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-            <span class="ident">FixedLenType</span>::<span class="ident">Bit</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span>),
-            <span class="ident">FixedLenType</span>::<span class="ident">Int1</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I8</span>(<span class="ident">src</span>.<span class="ident">read_i8</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="ident">FixedLenType</span>::<span class="ident">Int2</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I16</span>(<span class="ident">src</span>.<span class="ident">read_i16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="ident">FixedLenType</span>::<span class="ident">Int4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="ident">FixedLenType</span>::<span class="ident">Int8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I64</span>(<span class="ident">src</span>.<span class="ident">read_i64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="ident">FixedLenType</span>::<span class="ident">Float4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F32</span>(<span class="ident">src</span>.<span class="ident">read_f32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="ident">FixedLenType</span>::<span class="ident">Float8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="ident">src</span>.<span class="ident">read_f64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
+            <span class="ident">FixedLenType</span>::<span class="ident">Null</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="prelude-val">None</span>),
+            <span class="ident">FixedLenType</span>::<span class="ident">Bit</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span>)),
+            <span class="ident">FixedLenType</span>::<span class="ident">Int1</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I8</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i8</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="ident">FixedLenType</span>::<span class="ident">Int2</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I16</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="ident">FixedLenType</span>::<span class="ident">Int4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="ident">FixedLenType</span>::<span class="ident">Int8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I64</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="ident">FixedLenType</span>::<span class="ident">Float4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F32</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_f32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="ident">FixedLenType</span>::<span class="ident">Float8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_f64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
             <span class="ident">FixedLenType</span>::<span class="ident">Datetime</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_datetimen</span>(<span class="ident">src</span>, <span class="number">8</span>).<span class="kw">await</span><span class="question-mark">?</span>,
             <span class="ident">FixedLenType</span>::<span class="ident">Datetime4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_datetimen</span>(<span class="ident">src</span>, <span class="number">4</span>).<span class="kw">await</span><span class="question-mark">?</span>,
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
@@ -957,10 +1031,11 @@
             <span class="ident">VarLenType</span>::<span class="ident">Floatn</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_float</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>,
             <span class="ident">VarLenType</span>::<span class="ident">Guid</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_guid</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>,
             <span class="ident">VarLenType</span>::<span class="ident">NChar</span> <span class="op">|</span> <span class="ident">VarLenType</span>::<span class="ident">NVarchar</span> <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="kw">match</span> <span class="self">Self</span>::<span class="ident">decode_variable_string</span>(<span class="ident">src</span>, <span class="ident">ty</span>, <span class="ident">len</span>).<span class="kw">await</span><span class="question-mark">?</span> {
-                    <span class="prelude-val">Some</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">s</span>.<span class="ident">into</span>()),
-                    <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-                }
+                <span class="kw">let</span> <span class="ident">decoded</span> <span class="op">=</span> <span class="self">Self</span>::<span class="ident">decode_variable_string</span>(<span class="ident">src</span>, <span class="ident">ty</span>, <span class="ident">len</span>)
+                    .<span class="kw">await</span><span class="question-mark">?</span>
+                    .<span class="ident">map</span>(<span class="ident">Cow</span>::<span class="ident">from</span>);
+
+                <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">decoded</span>)
             }
             <span class="ident">VarLenType</span>::<span class="ident">BigVarChar</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_big_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span>, <span class="ident">collation</span>).<span class="kw">await</span><span class="question-mark">?</span>,
             <span class="ident">VarLenType</span>::<span class="ident">Money</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_money</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>,
@@ -976,20 +1051,23 @@
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
             <span class="ident">VarLenType</span>::<span class="ident">Timen</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">rlen</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">time</span> <span class="op">=</span> <span class="ident">Time</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">rlen</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
-                <span class="ident">ColumnData</span>::<span class="ident">Time</span>(<span class="ident">Time</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">rlen</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>)
+                <span class="ident">ColumnData</span>::<span class="ident">Time</span>(<span class="prelude-val">Some</span>(<span class="ident">time</span>))
             }
 
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
             <span class="ident">VarLenType</span>::<span class="ident">Datetime2</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">rlen</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="op">-</span> <span class="number">3</span>;
-                <span class="ident">ColumnData</span>::<span class="ident">DateTime2</span>(<span class="ident">DateTime2</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">rlen</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>)
+                <span class="kw">let</span> <span class="ident">dt</span> <span class="op">=</span> <span class="ident">DateTime2</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">rlen</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="ident">ColumnData</span>::<span class="ident">DateTime2</span>(<span class="prelude-val">Some</span>(<span class="ident">dt</span>))
             }
 
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
             <span class="ident">VarLenType</span>::<span class="ident">DatetimeOffsetn</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">dto</span> <span class="op">=</span> <span class="ident">DateTimeOffset</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="ident">ColumnData</span>::<span class="ident">DateTimeOffset</span>(<span class="ident">dto</span>)
+                <span class="ident">ColumnData</span>::<span class="ident">DateTimeOffset</span>(<span class="prelude-val">Some</span>(<span class="ident">dto</span>))
             }
 
             <span class="ident">VarLenType</span>::<span class="ident">BigBinary</span> <span class="op">|</span> <span class="ident">VarLenType</span>::<span class="ident">BigVarBin</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">decode_binary</span>(<span class="ident">src</span>, <span class="ident">len</span>).<span class="kw">await</span><span class="question-mark">?</span>,
@@ -1010,20 +1088,19 @@
     <span class="kw">where</span>
         <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
     {
-        <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">Self</span>::<span class="ident">decode_variable_string</span>(<span class="ident">src</span>, <span class="ident">VarLenType</span>::<span class="ident">Xml</span>, <span class="ident">len</span>).<span class="kw">await</span><span class="question-mark">?</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">data</span>) <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">xml</span> <span class="op">=</span> <span class="self">Self</span>::<span class="ident">decode_variable_string</span>(<span class="ident">src</span>, <span class="ident">VarLenType</span>::<span class="ident">Xml</span>, <span class="ident">len</span>)
+            .<span class="kw">await</span><span class="question-mark">?</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">data</span><span class="op">|</span> {
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">XmlData</span>::<span class="ident">new</span>(<span class="ident">data</span>);
 
                 <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">schema</span>) <span class="op">=</span> <span class="ident">schema</span> {
                     <span class="ident">data</span>.<span class="ident">set_schema</span>(<span class="ident">schema</span>);
                 }
 
-                <span class="ident">ColumnData</span>::<span class="ident">Xml</span>(<span class="ident">Cow</span>::<span class="ident">Owned</span>(<span class="ident">data</span>))
-            }
-            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-        };
+                <span class="ident">Cow</span>::<span class="ident">Owned</span>(<span class="ident">data</span>)
+            });
 
-        <span class="prelude-val">Ok</span>(<span class="ident">res</span>)
+        <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">Xml</span>(<span class="ident">xml</span>))
     }
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
@@ -1034,8 +1111,8 @@
         <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">len</span> {
-            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-            <span class="number">3</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Date</span>(<span class="ident">Date</span>::<span class="ident">decode</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>),
+            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Date</span>(<span class="prelude-val">None</span>),
+            <span class="number">3</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Date</span>(<span class="prelude-val">Some</span>(<span class="ident">Date</span>::<span class="ident">decode</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>)),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">Protocol</span>(
                     <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;daten: length of {} is invalid&quot;</span>, <span class="ident">len</span>).<span class="ident">into</span>(),
@@ -1051,9 +1128,9 @@
         <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
     {
         <span class="kw">let</span> <span class="ident">datetime</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">len</span> {
-            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-            <span class="number">4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">SmallDateTime</span>(<span class="ident">SmallDateTime</span>::<span class="ident">decode</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="number">8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">DateTime</span>(<span class="ident">DateTime</span>::<span class="ident">decode</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>),
+            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">SmallDateTime</span>(<span class="prelude-val">None</span>),
+            <span class="number">4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">SmallDateTime</span>(<span class="prelude-val">Some</span>(<span class="ident">SmallDateTime</span>::<span class="ident">decode</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="number">8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">DateTime</span>(<span class="prelude-val">Some</span>(<span class="ident">DateTime</span>::<span class="ident">decode</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>)),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">Protocol</span>(
                     <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;datetimen: length of {} is invalid&quot;</span>, <span class="ident">len</span>).<span class="ident">into</span>(),
@@ -1071,8 +1148,8 @@
         <span class="kw">let</span> <span class="ident">recv_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">recv_len</span> {
-            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-            <span class="number">1</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="op">&gt;</span> <span class="number">0</span>),
+            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="prelude-val">None</span>),
+            <span class="number">1</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="op">&gt;</span> <span class="number">0</span>)),
             <span class="ident">v</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">Protocol</span>(
                     <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;bitn: length of {} is invalid&quot;</span>, <span class="ident">v</span>).<span class="ident">into</span>(),
@@ -1090,11 +1167,11 @@
         <span class="kw">let</span> <span class="ident">recv_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">recv_len</span> {
-            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-            <span class="number">1</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I8</span>(<span class="ident">src</span>.<span class="ident">read_i8</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="number">2</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I16</span>(<span class="ident">src</span>.<span class="ident">read_i16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="number">4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="number">8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I64</span>(<span class="ident">src</span>.<span class="ident">read_i64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
+            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I8</span>(<span class="prelude-val">None</span>),
+            <span class="number">1</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I8</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i8</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="number">2</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I16</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="number">4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="number">8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">I64</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">unimplemented</span><span class="macro">!</span>(),
         };
 
@@ -1108,9 +1185,9 @@
         <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">len</span> {
-            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-            <span class="number">4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F32</span>(<span class="ident">src</span>.<span class="ident">read_f32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="number">8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="ident">src</span>.<span class="ident">read_f64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>),
+            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F32</span>(<span class="prelude-val">None</span>),
+            <span class="number">4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F32</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_f32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
+            <span class="number">8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_f64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>)),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">Protocol</span>(
                     <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;floatn: length of {} is invalid&quot;</span>, <span class="ident">len</span>).<span class="ident">into</span>(),
@@ -1128,7 +1205,7 @@
         <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">len</span> {
-            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
+            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">Guid</span>(<span class="prelude-val">None</span>),
             <span class="number">16</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">data</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">16</span>];
 
@@ -1136,7 +1213,7 @@
                     <span class="ident">data</span>[<span class="ident">i</span>] <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
                 }
 
-                <span class="ident">ColumnData</span>::<span class="ident">Guid</span>(<span class="ident">Uuid</span>::<span class="ident">from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>)<span class="question-mark">?</span>)
+                <span class="ident">ColumnData</span>::<span class="ident">Guid</span>(<span class="prelude-val">Some</span>(<span class="ident">Uuid</span>::<span class="ident">from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>)<span class="question-mark">?</span>))
             }
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">Protocol</span>(
@@ -1155,7 +1232,7 @@
         <span class="kw">let</span> <span class="ident">ptr_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
         <span class="kw">if</span> <span class="ident">ptr_len</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="prelude-val">None</span>)
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">None</span>))
         } <span class="kw">else</span> {
             <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0</span>; <span class="ident">ptr_len</span>][<span class="number">0</span>..<span class="ident">ptr_len</span>]).<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// text ptr</span>
 
@@ -1168,7 +1245,7 @@
             <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buf</span>[<span class="number">0</span>..<span class="ident">text_len</span>]).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="kw">let</span> <span class="ident">text</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">from_utf8</span>(<span class="ident">buf</span>)<span class="question-mark">?</span>;
 
-            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">text</span>.<span class="ident">into</span>()))
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="ident">text</span>.<span class="ident">into</span>())))
         }
     }
 
@@ -1179,7 +1256,7 @@
         <span class="kw">let</span> <span class="ident">ptr_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
         <span class="kw">if</span> <span class="ident">ptr_len</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="prelude-val">None</span>)
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">None</span>))
         } <span class="kw">else</span> {
             <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0</span>; <span class="ident">ptr_len</span>][<span class="number">0</span>..<span class="ident">ptr_len</span>]).<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// text ptr</span>
 
@@ -1189,7 +1266,7 @@
             <span class="kw">let</span> <span class="ident">text_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">/</span> <span class="number">2</span>;
             <span class="kw">let</span> <span class="ident">text</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">text_len</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
-            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">text</span>.<span class="ident">into</span>()))
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="ident">text</span>.<span class="ident">into</span>())))
         }
     }
 
@@ -1200,7 +1277,7 @@
         <span class="kw">let</span> <span class="ident">ptr_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
         <span class="kw">if</span> <span class="ident">ptr_len</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="prelude-val">None</span>)
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">None</span>))
         } <span class="kw">else</span> {
             <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0</span>; <span class="ident">ptr_len</span>][<span class="number">0</span>..<span class="ident">ptr_len</span>]).<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// text ptr</span>
 
@@ -1211,7 +1288,7 @@
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0</span>; <span class="ident">len</span>];
             <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buf</span>[<span class="number">0</span>..<span class="ident">len</span>]).<span class="kw">await</span><span class="question-mark">?</span>;
 
-            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">buf</span>.<span class="ident">into</span>()))
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="prelude-val">Some</span>(<span class="ident">buf</span>.<span class="ident">into</span>())))
         }
     }
 
@@ -1267,9 +1344,9 @@
                 .<span class="ident">decode</span>(<span class="ident">bytes</span>.<span class="ident">as_ref</span>(), <span class="ident">DecoderTrap</span>::<span class="ident">Strict</span>)
                 .<span class="ident">map_err</span>(<span class="ident">Error</span>::<span class="ident">Encoding</span>)<span class="question-mark">?</span>;
 
-            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="ident">s</span>.<span class="ident">into</span>())
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="ident">s</span>.<span class="ident">into</span>()))
         } <span class="kw">else</span> {
-            <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">None</span>)
         };
 
         <span class="prelude-val">Ok</span>(<span class="ident">res</span>)
@@ -1282,13 +1359,13 @@
         <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">len</span> {
-            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>,
-            <span class="number">4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">f64</span> <span class="op">/</span> <span class="number">1e4</span>),
-            <span class="number">8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>({
+            <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="prelude-val">None</span>),
+            <span class="number">4</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="prelude-val">Some</span>(<span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">f64</span> <span class="op">/</span> <span class="number">1e4</span>)),
+            <span class="number">8</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="prelude-val">Some</span>({
                 <span class="kw">let</span> <span class="ident">high</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">i64</span>;
                 <span class="kw">let</span> <span class="ident">low</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">f64</span>;
                 ((<span class="ident">high</span> <span class="op">&lt;</span><span class="op">&lt;</span> <span class="number">32</span>) <span class="kw">as</span> <span class="ident">f64</span> <span class="op">+</span> <span class="ident">low</span>) <span class="op">/</span> <span class="number">1e4</span>
-            }),
+            })),
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">Protocol</span>(
                     <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;money: length of {} is invalid&quot;</span>, <span class="ident">len</span>).<span class="ident">into</span>(),
@@ -1307,9 +1384,9 @@
         <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="self">Self</span>::<span class="ident">decode_plp_type</span>(<span class="ident">src</span>, <span class="ident">mode</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">buf</span>) <span class="op">=</span> <span class="ident">data</span> {
-            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">buf</span>.<span class="ident">into</span>())
+            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="prelude-val">Some</span>(<span class="ident">buf</span>.<span class="ident">into</span>()))
         } <span class="kw">else</span> {
-            <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>
+            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="prelude-val">None</span>)
         };
 
         <span class="prelude-val">Ok</span>(<span class="ident">res</span>)
@@ -1376,55 +1453,55 @@
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Encode</span><span class="op">&lt;</span><span class="ident">BytesMut</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">encode</span>(<span class="self">self</span>, <span class="ident">dst</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">BytesMut</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">Bit</span>(<span class="prelude-val">Some</span>(<span class="ident">val</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> [<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Bitn</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">1</span>, <span class="number">1</span>][..]].<span class="ident">concat</span>();
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">header</span>);
                 <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">val</span> <span class="kw">as</span> <span class="ident">u8</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="ident">I8</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">I8</span>(<span class="prelude-val">Some</span>(<span class="ident">val</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> [<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Intn</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">1</span>, <span class="number">1</span>][..]].<span class="ident">concat</span>();
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">header</span>);
                 <span class="ident">dst</span>.<span class="ident">put_i8</span>(<span class="ident">val</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="ident">I16</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">I16</span>(<span class="prelude-val">Some</span>(<span class="ident">val</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> [<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Intn</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">2</span>, <span class="number">2</span>][..]].<span class="ident">concat</span>();
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">header</span>);
                 <span class="ident">dst</span>.<span class="ident">put_i16_le</span>(<span class="ident">val</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">I32</span>(<span class="prelude-val">Some</span>(<span class="ident">val</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> [<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Intn</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">4</span>, <span class="number">4</span>][..]].<span class="ident">concat</span>();
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">header</span>);
                 <span class="ident">dst</span>.<span class="ident">put_i32_le</span>(<span class="ident">val</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="ident">I64</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">I64</span>(<span class="prelude-val">Some</span>(<span class="ident">val</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> [<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Intn</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">8</span>, <span class="number">8</span>][..]].<span class="ident">concat</span>();
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">header</span>);
                 <span class="ident">dst</span>.<span class="ident">put_i64_le</span>(<span class="ident">val</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="ident">F32</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">F32</span>(<span class="prelude-val">Some</span>(<span class="ident">val</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> [<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Floatn</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">4</span>, <span class="number">4</span>][..]].<span class="ident">concat</span>();
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">header</span>);
                 <span class="ident">dst</span>.<span class="ident">put_f32_le</span>(<span class="ident">val</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">F64</span>(<span class="prelude-val">Some</span>(<span class="ident">val</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> [<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Floatn</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">8</span>, <span class="number">8</span>][..]].<span class="ident">concat</span>();
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">header</span>);
                 <span class="ident">dst</span>.<span class="ident">put_f64_le</span>(<span class="ident">val</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="ident">Guid</span>(<span class="ident">uuid</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">Guid</span>(<span class="prelude-val">Some</span>(<span class="ident">uuid</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> [<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Guid</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">16</span>, <span class="number">16</span>][..]].<span class="ident">concat</span>();
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">header</span>);
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="ident">uuid</span>.<span class="ident">as_bytes</span>());
             }
-            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="kw-2">ref</span> <span class="ident">s</span>) <span class="kw">if</span> <span class="ident">s</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">s</span>)) <span class="kw">if</span> <span class="ident">s</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="number">4000</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">VarLenType</span>::<span class="ident">NVarchar</span> <span class="kw">as</span> <span class="ident">u8</span>);
                 <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="number">8000</span>);
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">5</span>][..]);
@@ -1435,7 +1512,7 @@
                     <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">chr</span>);
                 }
             }
-            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="kw-2">ref</span> <span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">s</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="comment">// length: 0xffff and raw collation</span>
                 <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">VarLenType</span>::<span class="ident">NVarchar</span> <span class="kw">as</span> <span class="ident">u8</span>);
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="number">0xff</span> <span class="kw">as</span> <span class="ident">u8</span>; <span class="number">2</span>][..]);
@@ -1456,16 +1533,13 @@
                 <span class="comment">// PLP_TERMINATOR</span>
                 <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="number">0</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">FixedLenType</span>::<span class="ident">Null</span> <span class="kw">as</span> <span class="ident">u8</span>);
-            }
-            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">bytes</span>) <span class="kw">if</span> <span class="ident">bytes</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="number">8000</span> <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="prelude-val">Some</span>(<span class="ident">bytes</span>)) <span class="kw">if</span> <span class="ident">bytes</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="number">8000</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">VarLenType</span>::<span class="ident">BigVarBin</span> <span class="kw">as</span> <span class="ident">u8</span>);
                 <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="number">8000</span>);
                 <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">bytes</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">u16</span>);
                 <span class="ident">dst</span>.<span class="ident">extend</span>(<span class="ident">bytes</span>.<span class="ident">into_owned</span>());
             }
-            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="ident">bytes</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="prelude-val">Some</span>(<span class="ident">bytes</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">VarLenType</span>::<span class="ident">BigVarBin</span> <span class="kw">as</span> <span class="ident">u8</span>);
                 <span class="comment">// Max length</span>
                 <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="number">0xffff</span> <span class="kw">as</span> <span class="ident">u16</span>);
@@ -1478,27 +1552,27 @@
                 <span class="comment">// PLP_TERMINATOR</span>
                 <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="number">0</span>);
             }
-            <span class="ident">ColumnData</span>::<span class="ident">DateTime</span>(<span class="ident">dt</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">DateTime</span>(<span class="prelude-val">Some</span>(<span class="ident">dt</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Datetimen</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">8</span>, <span class="number">8</span>]);
                 <span class="ident">dt</span>.<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;
             }
-            <span class="ident">ColumnData</span>::<span class="ident">SmallDateTime</span>(<span class="ident">dt</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">SmallDateTime</span>(<span class="prelude-val">Some</span>(<span class="ident">dt</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Datetimen</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">4</span>, <span class="number">4</span>]);
                 <span class="ident">dt</span>.<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;
             }
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
-            <span class="ident">ColumnData</span>::<span class="ident">Time</span>(<span class="ident">time</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">Time</span>(<span class="prelude-val">Some</span>(<span class="ident">time</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Timen</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="ident">time</span>.<span class="ident">scale</span>(), <span class="ident">time</span>.<span class="ident">len</span>()<span class="question-mark">?</span>]);
 
                 <span class="ident">time</span>.<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;
             }
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
-            <span class="ident">ColumnData</span>::<span class="ident">Date</span>(<span class="ident">date</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">Date</span>(<span class="prelude-val">Some</span>(<span class="ident">date</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Daten</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="number">3</span>]);
                 <span class="ident">date</span>.<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;
             }
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
-            <span class="ident">ColumnData</span>::<span class="ident">DateTime2</span>(<span class="ident">dt</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">DateTime2</span>(<span class="prelude-val">Some</span>(<span class="ident">dt</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">dt</span>.<span class="ident">time</span>().<span class="ident">len</span>()<span class="question-mark">?</span> <span class="op">+</span> <span class="number">3</span>;
 
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="ident">VarLenType</span>::<span class="ident">Datetime2</span> <span class="kw">as</span> <span class="ident">u8</span>, <span class="ident">dt</span>.<span class="ident">time</span>().<span class="ident">scale</span>(), <span class="ident">len</span>]);
@@ -1506,7 +1580,7 @@
                 <span class="ident">dt</span>.<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;
             }
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
-            <span class="ident">ColumnData</span>::<span class="ident">DateTimeOffset</span>(<span class="ident">dto</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">DateTimeOffset</span>(<span class="prelude-val">Some</span>(<span class="ident">dto</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[
                     <span class="ident">VarLenType</span>::<span class="ident">DatetimeOffsetn</span> <span class="kw">as</span> <span class="ident">u8</span>,
                     <span class="ident">dto</span>.<span class="ident">datetime2</span>().<span class="ident">time</span>().<span class="ident">scale</span>(),
@@ -1515,11 +1589,11 @@
 
                 <span class="ident">dto</span>.<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;
             }
-            <span class="ident">ColumnData</span>::<span class="ident">Xml</span>(<span class="ident">xml</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">Xml</span>(<span class="prelude-val">Some</span>(<span class="ident">xml</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">VarLenType</span>::<span class="ident">Xml</span> <span class="kw">as</span> <span class="ident">u8</span>);
                 <span class="ident">xml</span>.<span class="ident">into_owned</span>().<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;
             }
-            <span class="ident">ColumnData</span>::<span class="ident">Numeric</span>(<span class="ident">num</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">ColumnData</span>::<span class="ident">Numeric</span>(<span class="prelude-val">Some</span>(<span class="ident">num</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[
                     <span class="ident">VarLenType</span>::<span class="ident">Numericn</span> <span class="kw">as</span> <span class="ident">u8</span>,
                     <span class="ident">num</span>.<span class="ident">len</span>(),
@@ -1527,6 +1601,10 @@
                     <span class="ident">num</span>.<span class="ident">scale</span>(),
                 ]);
                 <span class="ident">num</span>.<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;
+            }
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="comment">// None/null</span>
+                <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">FixedLenType</span>::<span class="ident">Null</span> <span class="kw">as</span> <span class="ident">u8</span>);
             }
         }
 

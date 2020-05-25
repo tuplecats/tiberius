@@ -272,17 +272,10 @@
 <span id="272">272</span>
 <span id="273">273</span>
 <span id="274">274</span>
-<span id="275">275</span>
-<span id="276">276</span>
-<span id="277">277</span>
-<span id="278">278</span>
-<span id="279">279</span>
-<span id="280">280</span>
-<span id="281">281</span>
-<span id="282">282</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::<span class="ident">Connection</span>,
+    <span class="ident">error</span>::<span class="ident">Error</span>,
     <span class="ident">tds</span>::{
         <span class="ident">codec</span>::<span class="ident">DoneStatus</span>,
         <span class="ident">stream</span>::{<span class="ident">QueryStream</span>, <span class="ident">QueryStreamState</span>, <span class="ident">ReceivedToken</span>, <span class="ident">TokenStream</span>},
@@ -304,53 +297,44 @@
 <span class="doccomment">/// should not be polled anymore.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```</span>
-<span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
+<span class="doccomment">/// # use tiberius::ClientBuilder;</span>
 <span class="doccomment">/// # use std::env;</span>
-<span class="doccomment">/// use futures::{StreamExt, TryStreamExt};</span>
-<span class="doccomment">/// # #[allow(unused)]</span>
-<span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-<span class="doccomment">/// # let mut builder = Client::builder();</span>
-<span class="doccomment">/// # if let Ok(host) = env::var(&quot;TIBERIUS_TEST_HOST&quot;) {</span>
-<span class="doccomment">/// #     builder.host(host);</span>
-<span class="doccomment">/// # };</span>
-<span class="doccomment">/// # if let Ok(port) = env::var(&quot;TIBERIUS_TEST_PORT&quot;) {</span>
-<span class="doccomment">/// #     let port: u16 = port.parse().unwrap();</span>
-<span class="doccomment">/// #     builder.port(port);</span>
-<span class="doccomment">/// # };</span>
-<span class="doccomment">/// # if let Ok(user) = env::var(&quot;TIBERIUS_TEST_USER&quot;) {</span>
-<span class="doccomment">/// #     let pw = env::var(&quot;TIBERIUS_TEST_PW&quot;).unwrap();</span>
-<span class="doccomment">/// #     builder.authentication(AuthMethod::sql_server(user, pw));</span>
-<span class="doccomment">/// # };</span>
+<span class="doccomment">/// # use futures::{StreamExt, TryStreamExt};</span>
+<span class="doccomment">/// # #[tokio::main]</span>
+<span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
+<span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
+<span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
+<span class="doccomment">/// # );</span>
+<span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
 <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-<span class="doccomment">///</span>
 <span class="doccomment">/// let mut stream = conn</span>
 <span class="doccomment">///     .query(</span>
-<span class="doccomment">///         &quot;SELECT @P1; SELECT @P2&quot;,</span>
+<span class="doccomment">///         &quot;SELECT @P1 AS first; SELECT @P2 AS second&quot;,</span>
 <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32],</span>
 <span class="doccomment">///     )</span>
 <span class="doccomment">///     .await?;</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// // Result of `SELECT 1`. Taking the `Stream` by reference, allowing us to</span>
-<span class="doccomment">/// // poll it later again.</span>
-<span class="doccomment">/// let first_result: Vec&lt;i32&gt; = stream</span>
+<span class="doccomment">/// // poll it later again. We fetch the value with column index.</span>
+<span class="doccomment">/// let first_result: Vec&lt;Option&lt;i32&gt;&gt; = stream</span>
 <span class="doccomment">///     .by_ref()</span>
-<span class="doccomment">///     .map_ok(|x| x.get::&lt;_, i32&gt;(0))</span>
+<span class="doccomment">///     .map_ok(|x| x.get::&lt;i32, _&gt;(0))</span>
 <span class="doccomment">///     .try_collect()</span>
 <span class="doccomment">///     .await?;</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// assert_eq!(1, first_result[0]);</span>
+<span class="doccomment">/// assert_eq!(Some(1), first_result[0]);</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// // Allows us to poll more results.</span>
 <span class="doccomment">/// assert!(stream.next_resultset());</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// // Result of `SELECT 2`.</span>
-<span class="doccomment">/// let second_result: Vec&lt;i32&gt; = stream</span>
+<span class="doccomment">/// // Result of `SELECT 2`, this time fetching with the column name.</span>
+<span class="doccomment">/// let second_result: Vec&lt;Option&lt;i32&gt;&gt; = stream</span>
 <span class="doccomment">///     .by_ref()</span>
-<span class="doccomment">///     .map_ok(|x| x.get::&lt;_, i32&gt;(0))</span>
+<span class="doccomment">///     .map_ok(|x| x.get::&lt;i32, _&gt;(&quot;second&quot;))</span>
 <span class="doccomment">///     .try_collect()</span>
 <span class="doccomment">///     .await?;</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// assert_eq!(2, second_result[0]);</span>
+<span class="doccomment">/// assert_eq!(Some(2), second_result[0]);</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// // No more results left. We should not poll again.</span>
 <span class="doccomment">/// assert!(!stream.next_resultset());</span>
@@ -384,24 +368,15 @@
     <span class="doccomment">/// result set.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
+    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
     <span class="doccomment">/// # use std::env;</span>
-    <span class="doccomment">/// # #[allow(unused)]</span>
-    <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-    <span class="doccomment">/// # let mut builder = Client::builder();</span>
-    <span class="doccomment">/// # if let Ok(host) = env::var(&quot;TIBERIUS_TEST_HOST&quot;) {</span>
-    <span class="doccomment">/// #     builder.host(host);</span>
-    <span class="doccomment">/// # };</span>
-    <span class="doccomment">/// # if let Ok(port) = env::var(&quot;TIBERIUS_TEST_PORT&quot;) {</span>
-    <span class="doccomment">/// #     let port: u16 = port.parse().unwrap();</span>
-    <span class="doccomment">/// #     builder.port(port);</span>
-    <span class="doccomment">/// # };</span>
-    <span class="doccomment">/// # if let Ok(user) = env::var(&quot;TIBERIUS_TEST_USER&quot;) {</span>
-    <span class="doccomment">/// #     let pw = env::var(&quot;TIBERIUS_TEST_PW&quot;).unwrap();</span>
-    <span class="doccomment">/// #     builder.authentication(AuthMethod::sql_server(user, pw));</span>
-    <span class="doccomment">/// # };</span>
+    <span class="doccomment">/// # #[tokio::main]</span>
+    <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
+    <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
+    <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
+    <span class="doccomment">/// # );</span>
+    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-    <span class="doccomment">///</span>
     <span class="doccomment">/// let mut result_set = conn</span>
     <span class="doccomment">///     .query(</span>
     <span class="doccomment">///         &quot;SELECT 1 AS foo; SELECT 2 AS bar&quot;,</span>
@@ -435,7 +410,7 @@
 
     <span class="doccomment">/// Collects results from all queries in the stream into memory in the order</span>
     <span class="doccomment">/// of querying.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">into_vec</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Row</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">into_results</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Row</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">first</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Row</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">by_ref</span>().<span class="ident">try_collect</span>().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">results</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">first</span>];
 
@@ -446,10 +421,28 @@
         <span class="prelude-val">Ok</span>(<span class="ident">results</span>)
     }
 
-    <span class="doccomment">/// A convenience method on collecting the results of the first query into</span>
-    <span class="doccomment">/// memory. Drops all other results.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">into_first</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Row</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">try_collect</span>().<span class="kw">await</span><span class="question-mark">?</span>)
+    <span class="doccomment">/// Collects the output of the first query, dropping any further</span>
+    <span class="doccomment">/// results.</span>
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">into_first_result</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Row</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">results</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">into_results</span>().<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">into_iter</span>();
+
+        <span class="kw">let</span> <span class="ident">rows</span> <span class="op">=</span> <span class="ident">results</span>
+            .<span class="ident">next</span>()
+            .<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">Conversion</span>(<span class="string">&quot;Empty result.&quot;</span>.<span class="ident">into</span>()))<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(<span class="ident">rows</span>)
+    }
+
+    <span class="doccomment">/// Collects the first row from the output of the first query, dropping any</span>
+    <span class="doccomment">/// further rows.</span>
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">into_row</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Row</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">results</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">into_first_result</span>().<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">into_iter</span>();
+
+        <span class="kw">let</span> <span class="ident">row</span> <span class="op">=</span> <span class="ident">results</span>
+            .<span class="ident">next</span>()
+            .<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">Conversion</span>(<span class="string">&quot;Result contains no rows.&quot;</span>.<span class="ident">into</span>()))<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(<span class="ident">row</span>)
     }
 }
 
@@ -470,24 +463,15 @@
 <span class="doccomment">/// marking the rows affected for each query.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
-<span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
+<span class="doccomment">/// # use tiberius::ClientBuilder;</span>
 <span class="doccomment">/// # use std::env;</span>
-<span class="doccomment">/// # #[allow(unused)]</span>
-<span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-<span class="doccomment">/// # let mut builder = Client::builder();</span>
-<span class="doccomment">/// # if let Ok(host) = env::var(&quot;TIBERIUS_TEST_HOST&quot;) {</span>
-<span class="doccomment">/// #     builder.host(host);</span>
-<span class="doccomment">/// # };</span>
-<span class="doccomment">/// # if let Ok(port) = env::var(&quot;TIBERIUS_TEST_PORT&quot;) {</span>
-<span class="doccomment">/// #     let port: u16 = port.parse().unwrap();</span>
-<span class="doccomment">/// #     builder.port(port);</span>
-<span class="doccomment">/// # };</span>
-<span class="doccomment">/// # if let Ok(user) = env::var(&quot;TIBERIUS_TEST_USER&quot;) {</span>
-<span class="doccomment">/// #     let pw = env::var(&quot;TIBERIUS_TEST_PW&quot;).unwrap();</span>
-<span class="doccomment">/// #     builder.authentication(AuthMethod::sql_server(user, pw));</span>
-<span class="doccomment">/// # };</span>
+<span class="doccomment">/// # #[tokio::main]</span>
+<span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
+<span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
+<span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
+<span class="doccomment">/// # );</span>
+<span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
 <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-<span class="doccomment">///</span>
 <span class="doccomment">/// let stream = conn</span>
 <span class="doccomment">///     .execute(</span>
 <span class="doccomment">///         &quot;INSERT INTO #Test (id) VALUES (@P1); INSERT INTO #Test (id) VALUES (@P2, @P3)&quot;,</span>
@@ -533,13 +517,13 @@
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
     <span class="doccomment">/// # use std::env;</span>
-    <span class="doccomment">/// # #[allow(unused)]</span>
-    <span class="doccomment">/// # async fn foo() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-    <span class="doccomment">/// # let conn_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;)</span>
-    <span class="doccomment">/// #    .unwrap_or(&quot;server=tcp:localhost,1433;TrustServerCertificate=true&quot;.to_owned());</span>
-    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;conn_str)?;</span>
+    <span class="doccomment">/// # #[tokio::main]</span>
+    <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
+    <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
+    <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
+    <span class="doccomment">/// # );</span>
+    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-    <span class="doccomment">///</span>
     <span class="doccomment">/// let rows_affected = conn</span>
     <span class="doccomment">///     .execute(</span>
     <span class="doccomment">///         &quot;INSERT INTO #Test (id) VALUES (@P1); INSERT INTO #Test (id) VALUES (@P2, @P3)&quot;,</span>

@@ -220,7 +220,7 @@
 
         <span class="kw">for</span> (<span class="ident">i</span>, <span class="ident">column</span>) <span class="kw">in</span> <span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
             <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">row_bitmap</span>.<span class="ident">is_null</span>(<span class="ident">i</span>) {
-                <span class="ident">ColumnData</span>::<span class="prelude-val">None</span>
+                <span class="ident">column</span>.<span class="ident">base</span>.<span class="ident">null_value</span>()
             } <span class="kw">else</span> {
                 <span class="ident">ColumnData</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="kw-2">&amp;</span><span class="ident">column</span>.<span class="ident">base</span>.<span class="ident">ty</span>).<span class="kw">await</span><span class="question-mark">?</span>
             };
