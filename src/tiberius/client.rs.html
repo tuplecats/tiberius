@@ -554,7 +554,7 @@
     <span class="doccomment">/// # );</span>
     <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-    <span class="doccomment">/// let row = conn.simple_query(&quot;SELECT 1 AS col&quot;).await?.into_row().await?;</span>
+    <span class="doccomment">/// let row = conn.simple_query(&quot;SELECT 1 AS col&quot;).await?.into_row().await?.unwrap();</span>
     <span class="doccomment">/// assert_eq!(Some(1i32), row.get(&quot;col&quot;));</span>
     <span class="doccomment">/// # Ok(())</span>
     <span class="doccomment">/// # }</span>

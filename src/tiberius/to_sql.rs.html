@@ -27,6 +27,21 @@
 <span id="27">27</span>
 <span id="28">28</span>
 <span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
+<span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
+<span id="39">39</span>
+<span id="40">40</span>
+<span id="41">41</span>
+<span id="42">42</span>
+<span id="43">43</span>
+<span id="44">44</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">tds</span>::{<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">Numeric</span>},
@@ -37,9 +52,22 @@
 
 <span class="doccomment">/// A conversion trait to a TDS type.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ToSql</span>: <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span> {
-    <span class="doccomment">/// Convert to a value understood by the SQL Server.</span>
+    <span class="doccomment">/// Convert to a value understood by the SQL Server. Conversion</span>
+    <span class="doccomment">/// by-reference.</span>
     <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>;
 }
+
+<span class="doccomment">/// A by-value conversion trait to a TDS type.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">IntoSql</span>: <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span> {
+    <span class="doccomment">/// Convert to a value understood by the SQL Server. Conversion by-value.</span>
+    <span class="kw">fn</span> <span class="ident">into_sql</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span>;
+}
+
+<span class="macro">into_sql</span><span class="macro">!</span>(<span class="ident">self_</span>,
+          <span class="ident">String</span>: (<span class="ident">ColumnData</span>::<span class="ident">String</span>, <span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">self_</span>));
+          <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>: (<span class="ident">ColumnData</span>::<span class="ident">Binary</span>, <span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">self_</span>));
+          <span class="ident">XmlData</span>: (<span class="ident">ColumnData</span>::<span class="ident">Xml</span>, <span class="ident">Cow</span>::<span class="ident">Owned</span>(<span class="ident">self_</span>));
+);
 
 <span class="macro">to_sql</span><span class="macro">!</span>(<span class="ident">self_</span>,
         <span class="ident">bool</span>: (<span class="ident">ColumnData</span>::<span class="ident">Bit</span>, <span class="kw-2">*</span><span class="ident">self_</span>);
@@ -51,7 +79,9 @@
         <span class="ident">f64</span>: (<span class="ident">ColumnData</span>::<span class="ident">F64</span>, <span class="kw-2">*</span><span class="ident">self_</span>);
         <span class="kw-2">&amp;</span><span class="ident">str</span>: (<span class="ident">ColumnData</span>::<span class="ident">String</span>, <span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="ident">self_</span>));
         <span class="ident">String</span>: (<span class="ident">ColumnData</span>::<span class="ident">String</span>, <span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">self_</span>));
+        <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">str</span><span class="op">&gt;</span>: (<span class="ident">ColumnData</span>::<span class="ident">String</span>, <span class="ident">self_</span>.<span class="ident">clone</span>());
         <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]: (<span class="ident">ColumnData</span>::<span class="ident">Binary</span>, <span class="ident">Cow</span>::<span class="ident">from</span>(<span class="kw-2">*</span><span class="ident">self_</span>));
+        <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, [<span class="ident">u8</span>]<span class="op">&gt;</span>: (<span class="ident">ColumnData</span>::<span class="ident">Binary</span>, <span class="ident">self_</span>.<span class="ident">clone</span>());
         <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>: (<span class="ident">ColumnData</span>::<span class="ident">Binary</span>, <span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">self_</span>));
         <span class="ident">Numeric</span>: (<span class="ident">ColumnData</span>::<span class="ident">Numeric</span>, <span class="kw-2">*</span><span class="ident">self_</span>);
         <span class="ident">XmlData</span>: (<span class="ident">ColumnData</span>::<span class="ident">Xml</span>, <span class="ident">Cow</span>::<span class="ident">Borrowed</span>(<span class="ident">self_</span>));

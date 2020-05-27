@@ -577,6 +577,10 @@
 <span id="577">577</span>
 <span id="578">578</span>
 <span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">connection</span>::<span class="kw-2">*</span>, <span class="ident">AuthMethod</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">Context</span>, <span class="ident">Client</span>, <span class="ident">EncryptionLevel</span>};
@@ -851,6 +855,7 @@
             .<span class="ident">get</span>(<span class="string">&quot;uid&quot;</span>)
             .<span class="ident">or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">dict</span>.<span class="ident">get</span>(<span class="string">&quot;username&quot;</span>))
             .<span class="ident">or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">dict</span>.<span class="ident">get</span>(<span class="string">&quot;user&quot;</span>))
+            .<span class="ident">or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">dict</span>.<span class="ident">get</span>(<span class="string">&quot;user id&quot;</span>))
             .<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">as_str</span>());
 
         <span class="kw">let</span> <span class="ident">pw</span> <span class="op">=</span> <span class="self">self</span>
@@ -871,7 +876,10 @@
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">database</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">dict</span>.<span class="ident">get</span>(<span class="string">&quot;database&quot;</span>).<span class="ident">map</span>(<span class="op">|</span><span class="ident">db</span><span class="op">|</span> <span class="ident">db</span>.<span class="ident">to_string</span>())
+        <span class="self">self</span>.<span class="ident">dict</span>
+            .<span class="ident">get</span>(<span class="string">&quot;database&quot;</span>)
+            .<span class="ident">or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">dict</span>.<span class="ident">get</span>(<span class="string">&quot;initial catalog&quot;</span>))
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">db</span><span class="op">|</span> <span class="ident">db</span>.<span class="ident">to_string</span>())
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">trust_cert</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span> {
