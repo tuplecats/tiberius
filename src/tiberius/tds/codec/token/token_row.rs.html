@@ -114,18 +114,84 @@
 <span id="114">114</span>
 <span id="115">115</span>
 <span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">tds</span>::<span class="ident">codec</span>::{<span class="ident">ColumnData</span>, <span class="ident">TokenColMetaData</span>},
-    <span class="ident">SqlReadBytes</span>,
-};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">SqlReadBytes</span>};
 <span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TokenRow</span> {
-    <span class="kw">pub</span> <span class="ident">meta</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">TokenColMetaData</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">columns</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">data</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">IntoIterator</span> <span class="kw">for</span> <span class="ident">TokenRow</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span>;
+    <span class="kw">type</span> <span class="ident">IntoIter</span> <span class="op">=</span> <span class="ident">std</span>::<span class="ident">vec</span>::<span class="ident">IntoIter</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>;
+
+    <span class="kw">fn</span> <span class="ident">into_iter</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">IntoIter</span> {
+        <span class="self">self</span>.<span class="ident">data</span>.<span class="ident">into_iter</span>()
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">TokenRow</span> {
+    <span class="doccomment">/// Normal row. We&#39;ll read the metadata what we&#39;ve cached and parse columns</span>
+    <span class="doccomment">/// based on that.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">decode</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span>(<span class="ident">src</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">R</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>
+    <span class="kw">where</span>
+        <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
+    {
+        <span class="kw">let</span> <span class="ident">col_meta</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">context</span>().<span class="ident">last_meta</span>().<span class="ident">unwrap</span>();
+
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">row</span> <span class="op">=</span> <span class="self">Self</span> {
+            <span class="ident">data</span>: <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">len</span>()),
+        };
+
+        <span class="kw">for</span> <span class="ident">column</span> <span class="kw">in</span> <span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">iter</span>() {
+            <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">ColumnData</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="kw-2">&amp;</span><span class="ident">column</span>.<span class="ident">base</span>.<span class="ident">ty</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="ident">row</span>.<span class="ident">data</span>.<span class="ident">push</span>(<span class="ident">data</span>);
+        }
+
+        <span class="prelude-val">Ok</span>(<span class="ident">row</span>)
+    }
+
+    <span class="doccomment">/// SQL Server has packed nulls on this row type. We&#39;ll read what columns</span>
+    <span class="doccomment">/// are null from the bitmap.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">decode_nbc</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span>(<span class="ident">src</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">R</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>
+    <span class="kw">where</span>
+        <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
+    {
+        <span class="kw">let</span> <span class="ident">col_meta</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">context</span>().<span class="ident">last_meta</span>().<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">row_bitmap</span> <span class="op">=</span> <span class="ident">RowBitmap</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">len</span>()).<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">row</span> <span class="op">=</span> <span class="self">Self</span> {
+            <span class="ident">data</span>: <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">len</span>()),
+        };
+
+        <span class="kw">for</span> (<span class="ident">i</span>, <span class="ident">column</span>) <span class="kw">in</span> <span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+            <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">row_bitmap</span>.<span class="ident">is_null</span>(<span class="ident">i</span>) {
+                <span class="ident">column</span>.<span class="ident">base</span>.<span class="ident">null_value</span>()
+            } <span class="kw">else</span> {
+                <span class="ident">ColumnData</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="kw-2">&amp;</span><span class="ident">column</span>.<span class="ident">base</span>.<span class="ident">ty</span>).<span class="kw">await</span><span class="question-mark">?</span>
+            };
+
+            <span class="ident">row</span>.<span class="ident">data</span>.<span class="ident">push</span>(<span class="ident">data</span>);
+        }
+
+        <span class="prelude-val">Ok</span>(<span class="ident">row</span>)
+    }
+
+    <span class="doccomment">/// The number of columns.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">len</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
+        <span class="self">self</span>.<span class="ident">data</span>.<span class="ident">len</span>()
+    }
+
+    <span class="doccomment">/// Gives the columnar data with the given index. `None` if index out of</span>
+    <span class="doccomment">/// bounds.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">data</span>.<span class="ident">get</span>(<span class="ident">index</span>)
+    }
 }
 
 <span class="doccomment">/// A bitmap of null values in the row. Sometimes SQL Server decides to pack the</span>
@@ -169,66 +235,6 @@
         <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">data</span>[<span class="number">0</span>..<span class="ident">size</span>]).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="self">Self</span> { <span class="ident">data</span> })
-    }
-}
-
-<span class="kw">impl</span> <span class="ident">IntoIterator</span> <span class="kw">for</span> <span class="ident">TokenRow</span> {
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span>;
-    <span class="kw">type</span> <span class="ident">IntoIter</span> <span class="op">=</span> <span class="ident">std</span>::<span class="ident">vec</span>::<span class="ident">IntoIter</span><span class="op">&lt;</span><span class="self">Self</span>::<span class="ident">Item</span><span class="op">&gt;</span>;
-
-    <span class="kw">fn</span> <span class="ident">into_iter</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">IntoIter</span> {
-        <span class="self">self</span>.<span class="ident">columns</span>.<span class="ident">into_iter</span>()
-    }
-}
-
-<span class="kw">impl</span> <span class="ident">TokenRow</span> {
-    <span class="doccomment">/// Normal row. We&#39;ll read the metadata what we&#39;ve cached and parse columns</span>
-    <span class="doccomment">/// based on that.</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">decode</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span>(<span class="ident">src</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">R</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
-    {
-        <span class="kw">let</span> <span class="ident">col_meta</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">context</span>().<span class="ident">last_meta</span>.<span class="ident">lock</span>().<span class="kw">await</span>.<span class="ident">clone</span>().<span class="ident">unwrap</span>();
-
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">row</span> <span class="op">=</span> <span class="ident">TokenRow</span> {
-            <span class="ident">meta</span>: <span class="ident">col_meta</span>.<span class="ident">clone</span>(),
-            <span class="ident">columns</span>: <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">len</span>()),
-        };
-
-        <span class="kw">for</span> <span class="ident">column</span> <span class="kw">in</span> <span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">iter</span>() {
-            <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">ColumnData</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="kw-2">&amp;</span><span class="ident">column</span>.<span class="ident">base</span>.<span class="ident">ty</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-
-            <span class="ident">row</span>.<span class="ident">columns</span>.<span class="ident">push</span>(<span class="ident">data</span>);
-        }
-
-        <span class="prelude-val">Ok</span>(<span class="ident">row</span>)
-    }
-
-    <span class="doccomment">/// SQL Server has packed nulls on this row type. We&#39;ll read what columns</span>
-    <span class="doccomment">/// are null from the bitmap.</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">decode_nbc</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span>(<span class="ident">src</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">R</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
-    {
-        <span class="kw">let</span> <span class="ident">col_meta</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">context</span>().<span class="ident">last_meta</span>.<span class="ident">lock</span>().<span class="kw">await</span>.<span class="ident">clone</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="ident">row_bitmap</span> <span class="op">=</span> <span class="ident">RowBitmap</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">len</span>()).<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">row</span> <span class="op">=</span> <span class="ident">TokenRow</span> {
-            <span class="ident">meta</span>: <span class="ident">col_meta</span>.<span class="ident">clone</span>(),
-            <span class="ident">columns</span>: <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">len</span>()),
-        };
-
-        <span class="kw">for</span> (<span class="ident">i</span>, <span class="ident">column</span>) <span class="kw">in</span> <span class="ident">col_meta</span>.<span class="ident">columns</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
-            <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">row_bitmap</span>.<span class="ident">is_null</span>(<span class="ident">i</span>) {
-                <span class="ident">column</span>.<span class="ident">base</span>.<span class="ident">null_value</span>()
-            } <span class="kw">else</span> {
-                <span class="ident">ColumnData</span>::<span class="ident">decode</span>(<span class="ident">src</span>, <span class="kw-2">&amp;</span><span class="ident">column</span>.<span class="ident">base</span>.<span class="ident">ty</span>).<span class="kw">await</span><span class="question-mark">?</span>
-            };
-
-            <span class="ident">row</span>.<span class="ident">columns</span>.<span class="ident">push</span>(<span class="ident">data</span>);
-        }
-
-        <span class="prelude-val">Ok</span>(<span class="ident">row</span>)
     }
 }
 </pre></div>

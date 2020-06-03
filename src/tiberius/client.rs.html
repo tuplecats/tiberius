@@ -268,67 +268,14 @@
 <span id="268">268</span>
 <span id="269">269</span>
 <span id="270">270</span>
-<span id="271">271</span>
-<span id="272">272</span>
-<span id="273">273</span>
-<span id="274">274</span>
-<span id="275">275</span>
-<span id="276">276</span>
-<span id="277">277</span>
-<span id="278">278</span>
-<span id="279">279</span>
-<span id="280">280</span>
-<span id="281">281</span>
-<span id="282">282</span>
-<span id="283">283</span>
-<span id="284">284</span>
-<span id="285">285</span>
-<span id="286">286</span>
-<span id="287">287</span>
-<span id="288">288</span>
-<span id="289">289</span>
-<span id="290">290</span>
-<span id="291">291</span>
-<span id="292">292</span>
-<span id="293">293</span>
-<span id="294">294</span>
-<span id="295">295</span>
-<span id="296">296</span>
-<span id="297">297</span>
-<span id="298">298</span>
-<span id="299">299</span>
-<span id="300">300</span>
-<span id="301">301</span>
-<span id="302">302</span>
-<span id="303">303</span>
-<span id="304">304</span>
-<span id="305">305</span>
-<span id="306">306</span>
-<span id="307">307</span>
-<span id="308">308</span>
-<span id="309">309</span>
-<span id="310">310</span>
-<span id="311">311</span>
-<span id="312">312</span>
-<span id="313">313</span>
-<span id="314">314</span>
-<span id="315">315</span>
-<span id="316">316</span>
-<span id="317">317</span>
-<span id="318">318</span>
-<span id="319">319</span>
-<span id="320">320</span>
-<span id="321">321</span>
-<span id="322">322</span>
-<span id="323">323</span>
-<span id="324">324</span>
-<span id="325">325</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">mod</span> <span class="ident">builder</span>;
 <span class="kw">mod</span> <span class="ident">connection</span>;
 <span class="kw">mod</span> <span class="ident">tls</span>;
+<span class="kw">mod</span> <span class="ident">auth</span>;
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">builder</span>::<span class="kw-2">*</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">auth</span>::<span class="kw-2">*</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use</span> <span class="ident">connection</span>::<span class="kw-2">*</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
@@ -343,63 +290,6 @@
     <span class="ident">BatchRequest</span>, <span class="ident">ColumnData</span>, <span class="ident">PacketHeader</span>, <span class="ident">RpcParam</span>, <span class="ident">RpcProcId</span>, <span class="ident">RpcProcIdValue</span>, <span class="ident">TokenRpcRequest</span>,
 };
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow</span>::<span class="ident">Cow</span>, <span class="ident">fmt</span>::<span class="ident">Debug</span>};
-
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SqlServerAuth</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">user</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">password</span>: <span class="ident">String</span>,
-}
-
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WindowsAuth</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">user</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">password</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">domain</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-}
-
-<span class="doccomment">/// Defines the method of authentication to the server.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">AuthMethod</span> {
-    <span class="doccomment">/// Authenticate directly with SQL Server. The only authentication method</span>
-    <span class="doccomment">/// that works on all platforms.</span>
-    <span class="ident">SqlServer</span>(<span class="ident">SqlServerAuth</span>),
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">doc</span>))]</span>
-    <span class="doccomment">/// Authenticate with Windows credentials. Only available on Windows</span>
-    <span class="doccomment">/// platforms.</span>
-    <span class="ident">Windows</span>(<span class="ident">WindowsAuth</span>),
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">doc</span>))]</span>
-    <span class="doccomment">/// Authenticate as the currently logged in user. Only available on Windows</span>
-    <span class="doccomment">/// platforms.</span>
-    <span class="ident">WindowsIntegrated</span>,
-    <span class="attribute">#[<span class="ident">doc</span>(<span class="ident">hidden</span>)]</span>
-    <span class="prelude-val">None</span>,
-}
-
-<span class="kw">impl</span> <span class="ident">AuthMethod</span> {
-    <span class="doccomment">/// Construct a new SQL Server authentication configuration.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sql_server</span>(<span class="ident">user</span>: <span class="kw">impl</span> <span class="ident">ToString</span>, <span class="ident">password</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="self">Self</span>::<span class="ident">SqlServer</span>(<span class="ident">SqlServerAuth</span> {
-            <span class="ident">user</span>: <span class="ident">user</span>.<span class="ident">to_string</span>(),
-            <span class="ident">password</span>: <span class="ident">password</span>.<span class="ident">to_string</span>(),
-        })
-    }
-
-    <span class="doccomment">/// Construct a new Windows authentication configuration. Only available on</span>
-    <span class="doccomment">/// Windows platforms.</span>
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">doc</span>))]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">windows</span>(<span class="ident">user</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">password</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="kw">let</span> (<span class="ident">domain</span>, <span class="ident">user</span>) <span class="op">=</span> <span class="kw">match</span> <span class="ident">user</span>.<span class="ident">as_ref</span>().<span class="ident">find</span>(<span class="string">&quot;\\&quot;</span>) {
-            <span class="prelude-val">Some</span>(<span class="ident">idx</span>) <span class="op">=</span><span class="op">&gt;</span> (<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="ident">user</span>.<span class="ident">as_ref</span>()[..<span class="ident">idx</span>]), <span class="kw-2">&amp;</span><span class="ident">user</span>.<span class="ident">as_ref</span>()[<span class="ident">idx</span> <span class="op">+</span> <span class="number">1</span>..]),
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="prelude-val">None</span>, <span class="ident">user</span>.<span class="ident">as_ref</span>()),
-        };
-
-        <span class="self">Self</span>::<span class="ident">Windows</span>(<span class="ident">WindowsAuth</span> {
-            <span class="ident">user</span>: <span class="ident">user</span>.<span class="ident">to_string</span>(),
-            <span class="ident">password</span>: <span class="ident">password</span>.<span class="ident">to_string</span>(),
-            <span class="ident">domain</span>: <span class="ident">domain</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">to_string</span>()),
-        })
-    }
-}
 
 <span class="doccomment">/// `Client` is the main entry point to the SQL Server, providing query</span>
 <span class="doccomment">/// execution capabilities.</span>

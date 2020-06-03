@@ -273,7 +273,7 @@
 
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_col_metadata</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ReceivedToken</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">meta</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">TokenColMetaData</span>::<span class="ident">decode</span>(<span class="self">self</span>.<span class="ident">conn</span>).<span class="kw">await</span><span class="question-mark">?</span>);
-        <span class="self">self</span>.<span class="ident">conn</span>.<span class="ident">context</span>().<span class="ident">set_last_meta</span>(<span class="ident">meta</span>.<span class="ident">clone</span>()).<span class="kw">await</span>;
+        <span class="self">self</span>.<span class="ident">conn</span>.<span class="ident">context_mut</span>().<span class="ident">set_last_meta</span>(<span class="ident">meta</span>.<span class="ident">clone</span>());
 
         <span class="macro">event</span><span class="macro">!</span>(<span class="ident">Level</span>::<span class="ident">TRACE</span>, <span class="question-mark">?</span><span class="ident">meta</span>);
 
