@@ -195,13 +195,22 @@
 <span id="195">195</span>
 <span id="196">196</span>
 <span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">tds</span>::<span class="ident">codec</span>::{<span class="ident">read_varchar</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>},
     <span class="ident">ColumnData</span>, <span class="ident">SqlReadBytes</span>,
 };
 <span class="kw">use</span> <span class="ident">bitflags</span>::<span class="ident">bitflags</span>;
-<span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TokenColMetaData</span> {
@@ -375,7 +384,6 @@
             }
             <span class="ident">TypeInfo</span>::<span class="ident">VarLenSized</span>(<span class="ident">VarLenType</span>::<span class="ident">NText</span>, <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-
                 <span class="comment">// table name</span>
                 <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>;
@@ -390,6 +398,18 @@
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> (),
         }
 
+        <span class="comment">// TODO: for type={text, ntext, and image} TABLENAME</span>
+
+        <span class="comment">/*// CryptoMetaData
+        let cmd_ordinal = try!(self.read_u16::&lt;LittleEndian&gt;());
+        let cmd_user_ty = try!(self.read_u32::&lt;LittleEndian&gt;());
+        let cmd_ty_info: TypeInfo = try!(self.unserialize(ctx));
+        let cmd_encryption_algo = try!(self.read_u8());
+        // TODO:
+        assert_eq!(cmd_encryption_algo, 0);
+        let cmd_algo_name = try!(self.read_varchar::&lt;u8&gt;());
+        let cmd_algo_type = try!(self.read_u8());
+        let cmd_norm_version = try!(self.read_u8());*/</span>
         <span class="prelude-val">Ok</span>(<span class="ident">BaseMetaDataColumn</span> { <span class="ident">flags</span>, <span class="ident">ty</span> })
     }
 }

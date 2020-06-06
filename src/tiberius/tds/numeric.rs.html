@@ -304,7 +304,6 @@
 <span id="304">304</span>
 <span id="305">305</span>
 <span id="306">306</span>
-<span id="307">307</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Representations of numeric types.</span>
 
@@ -314,7 +313,6 @@
 <span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">BufMut</span>, <span class="ident">BytesMut</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">PartialEq</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::{<span class="self">self</span>, <span class="ident">Debug</span>, <span class="ident">Display</span>, <span class="ident">Formatter</span>};
-<span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 
 <span class="doccomment">/// Represent a sql Decimal / Numeric type. It is stored in a i128 and has a</span>
 <span class="doccomment">/// maximum precision of 38 decimals.</span>

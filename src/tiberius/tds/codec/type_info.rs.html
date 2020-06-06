@@ -206,11 +206,9 @@
 <span id="206">206</span>
 <span id="207">207</span>
 <span id="208">208</span>
-<span id="209">209</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">Collation</span>, <span class="ident">xml</span>::<span class="ident">XmlSchema</span>, <span class="ident">Error</span>, <span class="ident">SqlReadBytes</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">convert</span>::<span class="ident">TryFrom</span>, <span class="ident">sync</span>::<span class="ident">Arc</span>};
-<span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">TypeInfo</span> {

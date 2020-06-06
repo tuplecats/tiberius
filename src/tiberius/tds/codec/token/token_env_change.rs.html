@@ -156,8 +156,8 @@
 };
 <span class="kw">use</span> <span class="ident">encoding</span>::<span class="ident">Encoding</span>;
 <span class="kw">use</span> <span class="ident">fmt</span>::<span class="ident">Debug</span>;
+<span class="kw">use</span> <span class="ident">futures</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">convert</span>::<span class="ident">TryFrom</span>, <span class="ident">fmt</span>};
-<span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 
 <span class="macro">uint_enum</span><span class="macro">!</span> {
     <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>

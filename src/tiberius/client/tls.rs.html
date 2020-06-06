@@ -247,22 +247,13 @@
 <span id="247">247</span>
 <span id="248">248</span>
 <span id="249">249</span>
-<span id="250">250</span>
-<span id="251">251</span>
-<span id="252">252</span>
-<span id="253">253</span>
-<span id="254">254</span>
-<span id="255">255</span>
-<span id="256">256</span>
-<span id="257">257</span>
-<span id="258">258</span>
-<span id="259">259</span>
-<span id="260">260</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">codec</span>::{<span class="ident">Decode</span>, <span class="ident">Encode</span>, <span class="ident">PacketHeader</span>, <span class="ident">PacketStatus</span>, <span class="ident">PacketType</span>};
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">HEADER_BYTES</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
+<span class="kw">use</span> <span class="ident">async_native_tls</span>::<span class="ident">TlsStream</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
 <span class="kw">use</span> <span class="ident">bytes</span>::<span class="ident">BytesMut</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
@@ -271,29 +262,24 @@
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{
     <span class="ident">io</span>,
-    <span class="ident">mem</span>::<span class="ident">MaybeUninit</span>,
     <span class="ident">pin</span>::<span class="ident">Pin</span>,
     <span class="ident">task</span>::{<span class="self">self</span>, <span class="ident">Poll</span>},
 };
-<span class="kw">use</span> <span class="ident">tokio</span>::{
-    <span class="ident">io</span>::{<span class="ident">AsyncRead</span>, <span class="ident">AsyncWrite</span>},
-    <span class="ident">net</span>::<span class="ident">TcpStream</span>,
-};
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-<span class="kw">use</span> <span class="ident">tokio_tls</span>::<span class="ident">TlsStream</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
 <span class="kw">use</span> <span class="ident">tracing</span>::{<span class="ident">event</span>, <span class="ident">Level</span>};
 
+<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">AsyncRead</span>, <span class="ident">AsyncWrite</span>};
+
 <span class="doccomment">/// A wrapper to handle either TLS or bare connections.</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum</span> <span class="ident">MaybeTlsStream</span> {
-    <span class="ident">Raw</span>(<span class="ident">TcpStream</span>),
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum</span> <span class="ident">MaybeTlsStream</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> {
+    <span class="ident">Raw</span>(<span class="ident">S</span>),
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-    <span class="ident">Tls</span>(<span class="ident">TlsStream</span><span class="op">&lt;</span><span class="ident">TlsPreloginWrapper</span><span class="op">&lt;</span><span class="ident">TcpStream</span><span class="op">&gt;</span><span class="op">&gt;</span>),
+    <span class="ident">Tls</span>(<span class="ident">TlsStream</span><span class="op">&lt;</span><span class="ident">TlsPreloginWrapper</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span><span class="op">&gt;</span>),
 }
 
-<span class="kw">impl</span> <span class="ident">MaybeTlsStream</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">MaybeTlsStream</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_inner</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">TcpStream</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_inner</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">S</span> {
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="self">Self</span>::<span class="ident">Raw</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">s</span>,
             <span class="self">Self</span>::<span class="ident">Tls</span>(<span class="kw-2">mut</span> <span class="ident">tls</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">tls</span>.<span class="ident">get_mut</span>().<span class="ident">stream</span>.<span class="ident">take</span>().<span class="ident">unwrap</span>(),
@@ -301,15 +287,7 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">AsyncRead</span> <span class="kw">for</span> <span class="ident">MaybeTlsStream</span> {
-    <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">prepare_uninitialized_buffer</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">buf</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">MaybeUninit</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident">MaybeTlsStream</span>::<span class="ident">Raw</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">s</span>.<span class="ident">prepare_uninitialized_buffer</span>(<span class="ident">buf</span>),
-            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-            <span class="ident">MaybeTlsStream</span>::<span class="ident">Tls</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">s</span>.<span class="ident">prepare_uninitialized_buffer</span>(<span class="ident">buf</span>),
-        }
-    }
-
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">AsyncRead</span> <span class="kw">for</span> <span class="ident">MaybeTlsStream</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">poll_read</span>(
         <span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>,
         <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">task</span>::<span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
@@ -323,7 +301,7 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">AsyncWrite</span> <span class="kw">for</span> <span class="ident">MaybeTlsStream</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">AsyncWrite</span> <span class="kw">for</span> <span class="ident">MaybeTlsStream</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">poll_write</span>(
         <span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>,
         <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">task</span>::<span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
@@ -344,11 +322,11 @@
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">poll_shutdown</span>(<span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">task</span>::<span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Poll</span><span class="op">&lt;</span><span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">poll_close</span>(<span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">task</span>::<span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Poll</span><span class="op">&lt;</span><span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get_mut</span>() {
-            <span class="ident">MaybeTlsStream</span>::<span class="ident">Raw</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Pin</span>::<span class="ident">new</span>(<span class="ident">s</span>).<span class="ident">poll_shutdown</span>(<span class="ident">cx</span>),
+            <span class="ident">MaybeTlsStream</span>::<span class="ident">Raw</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Pin</span>::<span class="ident">new</span>(<span class="ident">s</span>).<span class="ident">poll_close</span>(<span class="ident">cx</span>),
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-            <span class="ident">MaybeTlsStream</span>::<span class="ident">Tls</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Pin</span>::<span class="ident">new</span>(<span class="ident">s</span>).<span class="ident">poll_shutdown</span>(<span class="ident">cx</span>),
+            <span class="ident">MaybeTlsStream</span>::<span class="ident">Tls</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Pin</span>::<span class="ident">new</span>(<span class="ident">s</span>).<span class="ident">poll_close</span>(<span class="ident">cx</span>),
         }
     }
 }
@@ -393,7 +371,7 @@
 }
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span><span class="op">&gt;</span> <span class="ident">AsyncRead</span> <span class="kw">for</span> <span class="ident">TlsPreloginWrapper</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">AsyncRead</span> <span class="kw">for</span> <span class="ident">TlsPreloginWrapper</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">poll_read</span>(
         <span class="kw-2">mut</span> <span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>,
         <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">task</span>::<span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
@@ -456,7 +434,7 @@
 }
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span><span class="op">&gt;</span> <span class="ident">AsyncWrite</span> <span class="kw">for</span> <span class="ident">TlsPreloginWrapper</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">AsyncWrite</span> <span class="kw">for</span> <span class="ident">TlsPreloginWrapper</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">poll_write</span>(
         <span class="kw-2">mut</span> <span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>,
         <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">task</span>::<span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
@@ -515,8 +493,8 @@
         <span class="ident">Pin</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">inner</span>.<span class="ident">stream</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>()).<span class="ident">poll_flush</span>(<span class="ident">cx</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">poll_shutdown</span>(<span class="kw-2">mut</span> <span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">task</span>::<span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Poll</span><span class="op">&lt;</span><span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="ident">Pin</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">stream</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>()).<span class="ident">poll_shutdown</span>(<span class="ident">cx</span>)
+    <span class="kw">fn</span> <span class="ident">poll_close</span>(<span class="kw-2">mut</span> <span class="self">self</span>: <span class="ident">Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">cx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">task</span>::<span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Poll</span><span class="op">&lt;</span><span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="ident">Pin</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">stream</span>.<span class="ident">as_mut</span>().<span class="ident">unwrap</span>()).<span class="ident">poll_close</span>(<span class="ident">cx</span>)
     }
 }
 </pre></div>

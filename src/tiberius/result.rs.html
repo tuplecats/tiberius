@@ -278,6 +278,20 @@
 <span id="278">278</span>
 <span id="279">279</span>
 <span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::<span class="ident">Connection</span>,
@@ -287,7 +301,7 @@
     },
     <span class="ident">Column</span>, <span class="ident">Row</span>,
 };
-<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">stream</span>::<span class="ident">BoxStream</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
+<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">stream</span>::<span class="ident">BoxStream</span>, <span class="ident">AsyncRead</span>, <span class="ident">AsyncWrite</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">fmt</span>::<span class="ident">Debug</span>, <span class="ident">pin</span>::<span class="ident">Pin</span>, <span class="ident">task</span>};
 <span class="kw">use</span> <span class="ident">task</span>::<span class="ident">Poll</span>;
 
@@ -305,6 +319,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+<span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
 <span class="doccomment">/// # use std::env;</span>
 <span class="doccomment">/// # use futures::{StreamExt, TryStreamExt};</span>
 <span class="doccomment">/// # #[tokio::main]</span>
@@ -312,9 +327,11 @@
 <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
 <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
 <span class="doccomment">/// # );</span>
-<span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
-<span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-<span class="doccomment">/// let mut stream = conn</span>
+<span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+<span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
+<span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
+<span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
+<span class="doccomment">/// let mut stream = client</span>
 <span class="doccomment">///     .query(</span>
 <span class="doccomment">///         &quot;SELECT @P1 AS first; SELECT @P2 AS second&quot;,</span>
 <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32],</span>
@@ -376,15 +393,18 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
     <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
-    <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-    <span class="doccomment">/// let mut result_set = conn</span>
+    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
+    <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
+    <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
+    <span class="doccomment">/// let mut result_set = client</span>
     <span class="doccomment">///     .query(</span>
     <span class="doccomment">///         &quot;SELECT 1 AS foo; SELECT 2 AS bar&quot;,</span>
     <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32, &amp;3i32],</span>
@@ -474,15 +494,18 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
 <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+<span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
 <span class="doccomment">/// # use std::env;</span>
 <span class="doccomment">/// # #[tokio::main]</span>
 <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
 <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
 <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
 <span class="doccomment">/// # );</span>
-<span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
-<span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-<span class="doccomment">/// let stream = conn</span>
+<span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+<span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
+<span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
+<span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
+<span class="doccomment">/// let stream = client</span>
 <span class="doccomment">///     .execute(</span>
 <span class="doccomment">///         &quot;INSERT INTO #Test (id) VALUES (@P1); INSERT INTO #Test (id) VALUES (@P2, @P3)&quot;,</span>
 <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32, &amp;3i32],</span>
@@ -504,7 +527,9 @@
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">ExecuteResult</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">connection</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">Connection</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span>(
+        <span class="ident">connection</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">Connection</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>,
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">token_stream</span> <span class="op">=</span> <span class="ident">TokenStream</span>::<span class="ident">new</span>(<span class="ident">connection</span>).<span class="ident">try_unfold</span>();
 
         <span class="kw">let</span> <span class="ident">rows_affected</span> <span class="op">=</span> <span class="ident">token_stream</span>
@@ -528,15 +553,18 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
     <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
-    <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-    <span class="doccomment">/// let rows_affected = conn</span>
+    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
+    <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
+    <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
+    <span class="doccomment">/// let rows_affected = client</span>
     <span class="doccomment">///     .execute(</span>
     <span class="doccomment">///         &quot;INSERT INTO #Test (id) VALUES (@P1); INSERT INTO #Test (id) VALUES (@P2, @P3)&quot;,</span>
     <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32, &amp;3i32],</span>

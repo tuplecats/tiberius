@@ -268,14 +268,30 @@
 <span id="268">268</span>
 <span id="269">269</span>
 <span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
 </pre><div class="example-wrap"><pre class="rust ">
+<span class="kw">mod</span> <span class="ident">auth</span>;
 <span class="kw">mod</span> <span class="ident">builder</span>;
 <span class="kw">mod</span> <span class="ident">connection</span>;
 <span class="kw">mod</span> <span class="ident">tls</span>;
-<span class="kw">mod</span> <span class="ident">auth</span>;
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">builder</span>::<span class="kw-2">*</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">auth</span>::<span class="kw-2">*</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">builder</span>::<span class="kw-2">*</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use</span> <span class="ident">connection</span>::<span class="kw-2">*</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
@@ -289,6 +305,7 @@
 <span class="kw">use</span> <span class="ident">codec</span>::{
     <span class="ident">BatchRequest</span>, <span class="ident">ColumnData</span>, <span class="ident">PacketHeader</span>, <span class="ident">RpcParam</span>, <span class="ident">RpcProcId</span>, <span class="ident">RpcProcIdValue</span>, <span class="ident">TokenRpcRequest</span>,
 };
+<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">AsyncRead</span>, <span class="ident">AsyncWrite</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow</span>::<span class="ident">Cow</span>, <span class="ident">fmt</span>::<span class="ident">Debug</span>};
 
 <span class="doccomment">/// `Client` is the main entry point to the SQL Server, providing query</span>
@@ -300,34 +317,40 @@
 <span class="doccomment">/// # Example</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
-<span class="doccomment">/// # use tiberius::{Client, AuthMethod};</span>
+<span class="doccomment">/// # use tiberius::{ClientBuilder, AuthMethod};</span>
+<span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
 <span class="doccomment">/// # #[tokio::main]</span>
 <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-<span class="doccomment">/// let mut builder = Client::builder();</span>
+<span class="doccomment">/// let mut config = ClientBuilder::new();</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// builder.host(&quot;0.0.0.0&quot;);</span>
-<span class="doccomment">/// builder.port(1433);</span>
-<span class="doccomment">/// builder.authentication(AuthMethod::sql_server(&quot;SA&quot;, &quot;&lt;Mys3cureP4ssW0rD&gt;&quot;));</span>
+<span class="doccomment">/// config.host(&quot;0.0.0.0&quot;);</span>
+<span class="doccomment">/// config.port(1433);</span>
+<span class="doccomment">/// config.authentication(AuthMethod::sql_server(&quot;SA&quot;, &quot;&lt;Mys3cureP4ssW0rD&gt;&quot;));</span>
 <span class="doccomment">///</span>
+<span class="doccomment">/// let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
+<span class="doccomment">/// tcp.set_nodelay(true)?;</span>
 <span class="doccomment">/// // Client is ready to use.</span>
-<span class="doccomment">/// let conn = builder.build().await?;</span>
+<span class="doccomment">/// let client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
 <span class="doccomment">/// # Ok(())</span>
 <span class="doccomment">/// # }</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// [`ClientBuilder`]: struct.ClientBuilder.html</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Client</span> {
-    <span class="ident">connection</span>: <span class="ident">Connection</span>,
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Client</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> {
+    <span class="ident">connection</span>: <span class="ident">Connection</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">Client</span> {
-    <span class="doccomment">/// Starts an instance of [`ClientBuilder`] for specifying the connect</span>
-    <span class="doccomment">/// options.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">Client</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Uses an instance of [`ClientBuilder`] to specify the connection</span>
+    <span class="doccomment">/// options required to connect to the database using an established</span>
+    <span class="doccomment">/// tcp connection</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// [`ClientBuilder`]: struct.ClientBuilder.html</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">builder</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ClientBuilder</span> {
-        <span class="ident">ClientBuilder</span>::<span class="ident">default</span>()
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">connect</span>(<span class="ident">opts</span>: <span class="ident">ClientBuilder</span>, <span class="ident">tcp_stream</span>: <span class="ident">S</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Client</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Ok</span>(<span class="ident">Client</span> {
+            <span class="ident">connection</span>: <span class="ident">Connection</span>::<span class="ident">connect</span>(<span class="ident">opts</span>, <span class="ident">tcp_stream</span>).<span class="kw">await</span><span class="question-mark">?</span>,
+        })
     }
 
     <span class="doccomment">/// Executes SQL statements in the SQL Server, returning the number rows</span>
@@ -341,15 +364,18 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
     <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
     <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
-    <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-    <span class="doccomment">/// let results = conn</span>
+    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
+    <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
+    <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
+    <span class="doccomment">/// let results = client</span>
     <span class="doccomment">///     .execute(</span>
     <span class="doccomment">///         &quot;INSERT INTO ##Test (id) VALUES (@P1), (@P2), (@P3)&quot;,</span>
     <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32, &amp;3i32],</span>
@@ -388,15 +414,18 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```</span>
     <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
     <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
-    <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-    <span class="doccomment">/// let stream = conn</span>
+    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
+    <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
+    <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
+    <span class="doccomment">/// let stream = client</span>
     <span class="doccomment">///     .query(</span>
     <span class="doccomment">///         &quot;SELECT @P1, @P2, @P3&quot;,</span>
     <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32, &amp;3i32],</span>
@@ -436,15 +465,18 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```</span>
     <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
     <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let builder = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
-    <span class="doccomment">/// # let mut conn = builder.build().await?;</span>
-    <span class="doccomment">/// let row = conn.simple_query(&quot;SELECT 1 AS col&quot;).await?.into_row().await?.unwrap();</span>
+    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
+    <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
+    <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
+    <span class="doccomment">/// let row = client.simple_query(&quot;SELECT 1 AS col&quot;).await?.into_row().await?.unwrap();</span>
     <span class="doccomment">/// assert_eq!(Some(1i32), row.get(&quot;col&quot;));</span>
     <span class="doccomment">/// # Ok(())</span>
     <span class="doccomment">/// # }</span>

@@ -119,7 +119,7 @@
 <span id="119">119</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">SqlReadBytes</span>};
-<span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
+<span class="kw">use</span> <span class="ident">futures</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TokenRow</span> {

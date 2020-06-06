@@ -823,8 +823,8 @@
 <span class="kw">use</span> <span class="ident">byteorder</span>::{<span class="ident">ByteOrder</span>, <span class="ident">LittleEndian</span>};
 <span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">BufMut</span>, <span class="ident">BytesMut</span>};
 <span class="kw">use</span> <span class="ident">encoding</span>::<span class="ident">DecoderTrap</span>;
+<span class="kw">use</span> <span class="ident">futures</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow</span>::<span class="ident">Cow</span>, <span class="ident">sync</span>::<span class="ident">Arc</span>};
-<span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
 <span class="kw">use</span> <span class="ident">uuid</span>::<span class="ident">Uuid</span>;
 
 <span class="kw">const</span> <span class="ident">MAX_NVARCHAR_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">1</span> <span class="op">&lt;</span><span class="op">&lt;</span> <span class="number">30</span>;
