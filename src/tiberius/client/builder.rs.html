@@ -557,6 +557,15 @@
 <span id="557">557</span>
 <span id="558">558</span>
 <span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">AuthMethod</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">EncryptionLevel</span>;
@@ -625,11 +634,16 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// If specified, the port is replaced with the value returned from the</span>
     <span class="doccomment">/// browser.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// - Defaults to no name specified.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">instance_name</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) {
         <span class="self">self</span>.<span class="ident">instance_name</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">name</span>.<span class="ident">to_string</span>());
     }
 
     <span class="doccomment">/// Set the preferred encryption level.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// - With `tls` feature, defaults to `Required`.</span>
+    <span class="doccomment">/// - Without `tls` feature, defaults to `NotSupported`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encryption</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>) {
         <span class="self">self</span>.<span class="ident">encryption</span> <span class="op">=</span> <span class="ident">encryption</span>;
     }
@@ -639,11 +653,15 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// On production setting, the certificate should be added to the local key</span>
     <span class="doccomment">/// storage, using this setting is potentially dangerous.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// - Defaults to `false`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">trust_cert</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="self">self</span>.<span class="ident">trust_cert</span> <span class="op">=</span> <span class="bool-val">true</span>;
     }
 
     <span class="doccomment">/// Sets the authentication method.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// - Defaults to `None`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">authentication</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">auth</span>: <span class="ident">AuthMethod</span>) {
         <span class="self">self</span>.<span class="ident">auth</span> <span class="op">=</span> <span class="ident">auth</span>;
     }
