@@ -211,6 +211,9 @@
 <span id="211">211</span>
 <span id="212">212</span>
 <span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! An asynchronous, runtime-independent, pure-rust Tabular Data Stream (TDS)</span>
 <span class="doccomment">//! implementation for Microsoft SQL Server.</span>
@@ -291,6 +294,9 @@
 <span class="doccomment">//!     let tcp = TcpStream::connect(config.get_addr()).await?;</span>
 <span class="doccomment">//!     tcp.set_nodelay(true)?;</span>
 <span class="doccomment">//!</span>
+<span class="doccomment">//!     // To be able to use Tokio&#39;s tcp, we&#39;re using the `compat_write` from</span>
+<span class="doccomment">//!     // the `Tokio02AsyncWriteCompatExt` to get a stream compatible with the</span>
+<span class="doccomment">//!     // traits from the `futures` crate.</span>
 <span class="doccomment">//!     let mut client = Client::connect(config, tcp.compat_write()).await?;</span>
 <span class="doccomment">//!     # client.query(&quot;SELECT @P1&quot;, &amp;[&amp;-4i32]).await?;</span>
 <span class="doccomment">//!</span>
