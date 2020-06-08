@@ -539,6 +539,7 @@
 <span id="539">539</span>
 <span id="540">540</span>
 <span id="541">541</span>
+<span id="542">542</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Date and time handling.</span>
 <span class="doccomment">//!</span>
@@ -1019,6 +1020,7 @@
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
     <span class="macro">to_sql</span><span class="macro">!</span>(<span class="ident">self_</span>,
+            <span class="ident">NaiveDate</span>: (<span class="ident">ColumnData</span>::<span class="ident">Date</span>, <span class="ident">Date</span>::<span class="ident">new</span>(<span class="ident">to_days</span>(<span class="kw-2">*</span><span class="ident">self_</span>, <span class="number">1</span>) <span class="kw">as</span> <span class="ident">u32</span>));
             <span class="ident">NaiveTime</span>: (<span class="ident">ColumnData</span>::<span class="ident">Time</span>, {
                 <span class="kw">use</span> <span class="ident">chrono</span>::<span class="ident">Timelike</span>;
 
