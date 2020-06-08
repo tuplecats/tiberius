@@ -308,17 +308,17 @@
 <span class="doccomment">/// `Client` is the main entry point to the SQL Server, providing query</span>
 <span class="doccomment">/// execution capabilities.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// A `Client` is created using the [`ClientBuilder`], defining the needed</span>
+<span class="doccomment">/// A `Client` is created using the [`Config`], defining the needed</span>
 <span class="doccomment">/// connection options and capabilities.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # Example</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
-<span class="doccomment">/// # use tiberius::{ClientBuilder, AuthMethod};</span>
+<span class="doccomment">/// # use tiberius::{Config, AuthMethod};</span>
 <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
 <span class="doccomment">/// # #[tokio::main]</span>
 <span class="doccomment">/// # async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {</span>
-<span class="doccomment">/// let mut config = ClientBuilder::new();</span>
+<span class="doccomment">/// let mut config = Config::new();</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// config.host(&quot;0.0.0.0&quot;);</span>
 <span class="doccomment">/// config.port(1433);</span>
@@ -332,21 +332,21 @@
 <span class="doccomment">/// # }</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// [`ClientBuilder`]: struct.ClientBuilder.html</span>
+<span class="doccomment">/// [`Config`]: struct.Config.html</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Client</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> {
     <span class="ident">connection</span>: <span class="ident">Connection</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">Client</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Uses an instance of [`ClientBuilder`] to specify the connection</span>
+    <span class="doccomment">/// Uses an instance of [`Config`] to specify the connection</span>
     <span class="doccomment">/// options required to connect to the database using an established</span>
     <span class="doccomment">/// tcp connection</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// [`ClientBuilder`]: struct.ClientBuilder.html</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">connect</span>(<span class="ident">opts</span>: <span class="ident">ClientBuilder</span>, <span class="ident">tcp_stream</span>: <span class="ident">S</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Client</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// [`Config`]: struct.Config.html</span>
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">connect</span>(<span class="ident">config</span>: <span class="ident">Config</span>, <span class="ident">tcp_stream</span>: <span class="ident">S</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Client</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="prelude-val">Ok</span>(<span class="ident">Client</span> {
-            <span class="ident">connection</span>: <span class="ident">Connection</span>::<span class="ident">connect</span>(<span class="ident">opts</span>, <span class="ident">tcp_stream</span>).<span class="kw">await</span><span class="question-mark">?</span>,
+            <span class="ident">connection</span>: <span class="ident">Connection</span>::<span class="ident">connect</span>(<span class="ident">config</span>, <span class="ident">tcp_stream</span>).<span class="kw">await</span><span class="question-mark">?</span>,
         })
     }
 
@@ -360,7 +360,7 @@
     <span class="doccomment">/// # Example</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tiberius::Config;</span>
     <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
@@ -368,7 +368,7 @@
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let config = Config::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
     <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
     <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
@@ -407,7 +407,7 @@
     <span class="doccomment">/// # Example</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```</span>
-    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tiberius::Config;</span>
     <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
@@ -415,7 +415,7 @@
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let config = Config::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
     <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
     <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
@@ -458,7 +458,7 @@
     <span class="doccomment">/// # Example</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```</span>
-    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tiberius::Config;</span>
     <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
@@ -466,7 +466,7 @@
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let config = Config::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
     <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
     <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>

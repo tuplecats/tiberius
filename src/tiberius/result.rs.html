@@ -318,7 +318,7 @@
 <span class="doccomment">/// # Example</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```</span>
-<span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+<span class="doccomment">/// # use tiberius::Config;</span>
 <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
 <span class="doccomment">/// # use std::env;</span>
 <span class="doccomment">/// # use futures::{StreamExt, TryStreamExt};</span>
@@ -327,7 +327,7 @@
 <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
 <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
 <span class="doccomment">/// # );</span>
-<span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+<span class="doccomment">/// # let config = Config::from_ado_string(&amp;c_str)?;</span>
 <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
 <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
 <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
@@ -392,7 +392,7 @@
     <span class="doccomment">/// # Example</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tiberius::Config;</span>
     <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
@@ -400,7 +400,7 @@
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let config = Config::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
     <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
     <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
@@ -493,7 +493,7 @@
 <span class="doccomment">/// # Example</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```no_run</span>
-<span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+<span class="doccomment">/// # use tiberius::Config;</span>
 <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
 <span class="doccomment">/// # use std::env;</span>
 <span class="doccomment">/// # #[tokio::main]</span>
@@ -501,7 +501,7 @@
 <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
 <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
 <span class="doccomment">/// # );</span>
-<span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+<span class="doccomment">/// # let config = Config::from_ado_string(&amp;c_str)?;</span>
 <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
 <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
 <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
@@ -552,7 +552,7 @@
     <span class="doccomment">/// # Example</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">/// # use tiberius::ClientBuilder;</span>
+    <span class="doccomment">/// # use tiberius::Config;</span>
     <span class="doccomment">/// # use tokio_util::compat::Tokio02AsyncWriteCompatExt;</span>
     <span class="doccomment">/// # use std::env;</span>
     <span class="doccomment">/// # #[tokio::main]</span>
@@ -560,7 +560,7 @@
     <span class="doccomment">/// # let c_str = env::var(&quot;TIBERIUS_TEST_CONNECTION_STRING&quot;).unwrap_or(</span>
     <span class="doccomment">/// #     &quot;server=tcp:localhost,1433;integratedSecurity=true;TrustServerCertificate=true&quot;.to_owned(),</span>
     <span class="doccomment">/// # );</span>
-    <span class="doccomment">/// # let config = ClientBuilder::from_ado_string(&amp;c_str)?;</span>
+    <span class="doccomment">/// # let config = Config::from_ado_string(&amp;c_str)?;</span>
     <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
     <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
     <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>

@@ -566,16 +566,34 @@
 <span id="566">566</span>
 <span id="567">567</span>
 <span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">AuthMethod</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">EncryptionLevel</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashMap</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="doccomment">/// A builder for creating a new [`Client`].</span>
+<span class="doccomment">/// The `Config` struct contains all configuration information</span>
+<span class="doccomment">/// required for connecting to the database with a [`Client`]. It also provides</span>
+<span class="doccomment">/// the server address when connecting to a `TcpStream` via the </span>
+<span class="doccomment">/// [`get_addr`] method.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// When using an [ADO.NET connection string], it can be </span>
+<span class="doccomment">/// constructed using the [`from_ado_string`] function.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// [`Client`]: struct.Client.html</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ClientBuilder</span> {
+<span class="doccomment">/// [ADO.NET connection string]: https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/connection-strings</span>
+<span class="doccomment">/// [`from_ado_string`]: struct.Config.html#method.from_ado_string</span>
+<span class="doccomment">/// [`get_addr`]: struct.Config.html#method.get_addr</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Config</span> {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">host</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">port</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">database</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
@@ -585,7 +603,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">auth</span>: <span class="ident">AuthMethod</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">ClientBuilder</span> {
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">Config</span> {
     <span class="kw">fn</span> <span class="ident">default</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
             <span class="ident">host</span>: <span class="prelude-val">None</span>,
@@ -602,8 +620,8 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ClientBuilder</span> {
-    <span class="doccomment">/// Create a new `ClientBuilder` with the default settings.</span>
+<span class="kw">impl</span> <span class="ident">Config</span> {
+    <span class="doccomment">/// Create a new `Config` with the default settings.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span>::<span class="ident">default</span>()
     }
@@ -682,7 +700,7 @@
         <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}:{}&quot;</span>, <span class="self">self</span>.<span class="ident">get_host</span>(), <span class="self">self</span>.<span class="ident">get_port</span>())
     }
 
-    <span class="doccomment">/// Creates a new `ClientBuilder` from an [ADO.NET connection</span>
+    <span class="doccomment">/// Creates a new `Config` from an [ADO.NET connection</span>
     <span class="doccomment">/// string](https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/connection-strings).</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Supported parameters</span>
