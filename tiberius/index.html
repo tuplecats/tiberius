@@ -130,7 +130,7 @@ flag to be enabled and has a bit different way of connecting:</p>
 }</pre></div>
 <h1 id="other-features" class="section-header"><a href="#other-features">Other features</a></h1>
 <ul>
-<li>If using a <a href="https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/connection-strings">ADO.NET connection string</a>, it is possible to create a
+<li>If using an <a href="https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/connection-strings">ADO.NET connection string</a>, it is possible to create a
 <a href="struct.Config.html"><code>Config</code></a> from one. Please see the documentation for
 <a href="struct.Config.html#method.from_ado_string"><code>from_ado_string</code></a> for details.</li>
 <li>For ergonomic use of date, time, datetime et.al. values, it is highly
@@ -150,12 +150,9 @@ execution capabilities.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.Column.html" title='tiberius::Column struct'>Column</a></td><td class='docblock-short'><p>A column of data from a query.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.Config.html" title='tiberius::Config struct'>Config</a></td><td class='docblock-short'><p>The <code>Config</code> struct contains all configuration information
 required for connecting to the database with a <a href="struct.Client.html"><code>Client</code></a>. It also provides
-the server address when connecting to a <code>TcpStream</code> via the 
+the server address when connecting to a <code>TcpStream</code> via the
 <a href="struct.Config.html#method.get_addr"><code>get_addr</code></a> method.</p>
-</td></tr><tr class='module-item'><td><a class="struct" href="struct.ExecuteResult.html" title='tiberius::ExecuteResult struct'>ExecuteResult</a></td><td class='docblock-short'><p>A <code>Stream</code> of counts of affected rows resulting from an <code>INSERT</code>, <code>UPDATE</code> or
-<code>DELETE</code> query. The <code>ExecuteResult</code> needs to be polled empty before sending
-another query to the <a href="struct.Client.html"><code>Client</code></a>, failing to do so causes a flush before the
-next query, slowing it down in an undeterministic way.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.ExecuteResult.html" title='tiberius::ExecuteResult struct'>ExecuteResult</a></td><td class='docblock-short'><p>A result from a query execution, listing the number of affected rows.</p>
 </td></tr><tr class='module-item'><td><a class="struct" href="struct.QueryResult.html" title='tiberius::QueryResult struct'>QueryResult</a></td><td class='docblock-short'><p>A set of <code>Streams</code> of <a href="struct.Row.html"><code>Rows</code></a> resulting from a <code>SELECT</code> query. The
 <code>QueryResult</code> needs to be polled empty before sending another query to the
 <a href="struct.Client.html"><code>Client</code></a>, failing to do so causes a flush before the next query, slowing it

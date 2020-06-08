@@ -292,6 +292,8 @@
 <span id="292">292</span>
 <span id="293">293</span>
 <span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::<span class="ident">Connection</span>,
@@ -482,10 +484,7 @@
     }
 }
 
-<span class="doccomment">/// A `Stream` of counts of affected rows resulting from an `INSERT`, `UPDATE` or</span>
-<span class="doccomment">/// `DELETE` query. The `ExecuteResult` needs to be polled empty before sending</span>
-<span class="doccomment">/// another query to the [`Client`], failing to do so causes a flush before the</span>
-<span class="doccomment">/// next query, slowing it down in an undeterministic way.</span>
+<span class="doccomment">/// A result from a query execution, listing the number of affected rows.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// If executing multiple queries, the resulting counts will be come separately,</span>
 <span class="doccomment">/// marking the rows affected for each query.</span>
@@ -505,15 +504,14 @@
 <span class="doccomment">/// # let tcp = tokio::net::TcpStream::connect(config.get_addr()).await?;</span>
 <span class="doccomment">/// # tcp.set_nodelay(true)?;</span>
 <span class="doccomment">/// # let mut client = tiberius::Client::connect(config, tcp.compat_write()).await?;</span>
-<span class="doccomment">/// let stream = client</span>
+<span class="doccomment">/// let result = client</span>
 <span class="doccomment">///     .execute(</span>
 <span class="doccomment">///         &quot;INSERT INTO #Test (id) VALUES (@P1); INSERT INTO #Test (id) VALUES (@P2, @P3)&quot;,</span>
 <span class="doccomment">///         &amp;[&amp;1i32, &amp;2i32, &amp;3i32],</span>
 <span class="doccomment">///     )</span>
 <span class="doccomment">///     .await?;</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// let result: Vec&lt;u64&gt; = stream.into_iter().collect();</span>
-<span class="doccomment">/// assert_eq!(vec![1, 2], result);</span>
+<span class="doccomment">/// assert_eq!(&amp;[1, 2], result.rows_affected());</span>
 <span class="doccomment">/// # Ok(())</span>
 <span class="doccomment">/// # }</span>
 <span class="doccomment">/// ```</span>
@@ -545,6 +543,12 @@
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="self">Self</span> { <span class="ident">rows_affected</span> })
+    }
+
+    <span class="doccomment">/// A slice of numbers of rows affected in the same order as the given</span>
+    <span class="doccomment">/// queries.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">rows_affected</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">u64</span>] {
+        <span class="self">self</span>.<span class="ident">rows_affected</span>.<span class="ident">as_slice</span>()
     }
 
     <span class="doccomment">/// Aggregates all resulting row counts into a sum.</span>
