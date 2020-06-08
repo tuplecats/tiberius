@@ -555,6 +555,12 @@
 <span id="555">555</span>
 <span id="556">556</span>
 <span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">AuthMethod</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">EncryptionLevel</span>;
@@ -574,14 +580,9 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">auth</span>: <span class="ident">AuthMethod</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">ClientBuilder</span> {
-    <span class="doccomment">/// Create a `ClientBuilder` using a connector</span>
-    <span class="doccomment">/// The `connector` must be able to create a TCP connection</span>
-    <span class="doccomment">/// with the remote server. To do this it must implement `AsyncRead`</span>
-    <span class="doccomment">/// and `AsyncWrite` but it is up to the user to ensure that it does</span>
-    <span class="doccomment">/// this via the TCP protocol.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ClientBuilder</span> {
-        <span class="ident">ClientBuilder</span> {
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">ClientBuilder</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span> {
             <span class="ident">host</span>: <span class="prelude-val">None</span>,
             <span class="ident">port</span>: <span class="prelude-val">None</span>,
             <span class="ident">database</span>: <span class="prelude-val">None</span>,
@@ -593,6 +594,17 @@
             <span class="ident">trust_cert</span>: <span class="bool-val">false</span>,
             <span class="ident">auth</span>: <span class="ident">AuthMethod</span>::<span class="prelude-val">None</span>,
         }
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">ClientBuilder</span> {
+    <span class="doccomment">/// Create a `ClientBuilder` using a connector</span>
+    <span class="doccomment">/// The `connector` must be able to create a TCP connection</span>
+    <span class="doccomment">/// with the remote server. To do this it must implement `AsyncRead`</span>
+    <span class="doccomment">/// and `AsyncWrite` but it is up to the user to ensure that it does</span>
+    <span class="doccomment">/// this via the TCP protocol.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span>::<span class="ident">default</span>()
     }
 
     <span class="doccomment">/// A host or ip address to connect to.</span>
