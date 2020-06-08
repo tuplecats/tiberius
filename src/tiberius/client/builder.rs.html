@@ -555,7 +555,6 @@
 <span id="555">555</span>
 <span id="556">556</span>
 <span id="557">557</span>
-<span id="558">558</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">AuthMethod</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">EncryptionLevel</span>;
@@ -569,7 +568,6 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">host</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">port</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">database</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">instance_name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">trust_cert</span>: <span class="ident">bool</span>,
@@ -587,7 +585,6 @@
             <span class="ident">host</span>: <span class="prelude-val">None</span>,
             <span class="ident">port</span>: <span class="prelude-val">None</span>,
             <span class="ident">database</span>: <span class="prelude-val">None</span>,
-            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
             <span class="ident">instance_name</span>: <span class="prelude-val">None</span>,
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
             <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>::<span class="ident">Required</span>,
@@ -624,7 +621,6 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// If specified, the port is replaced with the value returned from the</span>
     <span class="doccomment">/// browser.</span>
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">doc</span>))]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">instance_name</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">ToString</span>) {
         <span class="self">self</span>.<span class="ident">instance_name</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">name</span>.<span class="ident">to_string</span>());
     }
@@ -669,15 +665,17 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Supported parameters</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// |Parameters|Description|</span>
-    <span class="doccomment">/// |--------|--------|</span>
-    <span class="doccomment">/// |`server`|The name or network address of the instance of SQL Server to which to connect. The port number can be specified after the server name. The correct form of this parameter is either `tcp:host,port` or `tcp:host\\instance`|</span>
-    <span class="doccomment">/// |`IntegratedSecurity`|Toggle between Windows authentication and SQL authentication.|</span>
-    <span class="doccomment">/// |`uid`, `username`, `user`|The SQL Server login account.|</span>
-    <span class="doccomment">/// |`password`, `pwd`|The password for the SQL Server account logging on.|</span>
-    <span class="doccomment">/// |`database`|The name of the database.|</span>
-    <span class="doccomment">/// |`TrustServerCertificate`|Specifies whether the driver trusts the server certificate when connecting using TLS.|</span>
-    <span class="doccomment">/// |`encrypt`|Specifies whether the driver uses TLS to encrypt communication.|</span>
+    <span class="doccomment">/// All parameter keys are handled case-insensitive.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// |Parameter|Allowed values|Description|</span>
+    <span class="doccomment">/// |--------|--------|--------|</span>
+    <span class="doccomment">/// |`server`|`&lt;string&gt;`|The name or network address of the instance of SQL Server to which to connect. The port number can be specified after the server name. The correct form of this parameter is either `tcp:host,port` or `tcp:host\\instance`|</span>
+    <span class="doccomment">/// |`IntegratedSecurity`|`true`,`false`,`yes`,`no`|Toggle between Windows authentication and SQL authentication.|</span>
+    <span class="doccomment">/// |`uid`,`username`,`user`,`user id`|`&lt;string&gt;`|The SQL Server login account.|</span>
+    <span class="doccomment">/// |`password`,`pwd`|`&lt;string&gt;`|The password for the SQL Server account logging on.|</span>
+    <span class="doccomment">/// |`database`|`&lt;string&gt;`|The name of the database.|</span>
+    <span class="doccomment">/// |`TrustServerCertificate`|`true`,`false`,`yes`,`no`|Specifies whether the driver trusts the server certificate when connecting using TLS.|</span>
+    <span class="doccomment">/// |`encrypt`|`true`,`false`,`yes`,`no`|Specifies whether the driver uses TLS to encrypt communication.|</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_ado_string</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">s</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">builder</span> <span class="op">=</span> <span class="self">Self</span>::<span class="ident">new</span>();
