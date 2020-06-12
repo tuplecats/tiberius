@@ -150,7 +150,7 @@
         <span class="kw">let</span> <span class="ident">procedure_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">procedure</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">procedure_len</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">line</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">src</span>.<span class="ident">context</span>().<span class="ident">version</span> <span class="op">&gt;</span> <span class="ident">FeatureLevel</span>::<span class="ident">SqlServer2005</span> {
+        <span class="kw">let</span> <span class="ident">line</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">src</span>.<span class="ident">context</span>().<span class="ident">version</span>() <span class="op">&gt;</span> <span class="ident">FeatureLevel</span>::<span class="ident">SqlServer2005</span> {
             <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="kw">await</span><span class="question-mark">?</span>
         } <span class="kw">else</span> {
             <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">u32</span>

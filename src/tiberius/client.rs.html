@@ -275,12 +275,6 @@
 <span id="275">275</span>
 <span id="276">276</span>
 <span id="277">277</span>
-<span id="278">278</span>
-<span id="279">279</span>
-<span id="280">280</span>
-<span id="281">281</span>
-<span id="282">282</span>
-<span id="283">283</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">mod</span> <span class="ident">auth</span>;
 <span class="kw">mod</span> <span class="ident">builder</span>;
@@ -294,14 +288,12 @@
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">result</span>::{<span class="ident">ExecuteResult</span>, <span class="ident">QueryResult</span>},
     <span class="ident">tds</span>::{
-        <span class="ident">codec</span>::{<span class="self">self</span>, <span class="ident">RpcOptionFlags</span>, <span class="ident">RpcStatusFlags</span>},
+        <span class="ident">codec</span>::{<span class="self">self</span>, <span class="ident">RpcStatusFlags</span>},
         <span class="ident">stream</span>::<span class="ident">TokenStream</span>,
     },
     <span class="ident">SqlReadBytes</span>, <span class="ident">ToSql</span>,
 };
-<span class="kw">use</span> <span class="ident">codec</span>::{
-    <span class="ident">BatchRequest</span>, <span class="ident">ColumnData</span>, <span class="ident">PacketHeader</span>, <span class="ident">RpcParam</span>, <span class="ident">RpcProcId</span>, <span class="ident">RpcProcIdValue</span>, <span class="ident">TokenRpcRequest</span>,
-};
+<span class="kw">use</span> <span class="ident">codec</span>::{<span class="ident">BatchRequest</span>, <span class="ident">ColumnData</span>, <span class="ident">PacketHeader</span>, <span class="ident">RpcParam</span>, <span class="ident">RpcProcId</span>, <span class="ident">TokenRpcRequest</span>};
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">AsyncRead</span>, <span class="ident">AsyncWrite</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow</span>::<span class="ident">Cow</span>, <span class="ident">fmt</span>::<span class="ident">Debug</span>};
 
@@ -491,13 +483,10 @@
     {
         <span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">flush_stream</span>().<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">req</span> <span class="op">=</span> <span class="ident">BatchRequest</span> {
-            <span class="ident">queries</span>: <span class="ident">query</span>.<span class="ident">into</span>(),
-        };
+        <span class="kw">let</span> <span class="ident">req</span> <span class="op">=</span> <span class="ident">BatchRequest</span>::<span class="ident">new</span>(<span class="ident">query</span>, <span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">context</span>().<span class="ident">transaction_id</span>());
 
-        <span class="self">self</span>.<span class="ident">connection</span>
-            .<span class="ident">send</span>(<span class="ident">PacketHeader</span>::<span class="ident">batch</span>(<span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">context</span>()), <span class="ident">req</span>)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">context_mut</span>().<span class="ident">next_packet_id</span>();
+        <span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">send</span>(<span class="ident">PacketHeader</span>::<span class="ident">batch</span>(<span class="ident">id</span>), <span class="ident">req</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="ident">ts</span> <span class="op">=</span> <span class="ident">TokenStream</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">connection</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">QueryResult</span>::<span class="ident">new</span>(<span class="ident">ts</span>.<span class="ident">try_unfold</span>());
@@ -552,15 +541,14 @@
             <span class="ident">params</span>.<span class="ident">value</span> <span class="op">=</span> <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="ident">param_str</span>.<span class="ident">into</span>()));
         }
 
-        <span class="kw">let</span> <span class="ident">req</span> <span class="op">=</span> <span class="ident">TokenRpcRequest</span> {
-            <span class="ident">proc_id</span>: <span class="ident">RpcProcIdValue</span>::<span class="ident">Id</span>(<span class="ident">proc_id</span>),
-            <span class="ident">flags</span>: <span class="ident">RpcOptionFlags</span>::<span class="ident">empty</span>(),
-            <span class="ident">params</span>: <span class="ident">rpc_params</span>,
-        };
+        <span class="kw">let</span> <span class="ident">req</span> <span class="op">=</span> <span class="ident">TokenRpcRequest</span>::<span class="ident">new</span>(
+            <span class="ident">proc_id</span>,
+            <span class="ident">rpc_params</span>,
+            <span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">context</span>().<span class="ident">transaction_id</span>(),
+        );
 
-        <span class="self">self</span>.<span class="ident">connection</span>
-            .<span class="ident">send</span>(<span class="ident">PacketHeader</span>::<span class="ident">rpc</span>(<span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">context</span>()), <span class="ident">req</span>)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">context_mut</span>().<span class="ident">next_packet_id</span>();
+        <span class="self">self</span>.<span class="ident">connection</span>.<span class="ident">send</span>(<span class="ident">PacketHeader</span>::<span class="ident">rpc</span>(<span class="ident">id</span>), <span class="ident">req</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
