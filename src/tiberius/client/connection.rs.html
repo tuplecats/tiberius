@@ -443,9 +443,6 @@
 <span id="443">443</span>
 <span id="444">444</span>
 <span id="445">445</span>
-<span id="446">446</span>
-<span id="447">447</span>
-<span id="448">448</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">client</span>::<span class="ident">tls</span>::<span class="ident">TlsPreloginWrapper</span>;
@@ -500,12 +497,6 @@
     }
 }
 
-<span class="kw">enum</span> <span class="ident">LoginResult</span> {
-    <span class="prelude-val">Ok</span>,
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="ident">Windows</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">NextBytes</span><span class="op">&gt;</span>),
-}
-
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> <span class="ident">Connection</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Creates a new connection</span>
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">connect</span>(<span class="ident">config</span>: <span class="ident">Config</span>, <span class="ident">tcp_stream</span>: <span class="ident">S</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Connection</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span><span class="op">&gt;</span>
@@ -532,20 +523,13 @@
         <span class="kw">let</span> <span class="ident">prelogin</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">prelogin</span>(<span class="ident">config</span>.<span class="ident">encryption</span>).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">encryption</span> <span class="op">=</span> <span class="ident">prelogin</span>.<span class="ident">negotiated_encryption</span>(<span class="ident">config</span>.<span class="ident">encryption</span>);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">connection</span> <span class="op">=</span> <span class="ident">connection</span>
+        <span class="kw">let</span> <span class="ident">connection</span> <span class="op">=</span> <span class="ident">connection</span>
             .<span class="ident">tls_handshake</span>(<span class="ident">encryption</span>, <span class="ident">config</span>.<span class="ident">trust_cert</span>)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">login_result</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">login</span>(<span class="ident">config</span>.<span class="ident">auth</span>, <span class="ident">config</span>.<span class="ident">database</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="ident">connection</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">post_login_encryption</span>(<span class="ident">encryption</span>);
-
-        <span class="kw">match</span> <span class="ident">login_result</span> {
-            <span class="ident">LoginResult</span>::<span class="prelude-val">Ok</span> <span class="op">=</span><span class="op">&gt;</span> (),
-            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-            <span class="ident">LoginResult</span>::<span class="ident">Windows</span>(<span class="ident">client</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">connection</span>.<span class="ident">windows_postlogin</span>(<span class="ident">client</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-            }
-        }
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">connection</span> <span class="op">=</span> <span class="ident">connection</span>
+            .<span class="ident">login</span>(<span class="ident">config</span>.<span class="ident">auth</span>, <span class="ident">encryption</span>, <span class="ident">config</span>.<span class="ident">database</span>)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="ident">connection</span>.<span class="ident">flush_done</span>().<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -684,10 +668,11 @@
     <span class="doccomment">/// Defines the login record rules with SQL Server. Authentication with</span>
     <span class="doccomment">/// connection options.</span>
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">login</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="self">self</span>,
+        <span class="kw-2">mut</span> <span class="self">self</span>,
         <span class="ident">auth</span>: <span class="ident">AuthMethod</span>,
+        <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>,
         <span class="ident">db</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    ) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">LoginResult</span><span class="op">&gt;</span> {
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">LoginMessage</span>::<span class="ident">new</span>();
 
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">db</span>) <span class="op">=</span> <span class="ident">db</span> {
@@ -706,7 +691,22 @@
                 <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">context</span>.<span class="ident">next_packet_id</span>();
                 <span class="self">self</span>.<span class="ident">send</span>(<span class="ident">PacketHeader</span>::<span class="ident">login</span>(<span class="ident">id</span>), <span class="ident">msg</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
-                <span class="prelude-val">Ok</span>(<span class="ident">LoginResult</span>::<span class="ident">Windows</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">client</span>)))
+                <span class="self">self</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">post_login_encryption</span>(<span class="ident">encryption</span>);
+
+                <span class="kw">let</span> <span class="ident">sspi_bytes</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">flush_sspi</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="kw">match</span> <span class="ident">client</span>.<span class="ident">next_bytes</span>(<span class="prelude-val">Some</span>(<span class="ident">sspi_bytes</span>.<span class="ident">as_ref</span>()))<span class="question-mark">?</span> {
+                    <span class="prelude-val">Some</span>(<span class="ident">sspi_response</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="macro">event</span><span class="macro">!</span>(<span class="ident">Level</span>::<span class="ident">TRACE</span>, <span class="ident">sspi_response_len</span> <span class="op">=</span> <span class="ident">sspi_response</span>.<span class="ident">len</span>());
+
+                        <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">context</span>.<span class="ident">next_packet_id</span>();
+                        <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> <span class="ident">PacketHeader</span>::<span class="ident">login</span>(<span class="ident">id</span>);
+
+                        <span class="kw">let</span> <span class="ident">token</span> <span class="op">=</span> <span class="ident">TokenSSPI</span>::<span class="ident">new</span>(<span class="ident">sspi_response</span>);
+                        <span class="self">self</span>.<span class="ident">send</span>(<span class="ident">header</span>, <span class="ident">token</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                    }
+                    <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">unreachable</span><span class="macro">!</span>(),
+                }
             }
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
             <span class="ident">AuthMethod</span>::<span class="ident">Windows</span>(<span class="ident">auth</span>) <span class="op">=</span><span class="op">&gt;</span> {
@@ -719,13 +719,27 @@
                 <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">context</span>.<span class="ident">next_packet_id</span>();
                 <span class="self">self</span>.<span class="ident">send</span>(<span class="ident">PacketHeader</span>::<span class="ident">login</span>(<span class="ident">id</span>), <span class="ident">msg</span>).<span class="kw">await</span><span class="question-mark">?</span>;
 
-                <span class="prelude-val">Ok</span>(<span class="ident">LoginResult</span>::<span class="ident">Windows</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">client</span>)))
+                <span class="self">self</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">post_login_encryption</span>(<span class="ident">encryption</span>);
+
+                <span class="kw">let</span> <span class="ident">sspi_bytes</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">flush_sspi</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="kw">match</span> <span class="ident">client</span>.<span class="ident">next_bytes</span>(<span class="prelude-val">Some</span>(<span class="ident">sspi_bytes</span>.<span class="ident">as_ref</span>()))<span class="question-mark">?</span> {
+                    <span class="prelude-val">Some</span>(<span class="ident">sspi_response</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="macro">event</span><span class="macro">!</span>(<span class="ident">Level</span>::<span class="ident">TRACE</span>, <span class="ident">sspi_response_len</span> <span class="op">=</span> <span class="ident">sspi_response</span>.<span class="ident">len</span>());
+
+                        <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">context</span>.<span class="ident">next_packet_id</span>();
+                        <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> <span class="ident">PacketHeader</span>::<span class="ident">login</span>(<span class="ident">id</span>);
+
+                        <span class="kw">let</span> <span class="ident">token</span> <span class="op">=</span> <span class="ident">TokenSSPI</span>::<span class="ident">new</span>(<span class="ident">sspi_response</span>);
+                        <span class="self">self</span>.<span class="ident">send</span>(<span class="ident">header</span>, <span class="ident">token</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                    }
+                    <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">unreachable</span><span class="macro">!</span>(),
+                }
             }
             <span class="ident">AuthMethod</span>::<span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">context</span>.<span class="ident">next_packet_id</span>();
                 <span class="self">self</span>.<span class="ident">send</span>(<span class="ident">PacketHeader</span>::<span class="ident">login</span>(<span class="ident">id</span>), <span class="ident">msg</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-
-                <span class="prelude-val">Ok</span>(<span class="ident">LoginResult</span>::<span class="prelude-val">Ok</span>)
+                <span class="self">self</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">post_login_encryption</span>(<span class="ident">encryption</span>);
             }
             <span class="ident">AuthMethod</span>::<span class="ident">SqlServer</span>(<span class="ident">auth</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">msg</span>.<span class="ident">username</span> <span class="op">=</span> <span class="ident">auth</span>.<span class="ident">user</span>().<span class="ident">into</span>();
@@ -733,10 +747,11 @@
 
                 <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">context</span>.<span class="ident">next_packet_id</span>();
                 <span class="self">self</span>.<span class="ident">send</span>(<span class="ident">PacketHeader</span>::<span class="ident">login</span>(<span class="ident">id</span>), <span class="ident">msg</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-
-                <span class="prelude-val">Ok</span>(<span class="ident">LoginResult</span>::<span class="prelude-val">Ok</span>)
+                <span class="self">self</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">post_login_encryption</span>(<span class="ident">encryption</span>);
             }
         }
+
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>)
     }
 
     <span class="doccomment">/// Implements the TLS handshake with the SQL Server.</span>
@@ -798,27 +813,6 @@
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>))]</span>
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">tls_handshake</span>(<span class="self">self</span>, <span class="kw">_</span>: <span class="ident">EncryptionLevel</span>, <span class="kw">_</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>)
-    }
-
-    <span class="doccomment">/// Performs needed handshakes for Windows-based authentications.</span>
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">windows_postlogin</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">client</span>: <span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">NextBytes</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">sspi_bytes</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">flush_sspi</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="kw">match</span> <span class="ident">client</span>.<span class="ident">next_bytes</span>(<span class="prelude-val">Some</span>(<span class="ident">sspi_bytes</span>.<span class="ident">as_ref</span>()))<span class="question-mark">?</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">sspi_response</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="macro">event</span><span class="macro">!</span>(<span class="ident">Level</span>::<span class="ident">TRACE</span>, <span class="ident">sspi_response_len</span> <span class="op">=</span> <span class="ident">sspi_response</span>.<span class="ident">len</span>());
-
-                <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">context</span>.<span class="ident">next_packet_id</span>();
-                <span class="kw">let</span> <span class="ident">header</span> <span class="op">=</span> <span class="ident">PacketHeader</span>::<span class="ident">login</span>(<span class="ident">id</span>);
-
-                <span class="kw">let</span> <span class="ident">token</span> <span class="op">=</span> <span class="ident">TokenSSPI</span>::<span class="ident">new</span>(<span class="ident">sspi_response</span>);
-                <span class="self">self</span>.<span class="ident">send</span>(<span class="ident">header</span>, <span class="ident">token</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-            }
-            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">unreachable</span><span class="macro">!</span>(),
-        }
-
-        <span class="prelude-val">Ok</span>(())
     }
 }
 
