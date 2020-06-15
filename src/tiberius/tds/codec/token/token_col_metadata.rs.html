@@ -196,15 +196,6 @@
 <span id="196">196</span>
 <span id="197">197</span>
 <span id="198">198</span>
-<span id="199">199</span>
-<span id="200">200</span>
-<span id="201">201</span>
-<span id="202">202</span>
-<span id="203">203</span>
-<span id="204">204</span>
-<span id="205">205</span>
-<span id="206">206</span>
-<span id="207">207</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">tds</span>::<span class="ident">codec</span>::{<span class="ident">read_varchar</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>},
@@ -339,12 +330,6 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">columns</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">column_count</span> <span class="kw">as</span> <span class="ident">usize</span>);
 
         <span class="kw">if</span> <span class="ident">column_count</span> <span class="op">&gt;</span> <span class="number">0</span> <span class="kw-2">&amp;</span><span class="op">&amp;</span> <span class="ident">column_count</span> <span class="op">&lt;</span> <span class="number">0xffff</span> {
-            <span class="comment">/*// CekTable (Column Encryption Keys)
-            let cek_count = try!(self.read_u16::&lt;LittleEndian&gt;());
-            // TODO: Cek/encryption stuff not implemented yet
-            assert_eq!(cek_count, 0);*/</span>
-
-            <span class="comment">// read all metadata for each column</span>
             <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">column_count</span> {
                 <span class="kw">let</span> <span class="ident">base</span> <span class="op">=</span> <span class="ident">BaseMetaDataColumn</span>::<span class="ident">decode</span>(<span class="ident">src</span>).<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="kw">let</span> <span class="ident">col_name_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
@@ -376,40 +361,37 @@
             <span class="ident">TypeInfo</span>::<span class="ident">VarLenSized</span>(<span class="ident">VarLenType</span>::<span class="ident">Text</span>, <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="kw">let</span> <span class="ident">num_of_parts</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
 
                 <span class="comment">// table name</span>
-                <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">num_of_parts</span> {
+                    <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                    <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                }
             }
             <span class="ident">TypeInfo</span>::<span class="ident">VarLenSized</span>(<span class="ident">VarLenType</span>::<span class="ident">NText</span>, <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="comment">// table name</span>
-                <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-            }
-            <span class="ident">TypeInfo</span>::<span class="ident">VarLenSized</span>(<span class="ident">VarLenType</span>::<span class="ident">Image</span>, <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">num_of_parts</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
 
                 <span class="comment">// table name</span>
-                <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">num_of_parts</span> {
+                    <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                    <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                }
+            }
+            <span class="ident">TypeInfo</span>::<span class="ident">VarLenSized</span>(<span class="ident">VarLenType</span>::<span class="ident">Image</span>, <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="kw">let</span> <span class="ident">num_of_parts</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="comment">// table name</span>
+                <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">num_of_parts</span> {
+                    <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                    <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                }
             }
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> (),
         }
 
-        <span class="comment">// TODO: for type={text, ntext, and image} TABLENAME</span>
-
-        <span class="comment">/*// CryptoMetaData
-        let cmd_ordinal = try!(self.read_u16::&lt;LittleEndian&gt;());
-        let cmd_user_ty = try!(self.read_u32::&lt;LittleEndian&gt;());
-        let cmd_ty_info: TypeInfo = try!(self.unserialize(ctx));
-        let cmd_encryption_algo = try!(self.read_u8());
-        // TODO:
-        assert_eq!(cmd_encryption_algo, 0);
-        let cmd_algo_name = try!(self.read_varchar::&lt;u8&gt;());
-        let cmd_algo_type = try!(self.read_u8());
-        let cmd_norm_version = try!(self.read_u8());*/</span>
         <span class="prelude-val">Ok</span>(<span class="ident">BaseMetaDataColumn</span> { <span class="ident">flags</span>, <span class="ident">ty</span> })
     }
 }
