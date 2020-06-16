@@ -304,6 +304,7 @@
 <span id="304">304</span>
 <span id="305">305</span>
 <span id="306">306</span>
+<span id="307">307</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Representations of numeric types.</span>
 
@@ -311,6 +312,8 @@
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">sql_read_bytes</span>::<span class="ident">SqlReadBytes</span>, <span class="ident">Error</span>};
 <span class="kw">use</span> <span class="ident">byteorder</span>::{<span class="ident">ByteOrder</span>, <span class="ident">LittleEndian</span>};
 <span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">BufMut</span>, <span class="ident">BytesMut</span>};
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rust_decimal&quot;</span>)]</span>
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">rust_decimal</span>::<span class="ident">Decimal</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">cmp</span>::<span class="ident">PartialEq</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>::{<span class="self">self</span>, <span class="ident">Debug</span>, <span class="ident">Display</span>, <span class="ident">Formatter</span>};
 
@@ -535,9 +538,8 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;rust_decimal&quot;</span>)]</span>
 <span class="kw">mod</span> <span class="ident">decimal</span> {
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Numeric</span>;
+    <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">Decimal</span>, <span class="ident">Numeric</span>};
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">ColumnData</span>;
-    <span class="kw">use</span> <span class="ident">rust_decimal</span>::<span class="ident">Decimal</span>;
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
     <span class="macro">from_sql</span><span class="macro">!</span>(<span class="ident">Decimal</span>: <span class="ident">ColumnData</span>::<span class="ident">Numeric</span>(<span class="kw-2">ref</span> <span class="ident">num</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">num</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">num</span><span class="op">|</span> {

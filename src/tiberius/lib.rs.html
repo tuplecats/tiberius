@@ -210,10 +210,6 @@
 <span id="210">210</span>
 <span id="211">211</span>
 <span id="212">212</span>
-<span id="213">213</span>
-<span id="214">214</span>
-<span id="215">215</span>
-<span id="216">216</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! An asynchronous, runtime-independent, pure-rust Tabular Data Stream (TDS)</span>
 <span class="doccomment">//! implementation for Microsoft SQL Server.</span>
@@ -371,9 +367,6 @@
 <span class="doccomment">//! - If using an [ADO.NET connection string], it is possible to create a</span>
 <span class="doccomment">//!   [`Config`] from one. Please see the documentation for</span>
 <span class="doccomment">//!   [`from_ado_string`] for details.</span>
-<span class="doccomment">//! - For ergonomic use of date, time, datetime et.al. values, it is highly</span>
-<span class="doccomment">//!   recommended to use the [`chrono`] library. Please see the documentation</span>
-<span class="doccomment">//!   for [`time`] module for details.</span>
 <span class="doccomment">//! - If wanting to use Tiberius with SQL Server version 2005, one must</span>
 <span class="doccomment">//!   disable the `tds73` feature.</span>
 <span class="doccomment">//!</span>
@@ -381,7 +374,6 @@
 <span class="doccomment">//! [`Client`]: struct.Client.html</span>
 <span class="doccomment">//! [`Config`]: struct.Config.html</span>
 <span class="doccomment">//! [`from_ado_string`]: struct.Config.html#method.from_ado_string</span>
-<span class="doccomment">//! [`chrono`]: https://crates.io/chrono</span>
 <span class="doccomment">//! [`time`]: time/index.html</span>
 <span class="doccomment">//! [ways of authentication]: enum.AuthMethod.html</span>
 <span class="doccomment">//! [ADO.NET connection string]: https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/connection-strings</span>
@@ -413,7 +405,7 @@
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">row</span>::{<span class="ident">Column</span>, <span class="ident">ColumnType</span>, <span class="ident">Row</span>};
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">sql_browser</span>::<span class="ident">SqlBrowser</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">tds</span>::{<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">numeric</span>, <span class="ident">time</span>, <span class="ident">xml</span>, <span class="ident">EncryptionLevel</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">to_sql</span>::{<span class="ident">IntoSql</span>, <span class="ident">ToSql</span>};
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">to_sql</span>::<span class="ident">ToSql</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">uuid</span>::<span class="ident">Uuid</span>;
 
 <span class="kw">use</span> <span class="ident">sql_read_bytes</span>::<span class="kw-2">*</span>;
