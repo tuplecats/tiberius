@@ -80,6 +80,18 @@
 <span id="80">80</span>
 <span id="81">81</span>
 <span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
+<span id="86">86</span>
+<span id="87">87</span>
+<span id="88">88</span>
+<span id="89">89</span>
+<span id="90">90</span>
+<span id="91">91</span>
+<span id="92">92</span>
+<span id="93">93</span>
+<span id="94">94</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">tds</span>::{<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="ident">Numeric</span>},
@@ -144,6 +156,18 @@
     <span class="doccomment">/// by-reference.</span>
     <span class="kw">fn</span> <span class="ident">to_sql</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>;
 }
+
+<span class="doccomment">/// A by-value conversion trait to a TDS type.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">IntoSql</span>: <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span> {
+    <span class="doccomment">/// Convert to a value understood by the SQL Server. Conversion by-value.</span>
+    <span class="kw">fn</span> <span class="ident">into_sql</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ColumnData</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span>;
+}
+
+<span class="macro">into_sql</span><span class="macro">!</span>(<span class="ident">self_</span>,
+          <span class="ident">String</span>: (<span class="ident">ColumnData</span>::<span class="ident">String</span>, <span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">self_</span>));
+          <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>: (<span class="ident">ColumnData</span>::<span class="ident">Binary</span>, <span class="ident">Cow</span>::<span class="ident">from</span>(<span class="ident">self_</span>));
+          <span class="ident">XmlData</span>: (<span class="ident">ColumnData</span>::<span class="ident">Xml</span>, <span class="ident">Cow</span>::<span class="ident">Owned</span>(<span class="ident">self_</span>));
+);
 
 <span class="macro">to_sql</span><span class="macro">!</span>(<span class="ident">self_</span>,
         <span class="ident">bool</span>: (<span class="ident">ColumnData</span>::<span class="ident">Bit</span>, <span class="kw-2">*</span><span class="ident">self_</span>);
