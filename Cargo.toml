@@ -86,7 +86,8 @@ features = ["log"]
 version = "0.1"
 
 [dependencies.rust_decimal]
-version = "1.6"
+git = "https://github.com/pimeys/rust-decimal"
+branch = "pgbouncer-mode"
 optional = true
 
 [dev-dependencies.tokio-util]
