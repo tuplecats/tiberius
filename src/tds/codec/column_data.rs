@@ -4,6 +4,7 @@ use crate::tds::{Collation, DateTime, SmallDateTime};
 use crate::tds::{Date, DateTime2, DateTimeOffset, Time};
 use crate::{
     tds::{
+        codec::guid,
         xml::{XmlData, XmlSchema},
         Numeric,
     },
@@ -244,23 +245,39 @@ impl<'a> ColumnData<'a> {
             #[cfg(feature = "tds73")]
             VarLenType::Timen => {
                 let rlen = src.read_u8().await?;
-                let time = Time::decode(src, len as usize, rlen as usize).await?;
 
-                ColumnData::Time(Some(time))
+                match rlen {
+                    0 => ColumnData::Time(None),
+                    _ => {
+                        let time = Time::decode(src, len as usize, rlen as usize).await?;
+                        ColumnData::Time(Some(time))
+                    }
+                }
             }
 
             #[cfg(feature = "tds73")]
             VarLenType::Datetime2 => {
-                let rlen = src.read_u8().await? - 3;
-                let dt = DateTime2::decode(src, len as usize, rlen as usize).await?;
-
-                ColumnData::DateTime2(Some(dt))
+                let rlen = src.read_u8().await?;
+                match rlen {
+                    0 => ColumnData::DateTime2(None),
+                    rlen => {
+                        let dt = DateTime2::decode(src, len as usize, rlen as usize - 3).await?;
+                        ColumnData::DateTime2(Some(dt))
+                    }
+                }
             }
 
             #[cfg(feature = "tds73")]
             VarLenType::DatetimeOffsetn => {
-                let dto = DateTimeOffset::decode(src, len as usize).await?;
-                ColumnData::DateTimeOffset(Some(dto))
+                let rlen = src.read_u8().await?;
+
+                match rlen {
+                    0 => ColumnData::DateTimeOffset(None),
+                    _ => {
+                        let dto = DateTimeOffset::decode(src, len, rlen - 5).await?;
+                        ColumnData::DateTimeOffset(Some(dto))
+                    }
+                }
             }
 
             VarLenType::BigBinary | VarLenType::BigVarBin => Self::decode_binary(src, len).await?,
@@ -406,7 +423,8 @@ impl<'a> ColumnData<'a> {
                     data[i] = src.read_u8().await?;
                 }
 
-                ColumnData::Guid(Some(Uuid::from_slice(&data)?))
+                guid::reorder_bytes(&mut data);
+                ColumnData::Guid(Some(Uuid::from_bytes(data)))
             }
             _ => {
                 return Err(Error::Protocol(
@@ -696,7 +714,9 @@ impl<'a> Encode<BytesMut> for ColumnData<'a> {
                 let header = [&[VarLenType::Guid as u8, 16, 16][..]].concat();
 
                 dst.extend_from_slice(&header);
-                dst.extend_from_slice(uuid.as_bytes());
+                let mut data = uuid.as_bytes().clone();
+                guid::reorder_bytes(&mut data);
+                dst.extend_from_slice(&data);
             }
             ColumnData::String(Some(ref s)) if s.len() <= 4000 => {
                 dst.put_u8(VarLenType::NVarchar as u8);
