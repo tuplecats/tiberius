@@ -1319,7 +1319,7 @@
         <span class="kw">let</span> <span class="ident">ptr_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
 
         <span class="kw">if</span> <span class="ident">ptr_len</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">None</span>))
+            <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="prelude-val">None</span>))
         } <span class="kw">else</span> {
             <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_exact</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0</span>; <span class="ident">ptr_len</span>][<span class="number">0</span>..<span class="ident">ptr_len</span>]).<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// text ptr</span>
 
