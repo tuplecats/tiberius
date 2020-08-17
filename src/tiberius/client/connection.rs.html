@@ -445,7 +445,6 @@
 <span id="445">445</span>
 <span id="446">446</span>
 <span id="447">447</span>
-<span id="448">448</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tls&quot;</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">client</span>::<span class="ident">tls</span>::<span class="ident">TlsPreloginWrapper</span>;
@@ -768,7 +767,6 @@
         <span class="kw">if</span> <span class="ident">encryption</span> <span class="op">!</span><span class="op">=</span> <span class="ident">EncryptionLevel</span>::<span class="ident">NotSupported</span> {
             <span class="macro">event</span><span class="macro">!</span>(<span class="ident">Level</span>::<span class="ident">INFO</span>, <span class="string">&quot;Performing a TLS handshake&quot;</span>);
 
-            <span class="comment">//let mut builder = native_tls::TlsConnector::builder();</span>
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">builder</span> <span class="op">=</span> <span class="ident">async_native_tls</span>::<span class="ident">TlsConnector</span>::<span class="ident">new</span>();
 
             <span class="kw">if</span> <span class="ident">trust_cert</span> {
