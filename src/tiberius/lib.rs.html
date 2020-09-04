@@ -210,6 +210,7 @@
 <span id="210">210</span>
 <span id="211">211</span>
 <span id="212">212</span>
+<span id="213">213</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! An asynchronous, runtime-independent, pure-rust Tabular Data Stream (TDS)</span>
 <span class="doccomment">//! implementation for Microsoft SQL Server.</span>
@@ -305,10 +306,11 @@
 <span class="doccomment">//! Tiberius supports different [ways of authentication] to the SQL Server:</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! - SQL Server authentication uses the facilities of the database to</span>
-<span class="doccomment">//! authenticate the user. This is also the only cross-platform method that</span>
-<span class="doccomment">//! works outside of Windows platforms.</span>
-<span class="doccomment">//! - Authentication with Windows credentials</span>
-<span class="doccomment">//! - Authentication with currently logged in Windows user</span>
+<span class="doccomment">//! authenticate the user.</span>
+<span class="doccomment">//! - On Windows, you can authenticate using the currently logged in user or</span>
+<span class="doccomment">//! specified Windows credentials.</span>
+<span class="doccomment">//! - If enabling the `integrated-auth-gssapi` feature, it is possible to login</span>
+<span class="doccomment">//! with the currently active Kerberos credentials.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! # TLS</span>
 <span class="doccomment">//!</span>

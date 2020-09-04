@@ -575,6 +575,21 @@
 <span id="575">575</span>
 <span id="576">576</span>
 <span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">AuthMethod</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">EncryptionLevel</span>;
@@ -710,7 +725,7 @@
     <span class="doccomment">/// |Parameter|Allowed values|Description|</span>
     <span class="doccomment">/// |--------|--------|--------|</span>
     <span class="doccomment">/// |`server`|`&lt;string&gt;`|The name or network address of the instance of SQL Server to which to connect. The port number can be specified after the server name. The correct form of this parameter is either `tcp:host,port` or `tcp:host\\instance`|</span>
-    <span class="doccomment">/// |`IntegratedSecurity`|`true`,`false`,`yes`,`no`|Toggle between Windows authentication and SQL authentication.|</span>
+    <span class="doccomment">/// |`IntegratedSecurity`|`true`,`false`,`yes`,`no`|Toggle between Windows/Kerberos authentication and SQL authentication.|</span>
     <span class="doccomment">/// |`uid`,`username`,`user`,`user id`|`&lt;string&gt;`|The SQL Server login account.|</span>
     <span class="doccomment">/// |`password`,`pwd`|`&lt;string&gt;`|The password for the SQL Server account logging on.|</span>
     <span class="doccomment">/// |`database`|`&lt;string&gt;`|The name of the database.|</span>
@@ -856,9 +871,13 @@
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">windows</span>)]</span>
             <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="kw">if</span> <span class="ident">val</span>.<span class="ident">to_lowercase</span>() <span class="op">=</span><span class="op">=</span> <span class="string">&quot;sspi&quot;</span> <span class="op">|</span><span class="op">|</span> <span class="self">Self</span>::<span class="ident">parse_bool</span>(<span class="ident">val</span>)<span class="question-mark">?</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">match</span> (<span class="ident">user</span>, <span class="ident">pw</span>)
             {
-                (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">AuthMethod</span>::<span class="ident">WindowsIntegrated</span>),
+                (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">AuthMethod</span>::<span class="ident">Integrated</span>),
                 <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">AuthMethod</span>::<span class="ident">windows</span>(<span class="ident">user</span>.<span class="ident">unwrap_or</span>(<span class="string">&quot;&quot;</span>), <span class="ident">pw</span>.<span class="ident">unwrap_or</span>(<span class="string">&quot;&quot;</span>))),
             },
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;integrated-auth-gssapi&quot;</span>)]</span>
+            <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="kw">if</span> <span class="ident">val</span>.<span class="ident">to_lowercase</span>() <span class="op">=</span><span class="op">=</span> <span class="string">&quot;sspi&quot;</span> <span class="op">|</span><span class="op">|</span> <span class="self">Self</span>::<span class="ident">parse_bool</span>(<span class="ident">val</span>)<span class="question-mark">?</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">AuthMethod</span>::<span class="ident">Integrated</span>)
+            }
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">AuthMethod</span>::<span class="ident">sql_server</span>(<span class="ident">user</span>.<span class="ident">unwrap_or</span>(<span class="string">&quot;&quot;</span>), <span class="ident">pw</span>.<span class="ident">unwrap_or</span>(<span class="string">&quot;&quot;</span>))),
         }
     }
@@ -1058,7 +1077,18 @@
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;IntegratedSecurity=SSPI&quot;</span>;
         <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
 
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">AuthMethod</span>::<span class="ident">WindowsIntegrated</span>, <span class="ident">ado</span>.<span class="ident">authentication</span>()<span class="question-mark">?</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">AuthMethod</span>::<span class="ident">Integrated</span>, <span class="ident">ado</span>.<span class="ident">authentication</span>()<span class="question-mark">?</span>);
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;integrated-auth-gssapi&quot;</span>, <span class="ident">unix</span>))]</span>
+    <span class="kw">fn</span> <span class="ident">parsing_sspi_authentication</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;IntegratedSecurity=true&quot;</span>;
+        <span class="kw">let</span> <span class="ident">ado</span> <span class="op">=</span> <span class="ident">AdoNetString</span>::<span class="ident">parse</span>(<span class="ident">test_str</span>)<span class="question-mark">?</span>;
+
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">AuthMethod</span>::<span class="ident">Integrated</span>, <span class="ident">ado</span>.<span class="ident">authentication</span>()<span class="question-mark">?</span>);
 
         <span class="prelude-val">Ok</span>(())
     }
