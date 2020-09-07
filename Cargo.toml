@@ -35,6 +35,7 @@ required-features = ["sql-browser-tokio"]
 async-stream = "0.2"
 bitflags = "1.0"
 byteorder = "1.0"
+url = "2.1"
 encoding = "0.2"
 once_cell = "1.3"
 thiserror = "1.0"

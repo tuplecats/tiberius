@@ -1,6 +1,7 @@
 use super::AuthMethod;
 use crate::EncryptionLevel;
 use std::collections::HashMap;
+use url::Url;
 
 #[derive(Clone, Debug)]
 /// The `Config` struct contains all configuration information
@@ -139,7 +140,7 @@ impl Config {
     /// |`TrustServerCertificate`|`true`,`false`,`yes`,`no`|Specifies whether the driver trusts the server certificate when connecting using TLS.|
     /// |`encrypt`|`true`,`false`,`yes`,`no`|Specifies whether the driver uses TLS to encrypt communication.|
     pub fn from_ado_string(s: &str) -> crate::Result<Self> {
-        let ado = AdoNetString::parse(s)?;
+        let ado = ConnectionString::parse_ado(s)?;
         let mut builder = Self::new();
 
         let server = ado.server()?;
@@ -171,14 +172,60 @@ impl Config {
 
         Ok(builder)
     }
+
+    /// Creates a new `Config` from an [JDBC connection
+    /// string](https://docs.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url?view=sql-server-ver15).
+    ///
+    /// # Supported parameters
+    ///
+    /// All parameter keys are handled case-insensitive.
+    ///
+    /// |Parameter|Allowed values|Description|
+    /// |--------|--------|--------|
+    /// |`server`|`<string>`|The name or network address of the instance of SQL Server to which to connect. The port number can be specified after the server name. The correct form of this parameter is either `tcp:host,port` or `tcp:host\\instance`|
+    /// |`IntegratedSecurity`|`true`,`false`,`yes`,`no`|Toggle between Windows authentication and SQL authentication.|
+    /// |`uid`,`username`,`user`,`user id`|`<string>`|The SQL Server login account.|
+    /// |`password`,`pwd`|`<string>`|The password for the SQL Server account logging on.|
+    /// |`database`|`<string>`|The name of the database.|
+    /// |`TrustServerCertificate`|`true`,`false`,`yes`,`no`|Specifies whether the driver trusts the server certificate when connecting using TLS.|
+    /// |`encrypt`|`true`,`false`,`yes`,`no`|Specifies whether the driver uses TLS to encrypt communication.|
+    pub fn from_jdbc_string(s: &str) -> crate::Result<Self> {
+        let jdbc = ConnectionString::parse_jdbc(s)?;
+        let mut builder = Self::new();
+
+        let server = jdbc.server()?;
+
+        if let Some(host) = server.host {
+            builder.host(host);
+        }
+
+        if let Some(port) = server.port {
+            builder.port(port);
+        }
+
+        builder.authentication(jdbc.authentication()?);
+
+        if let Some(database) = jdbc.database() {
+            builder.database(database);
+        }
+
+        if jdbc.trust_cert()? {
+            builder.trust_cert();
+        }
+
+        builder.encryption(jdbc.encrypt()?);
+
+        Ok(builder)
+    }
 }
 
-pub(crate) struct AdoNetString {
+pub(crate) struct ConnectionString {
     dict: HashMap<String, String>,
+    host: Option<Url>,
 }
 
-impl AdoNetString {
-    pub fn parse(s: &str) -> crate::Result<Self> {
+impl ConnectionString {
+    pub fn parse_ado(s: &str) -> crate::Result<Self> {
         let dict: crate::Result<HashMap<String, String>> = s
             .split(";")
             .filter(|kv| kv != &"")
@@ -209,7 +256,56 @@ impl AdoNetString {
             })
             .collect();
 
-        Ok(Self { dict: dict? })
+        Ok(Self {
+            dict: dict?,
+            host: None,
+        })
+    }
+
+    pub fn parse_jdbc(s: &str) -> crate::Result<Self> {
+        let mut splitted = s.split(';').filter(|kv| kv != &"");
+
+        let host = splitted
+            .next()
+            .ok_or_else(|| crate::Error::Conversion("JDBC string missing the host part.".into()))?
+            .trim()
+            .to_string();
+
+        let dict: crate::Result<HashMap<String, String>> = splitted
+            .map(|kv| {
+                let mut splitted = kv.split("=");
+
+                let key = splitted
+                    .next()
+                    .ok_or_else(|| {
+                        crate::Error::Conversion(
+                            "Missing a valid key in connection string parameters.".into(),
+                        )
+                    })?
+                    .trim()
+                    .to_lowercase();
+
+                let value = splitted
+                    .next()
+                    .ok_or_else(|| {
+                        crate::Error::Conversion(
+                            "Missing a valid key in connection string parameters.".into(),
+                        )
+                    })?
+                    .trim()
+                    .to_string();
+
+                Ok((key, value))
+            })
+            .collect();
+
+        let server = Url::parse(&host)
+            .map_err(|_| crate::Error::Conversion("The JDBC host is not a valid URL.".into()))?;
+
+        Ok(Self {
+            dict: dict?,
+            host: Some(server),
+        })
     }
 
     pub fn server(&self) -> crate::Result<ServerDefinition> {
@@ -244,6 +340,14 @@ impl AdoNetString {
             };
 
             Ok(definition)
+        }
+
+        if let Some(ref url) = self.host {
+            return Ok(ServerDefinition {
+                host: url.host().map(|h| format!("{}", h)),
+                port: url.port().map(Into::into),
+                instance: None,
+            });
         }
 
         match self.dict.get("server") {
@@ -340,10 +444,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn server_parsing_no_browser() -> crate::Result<()> {
+    fn server_parsing_no_browser_ado() -> crate::Result<()> {
         let test_str = "server=tcp:my-server.com,4200";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
         let server = ado.server()?;
+
+        assert_eq!(Some("my-server.com".to_string()), server.host);
+        assert_eq!(Some(4200), server.port);
+        assert_eq!(None, server.instance);
+
+        Ok(())
+    }
+
+    #[test]
+    fn server_parsing_no_browser_jdbc() -> crate::Result<()> {
+        let test_str = "sqlserver://my-server.com:4200";
+        let jdbc = ConnectionString::parse_jdbc(test_str)?;
+        let server = jdbc.server()?;
 
         assert_eq!(Some("my-server.com".to_string()), server.host);
         assert_eq!(Some(4200), server.port);
@@ -355,7 +472,7 @@ mod tests {
     #[test]
     fn server_parsing_no_tcp() -> crate::Result<()> {
         let test_str = "server=my-server.com,4200";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
         let server = ado.server()?;
 
         assert_eq!(Some("my-server.com".to_string()), server.host);
@@ -368,7 +485,7 @@ mod tests {
     #[test]
     fn server_parsing_with_browser() -> crate::Result<()> {
         let test_str = "server=tcp:my-server.com\\TIBERIUS";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
         let server = ado.server()?;
 
         assert_eq!(Some("my-server.com".to_string()), server.host);
@@ -381,7 +498,7 @@ mod tests {
     #[test]
     fn server_parsing_with_browser_and_port() -> crate::Result<()> {
         let test_str = "server=tcp:my-server.com\\TIBERIUS,666";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
         let server = ado.server()?;
 
         assert_eq!(Some("my-server.com".to_string()), server.host);
@@ -394,7 +511,7 @@ mod tests {
     #[test]
     fn database_parsing() -> crate::Result<()> {
         let test_str = "database=Foo";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(Some("Foo".to_string()), ado.database());
 
@@ -404,7 +521,7 @@ mod tests {
     #[test]
     fn trust_cert_parsing_true() -> crate::Result<()> {
         let test_str = "TrustServerCertificate=true";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(true, ado.trust_cert()?);
 
@@ -414,7 +531,7 @@ mod tests {
     #[test]
     fn trust_cert_parsing_false() -> crate::Result<()> {
         let test_str = "TrustServerCertificate=false";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(false, ado.trust_cert()?);
 
@@ -424,7 +541,7 @@ mod tests {
     #[test]
     fn trust_cert_parsing_yes() -> crate::Result<()> {
         let test_str = "TrustServerCertificate=yes";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(true, ado.trust_cert()?);
 
@@ -434,7 +551,7 @@ mod tests {
     #[test]
     fn trust_cert_parsing_no() -> crate::Result<()> {
         let test_str = "TrustServerCertificate=no";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(false, ado.trust_cert()?);
 
@@ -444,7 +561,7 @@ mod tests {
     #[test]
     fn trust_cert_parsing_missing() -> crate::Result<()> {
         let test_str = "Something=foo;";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(false, ado.trust_cert()?);
 
@@ -454,7 +571,7 @@ mod tests {
     #[test]
     fn trust_cert_parsing_faulty() -> crate::Result<()> {
         let test_str = "TrustServerCertificate=musti;";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert!(ado.trust_cert().is_err());
 
@@ -464,7 +581,7 @@ mod tests {
     #[test]
     fn parsing_sql_server_authentication() -> crate::Result<()> {
         let test_str = "uid=Musti; pwd=Naukio;";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(
             AuthMethod::sql_server("Musti", "Naukio"),
@@ -478,7 +595,7 @@ mod tests {
     #[cfg(windows)]
     fn parsing_sspi_authentication() -> crate::Result<()> {
         let test_str = "IntegratedSecurity=SSPI";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(AuthMethod::WindowsIntegrated, ado.authentication()?);
 
@@ -489,7 +606,7 @@ mod tests {
     #[cfg(windows)]
     fn parsing_windows_authentication() -> crate::Result<()> {
         let test_str = "uid=Musti;pwd=Naukio; IntegratedSecurity=SSPI;";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(
             AuthMethod::windows("Musti", "Naukio"),
@@ -502,7 +619,7 @@ mod tests {
     #[test]
     fn parsing_database() -> crate::Result<()> {
         let test_str = "database=Cats";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(Some("Cats".to_string()), ado.database());
 
@@ -513,7 +630,7 @@ mod tests {
     #[cfg(feature = "tls")]
     fn encryption_parsing_on() -> crate::Result<()> {
         let test_str = "encrypt=true";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(EncryptionLevel::Required, ado.encrypt()?);
 
@@ -524,7 +641,7 @@ mod tests {
     #[cfg(feature = "tls")]
     fn encryption_parsing_off() -> crate::Result<()> {
         let test_str = "encrypt=false";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(EncryptionLevel::Off, ado.encrypt()?);
 
@@ -535,7 +652,7 @@ mod tests {
     #[cfg(feature = "tls")]
     fn encryption_parsing_missing() -> crate::Result<()> {
         let test_str = "";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(EncryptionLevel::Off, ado.encrypt()?);
 
@@ -546,7 +663,7 @@ mod tests {
     #[cfg(not(feature = "tls"))]
     fn encryption_parsing_on() -> crate::Result<()> {
         let test_str = "encrypt=true";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(EncryptionLevel::NotSupported, ado.encrypt()?);
 
@@ -557,7 +674,7 @@ mod tests {
     #[cfg(not(feature = "tls"))]
     fn encryption_parsing_off() -> crate::Result<()> {
         let test_str = "encrypt=false";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(EncryptionLevel::NotSupported, ado.encrypt()?);
 
@@ -568,7 +685,7 @@ mod tests {
     #[cfg(not(feature = "tls"))]
     fn encryption_parsing_missing() -> crate::Result<()> {
         let test_str = "";
-        let ado = AdoNetString::parse(test_str)?;
+        let ado = ConnectionString::parse_ado(test_str)?;
 
         assert_eq!(EncryptionLevel::NotSupported, ado.encrypt()?);
 
