@@ -1,7 +1,6 @@
 use super::AuthMethod;
 use crate::EncryptionLevel;
 use std::collections::HashMap;
-use url::Url;
 
 #[derive(Clone, Debug)]
 /// The `Config` struct contains all configuration information
@@ -221,7 +220,7 @@ impl Config {
 
 pub(crate) struct ConnectionString {
     dict: HashMap<String, String>,
-    host: Option<Url>,
+    server: Option<ServerDefinition>,
 }
 
 impl ConnectionString {
@@ -258,18 +257,25 @@ impl ConnectionString {
 
         Ok(Self {
             dict: dict?,
-            host: None,
+            server: None,
         })
     }
 
+    // # Format
+    //
+    // ```txt
+    // jdbc:sqlserver://[serverName[\instanceName][:portNumber]][;property=value[;property=value]]
+    // ```
+    //
+    // docs: https://docs.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url?view=sql-server-ver15
     pub fn parse_jdbc(s: &str) -> crate::Result<Self> {
         let mut splitted = s.split(';').filter(|kv| kv != &"");
 
-        let host = splitted
+        let first = splitted
             .next()
-            .ok_or_else(|| crate::Error::Conversion("JDBC string missing the host part.".into()))?
-            .trim()
-            .to_string();
+            .ok_or_else(|| crate::Error::Conversion("JDBC string missing the host part.".into()))?;
+        // .trim()
+        // .to_string();
 
         let dict: crate::Result<HashMap<String, String>> = splitted
             .map(|kv| {
@@ -299,13 +305,12 @@ impl ConnectionString {
             })
             .collect();
 
-        let server = Url::parse(&host)
-            .map_err(|_| crate::Error::Conversion("The JDBC host is not a valid URL.".into()))?;
+        todo!();
 
-        Ok(Self {
-            dict: dict?,
-            host: Some(server),
-        })
+        // Ok(Self {
+        //     dict: dict?,
+        //     server: Some(host),
+        // })
     }
 
     pub fn server(&self) -> crate::Result<ServerDefinition> {
@@ -342,13 +347,10 @@ impl ConnectionString {
             Ok(definition)
         }
 
-        if let Some(ref url) = self.host {
-            return Ok(ServerDefinition {
-                host: url.host().map(|h| format!("{}", h)),
-                port: url.port().map(Into::into),
-                instance: None,
-            });
-        }
+        // TODO
+        // if let Some(server) = self.server {
+        //     return Ok(server.clone());
+        // }
 
         match self.dict.get("server") {
             Some(value) if value.starts_with("tcp:") => {
@@ -433,6 +435,7 @@ impl ConnectionString {
     }
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct ServerDefinition {
     host: Option<String>,
     port: Option<u16>,

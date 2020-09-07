@@ -1,6 +1,7 @@
 mod auth;
 mod builder;
 mod connection;
+mod jdbc;
 mod tls;
 
 pub use auth::*;
