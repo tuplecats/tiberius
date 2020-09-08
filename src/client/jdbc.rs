@@ -8,6 +8,12 @@ macro_rules! ensure {
             return Err($crate::Error::Conversion($msg.into()));
         };
     };
+
+    ($cond:expr, $msg:expr) => {
+        if !$cond {
+            return Err($crate::Error::Conversion($msg.into()));
+        };
+    };
 }
 
 // Return early with an error.
@@ -72,51 +78,19 @@ impl FromStr for JdbcConnectionString {
     type Err = crate::Error;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        // Tokenize
-        let mut res = vec![];
-        let mut iter = input.chars();
-        while let Some(char) = iter.next() {
-            let token = match char {
-                c if c.is_ascii_whitespace() => continue,
-                ':' => TokenKind::Colon,
-                '=' => TokenKind::Eq,
-                '\\' => TokenKind::BSlash,
-                '/' => TokenKind::FSlash,
-                ';' => TokenKind::Semi,
-                '{' => {
-                    let mut buf = String::new();
-                    loop {
-                        match iter.next() {
-                            None => bail!("unclosed escape literal"),
-                            Some('}') => break,
-                            Some(c) if c.is_ascii() => buf.push(c),
-                            _ => bail!("Invalid JDBC token"),
-                        }
-                    }
-                    TokenKind::Escaped(buf)
-                }
-                c if c.is_ascii_alphanumeric() => TokenKind::Atom(c),
-                c => bail!("Invalid JDBC token: '{}'", c),
-            };
-            res.push(token);
-        }
+        let mut lexer = Lexer::tokenize(input)?;
 
         // ```
         // jdbc:sqlserver://[serverName[\instanceName][:portNumber]][;property=value[;property=value]]
         // ^^^^^^^^^^^^^^^^^
         // ```
-        let mut slashes_read = 0;
-        let proto = iter.by_ref().take_while(|c| {
-            if *c == '/' {
-                slashes_read += 1;
-            }
-            slashes_read != 2
-        });
-        dbg!(&proto);
-        ensure!(
-            proto.eq(dbg!("jdbc:sqlserver://".chars())),
-            "Invalid JDBC sub-protocol"
-        );
+        let err = "Invalid JDBC sub-protocol";
+        cmp_str(&mut lexer, "jdbc", err);
+        ensure!(lexer.next().kind() == &TokenKind::Colon, err);
+        cmp_str(&mut lexer, "sqlserver");
+        ensure!(lexer.next().kind() == &TokenKind::Colon, err);
+        ensure!(lexer.next().kind() == &TokenKind::FSlash, err);
+        ensure!(lexer.next().kind() == &TokenKind::FSlash, err);
 
         Ok(Self {
             sub_protocol: "jdbc:sqlserver",
@@ -128,14 +102,104 @@ impl FromStr for JdbcConnectionString {
     }
 }
 
+fn cmp_str(lexer: &mut Lexer, s: &str, err_msg: &str) -> crate::Result<()> {
+    for char in s.chars() {
+        if let Token {
+            kind: TokenKind::Atom(tchar),
+            loc,
+        } = lexer.next()
+        {
+            ensure!(char == tchar, err_msg);
+        } else {
+            bail!(err_msg);
+        }
+    }
+    Ok(())
+}
+
+#[derive(Debug)]
 struct Lexer {
-    tokens: Vec<TokenKind>,
+    tokens: Vec<Token>,
 }
 
 impl Lexer {
-    fn tokenize() -> Self {}
+    pub(crate) fn tokenize(mut input: &str) -> crate::Result<Self> {
+        let mut tokens = vec![];
+        let mut loc = Location::default();
+        while !input.is_empty() {
+            let old_input = input;
+            let mut chars = input.chars();
+            let kind = match chars.next().unwrap() {
+                c if c.is_ascii_whitespace() => continue,
+                ':' => TokenKind::Colon,
+                '=' => TokenKind::Eq,
+                '\\' => TokenKind::BSlash,
+                '/' => TokenKind::FSlash,
+                ';' => TokenKind::Semi,
+                '{' => {
+                    let mut buf = Vec::new();
+                    loop {
+                        match chars.next() {
+                            None => bail!("unclosed escape literal"),
+                            Some('}') => break,
+                            Some(c) if c.is_ascii() => buf.push(c),
+                            _ => bail!("Invalid JDBC token"),
+                        }
+                    }
+                    TokenKind::Escaped(buf)
+                }
+                c if c.is_ascii_alphanumeric() => TokenKind::Atom(c),
+                c => bail!("Invalid JDBC token: '{}'", c),
+            };
+            tokens.push(Token { kind, loc });
+            input = chars.as_str();
+
+            let consumed = old_input.len() - input.len();
+            loc.advance(&old_input[..consumed]);
+        }
+        tokens.reverse();
+        Ok(Self { tokens })
+    }
+
+    pub(crate) fn next(&mut self) -> Token {
+        self.tokens.pop().unwrap_or(Token {
+            kind: TokenKind::Eof,
+            loc: Location::default(),
+        })
+    }
+
+    pub(crate) fn peek(&mut self) -> Token {
+        self.tokens.last().map(|t| t.clone()).unwrap_or(Token {
+            kind: TokenKind::Eof,
+            loc: Location::default(),
+        })
+    }
 }
 
+#[derive(Copy, Clone, Default, Debug)]
+pub(crate) struct Location {
+    pub(crate) column: usize,
+}
+
+impl Location {
+    fn advance(&mut self, text: &str) {
+        self.column += text.chars().count();
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Token {
+    loc: Location,
+    kind: TokenKind,
+}
+
+impl Token {
+    fn kind(&self) -> &TokenKind {
+        &self.kind
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum TokenKind {
     Colon,
     Eq,
@@ -143,9 +207,10 @@ enum TokenKind {
     FSlash,
     Semi,
     /// An ident that falls inside a `{}` pair.
-    Escaped(String),
+    Escaped(Vec<char>),
     /// An identifier in the connection string.
     Atom(char),
+    Eof,
 }
 
 #[cfg(test)]
