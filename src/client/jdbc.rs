@@ -128,12 +128,35 @@ impl FromStr for JdbcConnectionString {
             port = Some(s.parse()?);
         }
 
+        // ```
+        // jdbc:sqlserver://[serverName[\instanceName][:portNumber]][;property=value[;property=value]]
+        //                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        // ```
+        // NOTE: we're choosing to only keep the last value per key rather than support multiple inserts per key.
+        let mut properties = HashMap::new();
+        while let TokenKind::Semi = lexer.peek().kind() {
+            let _ = lexer.next();
+            let err = "Invalid property key";
+            let key = read_ident(&mut lexer, err)?;
+
+            let err = "Property pairs must be joined by a `=`";
+            ensure!(lexer.next().kind() == &TokenKind::Eq, err);
+
+            let err = "Invalid property value";
+            let value = read_ident(&mut lexer, err)?;
+
+            properties.insert(key, value);
+        }
+
+        let token = lexer.next();
+        ensure!(token.kind() == &TokenKind::Eof, "Invalid JDBC token");
+
         Ok(Self {
             sub_protocol: "jdbc:sqlserver",
             server_name,
             instance_name,
             port,
-            properties: HashMap::new(),
+            properties,
         })
     }
 }
@@ -318,6 +341,35 @@ mod test {
         assert_eq!(conn.server_name(), Some("server"));
         assert_eq!(conn.instance_name(), Some("instance"));
         assert_eq!(conn.port(), Some(80));
+        Ok(())
+    }
+
+    #[test]
+    fn parse_properties() -> crate::Result<()> {
+        let conn: JdbcConnectionString =
+            r#"jdbc:sqlserver://server\instance:80;key=value;foo=bar"#.parse()?;
+        assert_eq!(conn.sub_protocol(), "jdbc:sqlserver");
+        assert_eq!(conn.server_name(), Some("server"));
+        assert_eq!(conn.instance_name(), Some("instance"));
+        assert_eq!(conn.port(), Some(80));
+
+        let kv = conn.properties();
+        assert_eq!(kv.get("foo"), Some(&"bar".to_string()));
+        assert_eq!(kv.get("key"), Some(&"value".to_string()));
+        Ok(())
+    }
+
+    #[test]
+    fn escaped_properties() -> crate::Result<()> {
+        let conn: JdbcConnectionString =
+            r#"jdbc:sqlserver://se{r}ver{;}\instance:80;key={va[]}lue"#.parse()?;
+        assert_eq!(conn.sub_protocol(), "jdbc:sqlserver");
+        assert_eq!(conn.server_name(), Some("se{r}ver{;}"));
+        assert_eq!(conn.instance_name(), Some("instance"));
+        assert_eq!(conn.port(), Some(80));
+
+        let kv = conn.properties();
+        assert_eq!(kv.get("key"), Some(&"{va[]}lue".to_string()));
         Ok(())
     }
 }
