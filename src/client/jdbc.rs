@@ -21,6 +21,11 @@ macro_rules! bail {
     ($msg:literal) => {
         return Err($crate::Error::Conversion($msg.into()));
     };
+
+    ($msg:expr) => {
+        return Err($crate::Error::Conversion($msg.into()));
+    };
+
     ($fmt:expr, $($arg:tt)*) => {
         return Err($crate::Error::Conversion(format!($fmt, $($arg)*).into()));
     };
@@ -85,24 +90,55 @@ impl FromStr for JdbcConnectionString {
         // ^^^^^^^^^^^^^^^^^
         // ```
         let err = "Invalid JDBC sub-protocol";
-        cmp_str(&mut lexer, "jdbc", err);
+        cmp_str(&mut lexer, "jdbc", err)?;
         ensure!(lexer.next().kind() == &TokenKind::Colon, err);
-        cmp_str(&mut lexer, "sqlserver");
+        cmp_str(&mut lexer, "sqlserver", err)?;
         ensure!(lexer.next().kind() == &TokenKind::Colon, err);
         ensure!(lexer.next().kind() == &TokenKind::FSlash, err);
         ensure!(lexer.next().kind() == &TokenKind::FSlash, err);
 
+        // ```
+        // jdbc:sqlserver://[serverName[\instanceName][:portNumber]][;property=value[;property=value]]
+        //                  ^^^^^^^^^^^
+        // ```
+        let mut server_name = None;
+        if matches!(lexer.peek().kind(), TokenKind::Atom(_) | TokenKind::Escaped(_)) {
+            server_name = Some(read_ident(&mut lexer, "Invalid server name")?);
+        }
+
+        // ```
+        // jdbc:sqlserver://[serverName[\instanceName][:portNumber]][;property=value[;property=value]]
+        //                             ^^^^^^^^^^^^^^^
+        // ```
+        let mut instance_name = None;
+        if matches!(lexer.peek().kind(), TokenKind::BSlash) {
+            let _ = lexer.next();
+            instance_name = Some(read_ident(&mut lexer, "Invalid instance name")?);
+        }
+
+        // ```
+        // jdbc:sqlserver://[serverName[\instanceName][:portNumber]][;property=value[;property=value]]
+        //                                            ^^^^^^^^^^^^^
+        // ```
+        let mut port = None;
+        if matches!(lexer.peek().kind(), TokenKind::Colon) {
+            let _ = lexer.next();
+            let err = "Invalid port";
+            let s = read_ident(&mut lexer, err)?;
+            port = Some(s.parse()?);
+        }
+
         Ok(Self {
             sub_protocol: "jdbc:sqlserver",
-            server_name: None,
-            instance_name: None,
-            port: None,
+            server_name,
+            instance_name,
+            port,
             properties: HashMap::new(),
         })
     }
 }
 
-fn cmp_str(lexer: &mut Lexer, s: &str, err_msg: &str) -> crate::Result<()> {
+fn cmp_str(lexer: &mut Lexer, s: &str, err_msg: &'static str) -> crate::Result<()> {
     for char in s.chars() {
         if let Token {
             kind: TokenKind::Atom(tchar),
@@ -115,6 +151,29 @@ fn cmp_str(lexer: &mut Lexer, s: &str, err_msg: &str) -> crate::Result<()> {
         }
     }
     Ok(())
+}
+
+fn read_ident(lexer: &mut Lexer, err_msg: &'static str) -> crate::Result<String> {
+    let mut output = String::new();
+    loop {
+        let token = lexer.next();
+        match token.kind() {
+            TokenKind::Escaped(seq) => {
+                output.push('{');
+                output.extend(seq);
+                output.push('}');
+            }
+            TokenKind::Atom(c) => output.push(*c),
+            _ => {
+                lexer.push(token);
+                break;
+            }
+        }
+    }
+    match output.len() {
+        0 => bail!(err_msg),
+        _ => Ok(output),
+    }
 }
 
 #[derive(Debug)]
@@ -138,6 +197,7 @@ impl Lexer {
                 ';' => TokenKind::Semi,
                 '{' => {
                     let mut buf = Vec::new();
+                    // Read alphanumeric ASCII including whitespace until we find a closing curly.
                     loop {
                         match chars.next() {
                             None => bail!("unclosed escape literal"),
@@ -161,6 +221,8 @@ impl Lexer {
         Ok(Self { tokens })
     }
 
+    /// Get the next token from the queue.
+    #[must_use]
     pub(crate) fn next(&mut self) -> Token {
         self.tokens.pop().unwrap_or(Token {
             kind: TokenKind::Eof,
@@ -168,6 +230,13 @@ impl Lexer {
         })
     }
 
+    /// Push a token back onto the queue.
+    pub(crate) fn push(&mut self, token: Token) {
+        self.tokens.push(token);
+    }
+
+    /// Peek at the next token in the queue.
+    #[must_use]
     pub(crate) fn peek(&mut self) -> Token {
         self.tokens.last().map(|t| t.clone()).unwrap_or(Token {
             kind: TokenKind::Eof,
@@ -199,6 +268,7 @@ impl Token {
     }
 }
 
+/// The kind of token we're encoding.
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum TokenKind {
     Colon,
@@ -221,6 +291,33 @@ mod test {
     fn parse_sub_protocol() -> crate::Result<()> {
         let conn: JdbcConnectionString = "jdbc:sqlserver://".parse()?;
         assert_eq!(conn.sub_protocol(), "jdbc:sqlserver");
+        Ok(())
+    }
+
+    #[test]
+    fn parse_server_name() -> crate::Result<()> {
+        let conn: JdbcConnectionString = r#"jdbc:sqlserver://server"#.parse()?;
+        assert_eq!(conn.sub_protocol(), "jdbc:sqlserver");
+        assert_eq!(conn.server_name(), Some("server"));
+        Ok(())
+    }
+
+    #[test]
+    fn parse_instance_name() -> crate::Result<()> {
+        let conn: JdbcConnectionString = r#"jdbc:sqlserver://server\instance"#.parse()?;
+        assert_eq!(conn.sub_protocol(), "jdbc:sqlserver");
+        assert_eq!(conn.server_name(), Some("server"));
+        assert_eq!(conn.instance_name(), Some("instance"));
+        Ok(())
+    }
+
+    #[test]
+    fn parse_port() -> crate::Result<()> {
+        let conn: JdbcConnectionString = r#"jdbc:sqlserver://server\instance:80"#.parse()?;
+        assert_eq!(conn.sub_protocol(), "jdbc:sqlserver");
+        assert_eq!(conn.server_name(), Some("server"));
+        assert_eq!(conn.instance_name(), Some("instance"));
+        assert_eq!(conn.port(), Some(80));
         Ok(())
     }
 }
