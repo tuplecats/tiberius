@@ -76,7 +76,7 @@ impl JdbcConnectionString {
     }
 }
 
-// NOTE(yosh): unfortunately we can't parse using `split(';')` because JDBC
+// NOTE(yosh): Unfortunately we can't parse using `split(';')` because JDBC
 // strings support escaping. This means that `{;}` is valid and we need to write
 // an actual LR parser.
 impl FromStr for JdbcConnectionString {
@@ -161,6 +161,7 @@ impl FromStr for JdbcConnectionString {
     }
 }
 
+/// Validate a sequence of `TokenKind::Atom` matches the content of a string.
 fn cmp_str(lexer: &mut Lexer, s: &str, err_msg: &'static str) -> crate::Result<()> {
     for char in s.chars() {
         if let Token {
@@ -176,6 +177,7 @@ fn cmp_str(lexer: &mut Lexer, s: &str, err_msg: &'static str) -> crate::Result<(
     Ok(())
 }
 
+/// Read sequences of `TokenKind::Atom` and `TokenKind::Escaped` into a String.
 fn read_ident(lexer: &mut Lexer, err_msg: &'static str) -> crate::Result<String> {
     let mut output = String::new();
     loop {
@@ -205,6 +207,7 @@ struct Lexer {
 }
 
 impl Lexer {
+    /// Parse a string into a list of tokens.
     pub(crate) fn tokenize(mut input: &str) -> crate::Result<Self> {
         let mut tokens = vec![];
         let mut loc = Location::default();
@@ -268,6 +271,7 @@ impl Lexer {
     }
 }
 
+/// Track the location of the Token inside the string.
 #[derive(Copy, Clone, Default, Debug)]
 pub(crate) struct Location {
     pub(crate) column: usize,
@@ -279,6 +283,7 @@ impl Location {
     }
 }
 
+/// A pair of `Location` and `TokenKind`.
 #[derive(Debug, Clone)]
 struct Token {
     loc: Location,
@@ -286,7 +291,8 @@ struct Token {
 }
 
 impl Token {
-    fn kind(&self) -> &TokenKind {
+    /// What kind of token is this?
+    pub(crate) fn kind(&self) -> &TokenKind {
         &self.kind
     }
 }
