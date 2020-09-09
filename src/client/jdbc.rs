@@ -378,4 +378,14 @@ mod test {
         assert_eq!(kv.get("key"), Some(&"{va[]}lue".to_string()));
         Ok(())
     }
+
+    #[test]
+    fn sub_protocol_error() -> crate::Result<()> {
+        let err = r#"jdbc:sqlboo://"#.parse::<JdbcConnectionString>().unwrap_err().to_string();
+        assert_eq!(
+            err.to_string(),
+            "Conversion error: Invalid JDBC sub-protocol"
+        );
+        Ok(())
+    }
 }
