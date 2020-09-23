@@ -42,9 +42,17 @@ where
     pub(crate) async fn flush_done(self) -> crate::Result<TokenDone> {
         let mut stream = self.try_unfold();
 
+        let mut routing = None;
+
         loop {
             match stream.try_next().await? {
-                Some(ReceivedToken::Done(token)) => return Ok(token),
+                Some(ReceivedToken::Done(token)) => match routing {
+                    Some(routing) => return Err(routing),
+                    None => return Ok(token),
+                },
+                Some(ReceivedToken::EnvChange(TokenEnvChange::Routing { host, port })) => {
+                    routing = Some(Error::Routing { host, port });
+                }
                 Some(_) => (),
                 None => return Err(crate::Error::Protocol("Never got DONE token.".into())),
             }
