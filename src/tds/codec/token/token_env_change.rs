@@ -84,6 +84,10 @@ pub enum TokenEnvChange {
     BeginTransaction(u64),
     CommitTransaction(u64),
     RollbackTransaction(u64),
+    Routing {
+        host: String,
+        port: u16,
+    },
 }
 
 impl fmt::Display for TokenEnvChange {
@@ -101,6 +105,11 @@ impl fmt::Display for TokenEnvChange {
             Self::BeginTransaction(_) => write!(f, "Begin transaction"),
             Self::CommitTransaction(_) => write!(f, "Commit transaction"),
             Self::RollbackTransaction(_) => write!(f, "Rollback transaction"),
+            Self::Routing { host, port } => write!(
+                f,
+                "Server requested routing to a new address: {}:{}",
+                host, port
+            ),
         }
     }
 }
@@ -163,6 +172,17 @@ impl TokenEnvChange {
                 src.read_u8().await?;
                 let desc = src.read_u64_le().await?;
                 TokenEnvChange::RollbackTransaction(desc)
+            }
+            EnvChangeTy::Routing => {
+                src.read_u16_le().await?; // routing data value length
+                src.read_u8().await?; // routing protocol, always 0 (tcp)
+
+                let port = src.read_u16_le().await?;
+
+                let len = src.read_u16_le().await?; // hostname string length
+                let host = read_varchar(src, len).await?;
+
+                TokenEnvChange::Routing { host, port }
             }
             ty => panic!("skipping env change type {:?}", ty),
         };

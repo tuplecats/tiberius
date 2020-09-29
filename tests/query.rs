@@ -69,6 +69,30 @@ where
 }
 
 #[test_on_runtimes]
+async fn transactions_300<S>(mut conn: tiberius::Client<S>) -> Result<()>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
+    for _ in 1..300 {
+
+        conn.simple_query("BEGIN TRAN").await?;
+
+        let row = conn
+            .query("SELECT @P1", &[&-4i32])
+            .await?
+            .into_row()
+            .await?
+            .unwrap();
+
+        assert_eq!(Some(-4i32), row.get(0));
+
+        conn.simple_query("COMMIT").await?;
+    }
+
+    Ok(())
+}
+
+#[test_on_runtimes]
 async fn multistatement_query_with_exec_proc<S>(mut conn: tiberius::Client<S>) -> Result<()>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send,
@@ -542,6 +566,87 @@ where
         .unwrap();
 
     assert_eq!(Some(4.20f64), row.get(0));
+
+    Ok(())
+}
+
+#[test_on_runtimes]
+async fn read_nullable_i16<S>(mut conn: tiberius::Client<S>) -> Result<()>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
+    let table = random_table().await;
+
+    conn.simple_query(format!("CREATE TABLE ##{} (a smallint null)", table))
+        .await?
+        .into_results()
+        .await?;
+
+    conn.execute(format!("INSERT INTO ##{} (a) values (null)", table), &[])
+        .await?;
+
+    let row = conn
+        .query(format!("SELECT a FROM ##{}", table), &[])
+        .await?
+        .into_row()
+        .await?
+        .unwrap();
+
+    assert_eq!(Option::<i16>::None, row.get(0));
+
+    Ok(())
+}
+
+#[test_on_runtimes]
+async fn read_nullable_i32<S>(mut conn: tiberius::Client<S>) -> Result<()>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
+    let table = random_table().await;
+
+    conn.simple_query(format!("CREATE TABLE ##{} (a int null)", table))
+        .await?
+        .into_results()
+        .await?;
+
+    conn.execute(format!("INSERT INTO ##{} (a) values (null)", table), &[])
+        .await?;
+
+    let row = conn
+        .query(format!("SELECT a FROM ##{}", table), &[])
+        .await?
+        .into_row()
+        .await?
+        .unwrap();
+
+    assert_eq!(Option::<i32>::None, row.get(0));
+
+    Ok(())
+}
+
+#[test_on_runtimes]
+async fn read_nullable_i64<S>(mut conn: tiberius::Client<S>) -> Result<()>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
+    let table = random_table().await;
+
+    conn.simple_query(format!("CREATE TABLE ##{} (a bigint null)", table))
+        .await?
+        .into_results()
+        .await?;
+
+    conn.execute(format!("INSERT INTO ##{} (a) values (null)", table), &[])
+        .await?;
+
+    let row = conn
+        .query(format!("SELECT a FROM ##{}", table), &[])
+        .await?
+        .into_row()
+        .await?
+        .unwrap();
+
+    assert_eq!(Option::<i64>::None, row.get(0));
 
     Ok(())
 }

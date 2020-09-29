@@ -9,7 +9,6 @@ pub(crate) struct Context {
     packet_id: u8,
     transaction_id: u64,
     last_meta: Option<Arc<TokenColMetaData>>,
-    #[cfg(windows)]
     spn: Option<String>,
 }
 
@@ -21,14 +20,13 @@ impl Context {
             packet_id: 0,
             transaction_id: 0,
             last_meta: None,
-            #[cfg(windows)]
             spn: None,
         }
     }
 
     pub fn next_packet_id(&mut self) -> u8 {
         let id = self.packet_id;
-        self.packet_id += 1;
+        self.packet_id = self.packet_id.wrapping_add(1);
         id
     }
 
@@ -60,12 +58,11 @@ impl Context {
         self.version
     }
 
-    #[cfg(windows)]
     pub fn set_spn(&mut self, host: impl AsRef<str>, port: u16) {
         self.spn = Some(format!("MSSQLSvc/{}:{}", host.as_ref(), port));
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, feature = "integrated-auth-gssapi"))]
     pub fn spn(&self) -> &str {
         self.spn.as_ref().map(|s| s.as_str()).unwrap_or("")
     }

@@ -40,6 +40,22 @@ pub enum Error {
     #[error("Error forming TLS connection: {}", _0)]
     /// An error in the TLS handshake.
     Tls(String),
+    #[cfg(any(feature = "integrated-auth-gssapi", doc))]
+    /// An error from the GSSAPI library.
+    #[error("GSSAPI Error: {}", _0)]
+    Gssapi(String),
+    #[error(
+        "Server requested a connection to an alternative address: `{}:{}`",
+        host,
+        port
+    )]
+    /// Server requested a connection to an alternative address.
+    Routing {
+        /// The requested hostname
+        host: String,
+        /// The requested port.
+        port: u16,
+    },
 }
 
 impl From<uuid::Error> for Error {
@@ -91,5 +107,12 @@ impl From<std::string::FromUtf8Error> for Error {
 impl From<std::string::FromUtf16Error> for Error {
     fn from(_err: std::string::FromUtf16Error) -> Error {
         Error::Utf16
+    }
+}
+
+#[cfg(feature = "integrated-auth-gssapi")]
+impl From<libgssapi::error::Error> for Error {
+    fn from(err: libgssapi::error::Error) -> Error {
+        Error::Gssapi(format!("{}", err))
     }
 }
