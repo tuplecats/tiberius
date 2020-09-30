@@ -146,7 +146,9 @@ where
             TokenEnvChange::BeginTransaction(desc) => {
                 self.conn.context_mut().set_transaction_id(desc);
             }
-            TokenEnvChange::CommitTransaction(_) | TokenEnvChange::RollbackTransaction(_) => {
+            TokenEnvChange::CommitTransaction(_)
+            | TokenEnvChange::RollbackTransaction(_)
+            | TokenEnvChange::DefectTransaction(_) => {
                 self.conn.context_mut().set_transaction_id(0);
             }
             _ => (),
