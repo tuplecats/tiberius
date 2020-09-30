@@ -170,6 +170,72 @@
 <span id="170">170</span>
 <span id="171">171</span>
 <span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">tds</span>::{<span class="ident">codec</span>::<span class="ident">read_varchar</span>, <span class="ident">lcid_to_encoding</span>, <span class="ident">sortid_to_encoding</span>},
@@ -204,6 +270,32 @@
         <span class="ident">UserName</span> <span class="op">=</span> <span class="number">19</span>,
         <span class="doccomment">/// below here: TDS v7.4</span>
         <span class="ident">Routing</span> <span class="op">=</span> <span class="number">20</span>,
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">EnvChangeTy</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="kw">match</span> <span class="self">self</span> {
+            <span class="ident">EnvChangeTy</span>::<span class="ident">Database</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Database&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">Language</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Language&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">CharacterSet</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;CharacterSet&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">PacketSize</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;PacketSize&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">UnicodeDataSortingLID</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;UnicodeDataSortingLID&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">UnicodeDataSortingCFL</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;UnicodeDataSortingCFL&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">SqlCollation</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;SqlCollation&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">BeginTransaction</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;BeginTransaction&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">CommitTransaction</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;CommitTransaction&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">RollbackTransaction</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;RollbackTransaction&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">EnlistDTCTransaction</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;EnlistDTCTransaction&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">DefectTransaction</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;DefectTransaction&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">RTLS</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;RTLS&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">PromoteTransaction</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;PromoteTransaction&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">TransactionManagerAddress</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;TransactionManagerAddress&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">TransactionEnded</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;TransactionEnded&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">ResetConnection</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;ResetConnection&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">UserName</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;UserName&quot;</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">Routing</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Routing&quot;</span>),
+        }
     }
 }
 
@@ -257,6 +349,13 @@
     <span class="ident">BeginTransaction</span>(<span class="ident">u64</span>),
     <span class="ident">CommitTransaction</span>(<span class="ident">u64</span>),
     <span class="ident">RollbackTransaction</span>(<span class="ident">u64</span>),
+    <span class="ident">DefectTransaction</span>(<span class="ident">u64</span>),
+    <span class="ident">Routing</span> {
+        <span class="ident">host</span>: <span class="ident">String</span>,
+        <span class="ident">port</span>: <span class="ident">u16</span>,
+    },
+    <span class="ident">ChangeMirror</span>(<span class="ident">String</span>),
+    <span class="ident">Ignored</span>(<span class="ident">EnvChangeTy</span>),
 }
 
 <span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">TokenEnvChange</span> {
@@ -274,6 +373,14 @@
             <span class="self">Self</span>::<span class="ident">BeginTransaction</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Begin transaction&quot;</span>),
             <span class="self">Self</span>::<span class="ident">CommitTransaction</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Commit transaction&quot;</span>),
             <span class="self">Self</span>::<span class="ident">RollbackTransaction</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Rollback transaction&quot;</span>),
+            <span class="self">Self</span>::<span class="ident">DefectTransaction</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Defect transaction&quot;</span>),
+            <span class="self">Self</span>::<span class="ident">Routing</span> { <span class="ident">host</span>, <span class="ident">port</span> } <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(
+                <span class="ident">f</span>,
+                <span class="string">&quot;Server requested routing to a new address: {}:{}&quot;</span>,
+                <span class="ident">host</span>, <span class="ident">port</span>
+            ),
+            <span class="self">Self</span>::<span class="ident">ChangeMirror</span>(<span class="kw-2">ref</span> <span class="ident">mirror</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Fallback mirror server: `{}`&quot;</span>, <span class="ident">mirror</span>),
+            <span class="self">Self</span>::<span class="ident">Ignored</span>(<span class="ident">ty</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Ignored env change: `{}`&quot;</span>, <span class="ident">ty</span>),
         }
     }
 }
@@ -322,7 +429,7 @@
                     <span class="ident">old</span>: <span class="ident">CollationInfo</span>::<span class="ident">new</span>(<span class="ident">old_value</span>.<span class="ident">as_slice</span>()),
                 }
             }
-            <span class="ident">EnvChangeTy</span>::<span class="ident">BeginTransaction</span> <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">EnvChangeTy</span>::<span class="ident">BeginTransaction</span> <span class="op">|</span> <span class="ident">EnvChangeTy</span>::<span class="ident">EnlistDTCTransaction</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="kw">let</span> <span class="ident">desc</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="ident">TokenEnvChange</span>::<span class="ident">BeginTransaction</span>(<span class="ident">desc</span>)
@@ -337,7 +444,32 @@
                 <span class="kw">let</span> <span class="ident">desc</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="ident">TokenEnvChange</span>::<span class="ident">RollbackTransaction</span>(<span class="ident">desc</span>)
             }
-            <span class="ident">ty</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;skipping env change type {:?}&quot;</span>, <span class="ident">ty</span>),
+            <span class="ident">EnvChangeTy</span>::<span class="ident">DefectTransaction</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">desc</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u64_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="ident">TokenEnvChange</span>::<span class="ident">DefectTransaction</span>(<span class="ident">desc</span>)
+            }
+            <span class="ident">EnvChangeTy</span>::<span class="ident">Routing</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// routing data value length</span>
+                <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// routing protocol, always 0 (tcp)</span>
+
+                <span class="kw">let</span> <span class="ident">port</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>; <span class="comment">// hostname string length</span>
+                <span class="kw">let</span> <span class="ident">host</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="comment">// ??? but needed...</span>
+                <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="ident">TokenEnvChange</span>::<span class="ident">Routing</span> { <span class="ident">host</span>, <span class="ident">port</span> }
+            }
+            <span class="ident">EnvChangeTy</span>::<span class="ident">RTLS</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">mirror_name</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+
+                <span class="ident">TokenEnvChange</span>::<span class="ident">ChangeMirror</span>(<span class="ident">mirror_name</span>)
+            }
+            <span class="ident">ty</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">TokenEnvChange</span>::<span class="ident">Ignored</span>(<span class="ident">ty</span>),
         };
 
         <span class="prelude-val">Ok</span>(<span class="ident">token</span>)
