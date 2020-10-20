@@ -103,10 +103,24 @@
 <span id="103">103</span>
 <span id="104">104</span>
 <span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! The XML containers</span>
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">codec</span>::<span class="ident">Encode</span>;
 <span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">BufMut</span>, <span class="ident">BytesMut</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">BorrowMut</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
 
 <span class="doccomment">/// Provides information of the location for the schema.</span>
@@ -195,16 +209,28 @@
 <span class="kw">impl</span> <span class="ident">Encode</span><span class="op">&lt;</span><span class="ident">BytesMut</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">XmlData</span> {
     <span class="kw">fn</span> <span class="ident">encode</span>(<span class="self">self</span>, <span class="ident">dst</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">BytesMut</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="number">0</span>);
-
         <span class="ident">dst</span>.<span class="ident">put_u64_le</span>(<span class="number">0xfffffffffffffffe</span> <span class="kw">as</span> <span class="ident">u64</span>);
-        <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="number">2</span> <span class="op">*</span> <span class="self">self</span>.<span class="ident">data</span>.<span class="ident">encode_utf16</span>().<span class="ident">count</span>() <span class="kw">as</span> <span class="ident">u32</span>);
 
-        <span class="kw">for</span> <span class="ident">chr</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">data</span>.<span class="ident">encode_utf16</span>() {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">length</span> <span class="op">=</span> <span class="number">0u32</span>;
+        <span class="kw">let</span> <span class="ident">len_pos</span> <span class="op">=</span> <span class="ident">dst</span>.<span class="ident">len</span>();
+
+        <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="ident">length</span>);
+
+        <span class="ident">ucs2</span>::<span class="ident">encode_with</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">data</span>, <span class="op">|</span><span class="ident">chr</span><span class="op">|</span> {
+            <span class="ident">length</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
             <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">chr</span>);
-        }
+            <span class="prelude-val">Ok</span>(())
+        })<span class="question-mark">?</span>;
 
         <span class="comment">// PLP_TERMINATOR</span>
         <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="number">0</span>);
+
+        <span class="kw">let</span> <span class="ident">dst</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="ident">dst</span>.<span class="ident">borrow_mut</span>();
+        <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> (<span class="ident">length</span> <span class="op">*</span> <span class="number">2</span>).<span class="ident">to_le_bytes</span>(); <span class="comment">// u32, four bytes</span>
+
+        <span class="kw">for</span> (<span class="ident">i</span>, <span class="ident">byte</span>) <span class="kw">in</span> <span class="ident">bytes</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+            <span class="ident">dst</span>[<span class="ident">len_pos</span> <span class="op">+</span> <span class="ident">i</span>] <span class="op">=</span> <span class="kw-2">*</span><span class="ident">byte</span>;
+        }
 
         <span class="prelude-val">Ok</span>(())
     }

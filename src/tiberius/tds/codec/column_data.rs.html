@@ -828,6 +828,30 @@
 <span id="828">828</span>
 <span id="829">829</span>
 <span id="830">830</span>
+<span id="831">831</span>
+<span id="832">832</span>
+<span id="833">833</span>
+<span id="834">834</span>
+<span id="835">835</span>
+<span id="836">836</span>
+<span id="837">837</span>
+<span id="838">838</span>
+<span id="839">839</span>
+<span id="840">840</span>
+<span id="841">841</span>
+<span id="842">842</span>
+<span id="843">843</span>
+<span id="844">844</span>
+<span id="845">845</span>
+<span id="846">846</span>
+<span id="847">847</span>
+<span id="848">848</span>
+<span id="849">849</span>
+<span id="850">850</span>
+<span id="851">851</span>
+<span id="852">852</span>
+<span id="853">853</span>
+<span id="854">854</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">read_varchar</span>, <span class="ident">Encode</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">Collation</span>, <span class="ident">DateTime</span>, <span class="ident">SmallDateTime</span>};
@@ -845,6 +869,7 @@
 <span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">BufMut</span>, <span class="ident">BytesMut</span>};
 <span class="kw">use</span> <span class="ident">encoding</span>::<span class="ident">DecoderTrap</span>;
 <span class="kw">use</span> <span class="ident">futures</span>::<span class="ident">io</span>::<span class="ident">AsyncReadExt</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">BorrowMut</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow</span>::<span class="ident">Cow</span>, <span class="ident">sync</span>::<span class="ident">Arc</span>};
 <span class="kw">use</span> <span class="ident">uuid</span>::<span class="ident">Uuid</span>;
 
@@ -1554,10 +1579,22 @@
                 <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="number">8000</span>);
                 <span class="ident">dst</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">5</span>][..]);
 
-                <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="number">2</span> <span class="op">*</span> <span class="ident">s</span>.<span class="ident">encode_utf16</span>().<span class="ident">count</span>() <span class="kw">as</span> <span class="ident">u16</span>);
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">length</span> <span class="op">=</span> <span class="number">0u16</span>;
+                <span class="kw">let</span> <span class="ident">len_pos</span> <span class="op">=</span> <span class="ident">dst</span>.<span class="ident">len</span>();
 
-                <span class="kw">for</span> <span class="ident">chr</span> <span class="kw">in</span> <span class="ident">s</span>.<span class="ident">encode_utf16</span>() {
+                <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">length</span>);
+
+                <span class="ident">ucs2</span>::<span class="ident">encode_with</span>(<span class="ident">s</span>, <span class="op">|</span><span class="ident">chr</span><span class="op">|</span> {
+                    <span class="ident">length</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
                     <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">chr</span>);
+                    <span class="prelude-val">Ok</span>(())
+                })<span class="question-mark">?</span>;
+
+                <span class="kw">let</span> <span class="ident">dst</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="ident">dst</span>.<span class="ident">borrow_mut</span>();
+                <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> (<span class="ident">length</span> <span class="op">*</span> <span class="number">2</span>).<span class="ident">to_le_bytes</span>(); <span class="comment">// u16, two bytes</span>
+
+                <span class="kw">for</span> (<span class="ident">i</span>, <span class="ident">byte</span>) <span class="kw">in</span> <span class="ident">bytes</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+                    <span class="ident">dst</span>[<span class="ident">len_pos</span> <span class="op">+</span> <span class="ident">i</span>] <span class="op">=</span> <span class="kw-2">*</span><span class="ident">byte</span>;
                 }
             }
             <span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">s</span>)) <span class="op">=</span><span class="op">&gt;</span> {
@@ -1571,15 +1608,26 @@
                 <span class="ident">dst</span>.<span class="ident">put_u64_le</span>(<span class="number">0xfffffffffffffffe</span> <span class="kw">as</span> <span class="ident">u64</span>);
 
                 <span class="comment">// Write the varchar length</span>
-                <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="number">2</span> <span class="op">*</span> <span class="ident">s</span>.<span class="ident">encode_utf16</span>().<span class="ident">count</span>() <span class="kw">as</span> <span class="ident">u32</span>);
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">length</span> <span class="op">=</span> <span class="number">0u32</span>;
+                <span class="kw">let</span> <span class="ident">len_pos</span> <span class="op">=</span> <span class="ident">dst</span>.<span class="ident">len</span>();
 
-                <span class="comment">// And the PLP data</span>
-                <span class="kw">for</span> <span class="ident">chr</span> <span class="kw">in</span> <span class="ident">s</span>.<span class="ident">encode_utf16</span>() {
+                <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="ident">length</span>);
+
+                <span class="ident">ucs2</span>::<span class="ident">encode_with</span>(<span class="ident">s</span>, <span class="op">|</span><span class="ident">chr</span><span class="op">|</span> {
+                    <span class="ident">length</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
                     <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">chr</span>);
-                }
+                    <span class="prelude-val">Ok</span>(())
+                })<span class="question-mark">?</span>;
 
                 <span class="comment">// PLP_TERMINATOR</span>
                 <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="number">0</span>);
+
+                <span class="kw">let</span> <span class="ident">dst</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="ident">dst</span>.<span class="ident">borrow_mut</span>();
+                <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> (<span class="ident">length</span> <span class="op">*</span> <span class="number">2</span>).<span class="ident">to_le_bytes</span>(); <span class="comment">// u32, four bytes</span>
+
+                <span class="kw">for</span> (<span class="ident">i</span>, <span class="ident">byte</span>) <span class="kw">in</span> <span class="ident">bytes</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+                    <span class="ident">dst</span>[<span class="ident">len_pos</span> <span class="op">+</span> <span class="ident">i</span>] <span class="op">=</span> <span class="kw-2">*</span><span class="ident">byte</span>;
+                }
             }
             <span class="ident">ColumnData</span>::<span class="ident">Binary</span>(<span class="prelude-val">Some</span>(<span class="ident">bytes</span>)) <span class="kw">if</span> <span class="ident">bytes</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="number">8000</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">VarLenType</span>::<span class="ident">BigVarBin</span> <span class="kw">as</span> <span class="ident">u8</span>);

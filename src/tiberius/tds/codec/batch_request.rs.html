@@ -31,6 +31,7 @@
 <span id="31">31</span>
 <span id="32">32</span>
 <span id="33">33</span>
+<span id="34">34</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">AllHeaderTy</span>, <span class="ident">Encode</span>, <span class="ident">ALL_HEADERS_LEN_TX</span>};
 <span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">BufMut</span>, <span class="ident">BytesMut</span>};
@@ -58,9 +59,10 @@
         <span class="ident">dst</span>.<span class="ident">put_u64_le</span>(<span class="self">self</span>.<span class="ident">transaction_id</span>);
         <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="number">1</span>);
 
-        <span class="kw">for</span> <span class="ident">c</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">queries</span>.<span class="ident">encode_utf16</span>() {
+        <span class="ident">ucs2</span>::<span class="ident">encode_with</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">queries</span>, <span class="op">|</span><span class="ident">c</span><span class="op">|</span> {
             <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">c</span>);
-        }
+            <span class="prelude-val">Ok</span>(())
+        })<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
