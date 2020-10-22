@@ -141,7 +141,6 @@
 <span id="141">141</span>
 <span id="142">142</span>
 <span id="143">143</span>
-<span id="144">144</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">AllHeaderTy</span>, <span class="ident">Encode</span>, <span class="ident">ALL_HEADERS_LEN_TX</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">ColumnData</span>, <span class="prelude-ty">Result</span>};
@@ -272,11 +271,10 @@
 
         <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="ident">length</span>);
 
-        <span class="ident">ucs2</span>::<span class="ident">encode_with</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">name</span>, <span class="op">|</span><span class="ident">codepoint</span><span class="op">|</span> {
+        <span class="kw">for</span> <span class="ident">codepoint</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">name</span>.<span class="ident">encode_utf16</span>() {
             <span class="ident">length</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
             <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">codepoint</span>);
-            <span class="prelude-val">Ok</span>(())
-        })<span class="question-mark">?</span>;
+        }
 
         <span class="ident">dst</span>.<span class="ident">put_u8</span>(<span class="self">self</span>.<span class="ident">flags</span>.<span class="ident">bits</span>());
         <span class="self">self</span>.<span class="ident">value</span>.<span class="ident">encode</span>(<span class="ident">dst</span>)<span class="question-mark">?</span>;

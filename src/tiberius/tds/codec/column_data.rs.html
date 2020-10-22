@@ -850,8 +850,6 @@
 <span id="850">850</span>
 <span id="851">851</span>
 <span id="852">852</span>
-<span id="853">853</span>
-<span id="854">854</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">read_varchar</span>, <span class="ident">Encode</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">Collation</span>, <span class="ident">DateTime</span>, <span class="ident">SmallDateTime</span>};
@@ -1584,11 +1582,10 @@
 
                 <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">length</span>);
 
-                <span class="ident">ucs2</span>::<span class="ident">encode_with</span>(<span class="ident">s</span>, <span class="op">|</span><span class="ident">chr</span><span class="op">|</span> {
+                <span class="kw">for</span> <span class="ident">chr</span> <span class="kw">in</span> <span class="ident">s</span>.<span class="ident">encode_utf16</span>() {
                     <span class="ident">length</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
                     <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">chr</span>);
-                    <span class="prelude-val">Ok</span>(())
-                })<span class="question-mark">?</span>;
+                }
 
                 <span class="kw">let</span> <span class="ident">dst</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="ident">dst</span>.<span class="ident">borrow_mut</span>();
                 <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> (<span class="ident">length</span> <span class="op">*</span> <span class="number">2</span>).<span class="ident">to_le_bytes</span>(); <span class="comment">// u16, two bytes</span>
@@ -1613,11 +1610,10 @@
 
                 <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="ident">length</span>);
 
-                <span class="ident">ucs2</span>::<span class="ident">encode_with</span>(<span class="ident">s</span>, <span class="op">|</span><span class="ident">chr</span><span class="op">|</span> {
+                <span class="kw">for</span> <span class="ident">chr</span> <span class="kw">in</span> <span class="ident">s</span>.<span class="ident">encode_utf16</span>() {
                     <span class="ident">length</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
                     <span class="ident">dst</span>.<span class="ident">put_u16_le</span>(<span class="ident">chr</span>);
-                    <span class="prelude-val">Ok</span>(())
-                })<span class="question-mark">?</span>;
+                }
 
                 <span class="comment">// PLP_TERMINATOR</span>
                 <span class="ident">dst</span>.<span class="ident">put_u32_le</span>(<span class="number">0</span>);
