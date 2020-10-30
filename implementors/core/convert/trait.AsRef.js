@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["tiberius"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html\" title=\"trait core::convert::AsRef\">AsRef</a>&lt;<a class=\"primitive\" href=\"https://doc.rust-lang.org/nightly/std/primitive.str.html\">str</a>&gt; for <a class=\"struct\" href=\"tiberius/xml/struct.XmlData.html\" title=\"struct tiberius::xml::XmlData\">XmlData</a>","synthetic":false,"types":["tiberius::tds::xml::XmlData"]}];
+implementors["tiberius"] = [{"text":"impl AsRef&lt;str&gt; for XmlData","synthetic":false,"types":[]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
