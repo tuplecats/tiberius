@@ -172,7 +172,6 @@
 <span id="169">169</span>
 <span id="170">170</span>
 <span id="171">171</span>
-<span id="172">172</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">codec</span>::<span class="ident">DoneStatus</span>, <span class="ident">stream</span>::<span class="ident">ReceivedToken</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">row</span>::<span class="ident">ColumnType</span>, <span class="ident">Column</span>, <span class="ident">Row</span>};
@@ -242,17 +241,16 @@
 
                     <span class="kw">return</span> <span class="prelude-val">Ok</span>(());
                 }
-                <span class="prelude-val">Some</span>(<span class="ident">ReceivedToken</span>::<span class="ident">DoneInProc</span>(<span class="kw">_</span>)) <span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">ReceivedToken</span>::<span class="ident">DoneProc</span>(<span class="kw">_</span>)) <span class="op">=</span><span class="op">&gt;</span> {
-                    <span class="kw">return</span> <span class="prelude-val">Ok</span>(());
-                }
-                <span class="prelude-val">Some</span>(<span class="ident">ReceivedToken</span>::<span class="ident">Done</span>(<span class="ident">done</span>)) <span class="kw">if</span> <span class="ident">done</span>.<span class="ident">has_more</span>() <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(()),
-                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
-                    <span class="kw">if</span> <span class="self">self</span>.<span class="ident">columns</span>().<span class="ident">is_none</span>() {
+                <span class="prelude-val">Some</span>(<span class="ident">ReceivedToken</span>::<span class="ident">DoneInProc</span>(<span class="ident">done</span>))
+                <span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">ReceivedToken</span>::<span class="ident">DoneProc</span>(<span class="ident">done</span>))
+                <span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">ReceivedToken</span>::<span class="ident">Done</span>(<span class="ident">done</span>)) <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="kw">if</span> <span class="op">!</span><span class="ident">done</span>.<span class="ident">has_more</span>() {
                         <span class="self">self</span>.<span class="ident">state</span> <span class="op">=</span> <span class="ident">QueryStreamState</span>::<span class="ident">Done</span>;
                     }
 
                     <span class="kw">return</span> <span class="prelude-val">Ok</span>(());
                 }
+                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(()),
             }
         }
     }
