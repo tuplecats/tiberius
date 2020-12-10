@@ -191,17 +191,9 @@
 <span id="188">188</span>
 <span id="189">189</span>
 <span id="190">190</span>
-<span id="191">191</span>
-<span id="192">192</span>
-<span id="193">193</span>
-<span id="194">194</span>
-<span id="195">195</span>
-<span id="196">196</span>
-<span id="197">197</span>
-<span id="198">198</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">tds</span>::<span class="ident">codec</span>::{<span class="ident">read_varchar</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>},
+    <span class="ident">tds</span>::<span class="ident">codec</span>::{<span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>},
     <span class="ident">ColumnData</span>, <span class="ident">SqlReadBytes</span>,
 };
 <span class="kw">use</span> <span class="ident">bitflags</span>::<span class="ident">bitflags</span>;
@@ -335,14 +327,9 @@
         <span class="kw">if</span> <span class="ident">column_count</span> <span class="op">&gt;</span> <span class="number">0</span> <span class="op">&amp;&amp;</span> <span class="ident">column_count</span> <span class="op">&lt;</span> <span class="number">0xffff</span> {
             <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">column_count</span> {
                 <span class="kw">let</span> <span class="ident">base</span> <span class="op">=</span> <span class="ident">BaseMetaDataColumn</span>::<span class="ident">decode</span>(<span class="ident">src</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">col_name_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="ident">await</span><span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">col_name</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_b_varchar</span>().<span class="ident">await</span><span class="question-mark">?</span>;
 
-                <span class="kw">let</span> <span class="ident">meta</span> <span class="op">=</span> <span class="ident">MetaDataColumn</span> {
-                    <span class="ident">base</span>,
-                    <span class="ident">col_name</span>: <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">col_name_len</span>).<span class="ident">await</span><span class="question-mark">?</span>,
-                };
-
-                <span class="ident">columns</span>.<span class="ident">push</span>(<span class="ident">meta</span>);
+                <span class="ident">columns</span>.<span class="ident">push</span>(<span class="ident">MetaDataColumn</span> { <span class="ident">base</span>, <span class="ident">col_name</span> });
             }
         }
 
@@ -370,8 +357,7 @@
 
                 <span class="comment">// table name</span>
                 <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">num_of_parts</span> {
-                    <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="ident">await</span><span class="question-mark">?</span>;
-                    <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="ident">await</span><span class="question-mark">?</span>;
+                    <span class="ident">src</span>.<span class="ident">read_us_varchar</span>().<span class="ident">await</span><span class="question-mark">?</span>;
                 }
             }
             <span class="ident">TypeInfo</span>::<span class="ident">VarLenSized</span>(<span class="ident">VarLenType</span>::<span class="ident">NText</span>, <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
@@ -379,8 +365,7 @@
 
                 <span class="comment">// table name</span>
                 <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">num_of_parts</span> {
-                    <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="ident">await</span><span class="question-mark">?</span>;
-                    <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="ident">await</span><span class="question-mark">?</span>;
+                    <span class="ident">src</span>.<span class="ident">read_us_varchar</span>().<span class="ident">await</span><span class="question-mark">?</span>;
                 }
             }
             <span class="ident">TypeInfo</span>::<span class="ident">VarLenSized</span>(<span class="ident">VarLenType</span>::<span class="ident">Image</span>, <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
@@ -388,8 +373,7 @@
 
                 <span class="comment">// table name</span>
                 <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">num_of_parts</span> {
-                    <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="ident">await</span><span class="question-mark">?</span>;
-                    <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>).<span class="ident">await</span><span class="question-mark">?</span>;
+                    <span class="ident">src</span>.<span class="ident">read_us_varchar</span>().<span class="ident">await</span><span class="question-mark">?</span>;
                 }
             }
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> (),

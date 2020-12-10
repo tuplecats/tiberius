@@ -40,12 +40,8 @@
 <span id="37">37</span>
 <span id="38">38</span>
 <span id="39">39</span>
-<span id="40">40</span>
-<span id="41">41</span>
-<span id="42">42</span>
-<span id="43">43</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">read_varchar</span>, <span class="ident">Error</span>, <span class="ident">FeatureLevel</span>, <span class="ident">SqlReadBytes</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Error</span>, <span class="ident">FeatureLevel</span>, <span class="ident">SqlReadBytes</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">convert</span>::<span class="ident">TryFrom</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
@@ -73,11 +69,7 @@
         <span class="kw">let</span> <span class="ident">tds_version</span> <span class="op">=</span> <span class="ident">FeatureLevel</span>::<span class="ident">try_from</span>(<span class="ident">src</span>.<span class="ident">read_u32</span>().<span class="ident">await</span><span class="question-mark">?</span>)
             .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">Error</span>::<span class="ident">Protocol</span>(<span class="string">&quot;Login ACK: Invalid TDS version&quot;</span>.<span class="ident">into</span>()))<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">prog_name</span> <span class="op">=</span> {
-            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="ident">await</span><span class="question-mark">?</span>;
-            <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">len</span>).<span class="ident">await</span><span class="question-mark">?</span>
-        };
-
+        <span class="kw">let</span> <span class="ident">prog_name</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_b_varchar</span>().<span class="ident">await</span><span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="ident">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="ident">TokenLoginAck</span> {

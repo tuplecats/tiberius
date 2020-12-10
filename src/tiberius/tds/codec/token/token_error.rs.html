@@ -104,18 +104,8 @@
 <span id="101">101</span>
 <span id="102">102</span>
 <span id="103">103</span>
-<span id="104">104</span>
-<span id="105">105</span>
-<span id="106">106</span>
-<span id="107">107</span>
-<span id="108">108</span>
-<span id="109">109</span>
-<span id="110">110</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">tds</span>::<span class="ident">codec</span>::{<span class="ident">read_varchar</span>, <span class="ident">FeatureLevel</span>},
-    <span class="ident">SqlReadBytes</span>,
-};
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">tds</span>::<span class="ident">codec</span>::<span class="ident">FeatureLevel</span>, <span class="ident">SqlReadBytes</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">thiserror</span>::<span class="ident">Error</span>)]</span>
@@ -140,18 +130,14 @@
         <span class="ident">R</span>: <span class="ident">SqlReadBytes</span> <span class="op">+</span> <span class="ident">Unpin</span>,
     {
         <span class="kw">let</span> <span class="ident">_length</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="ident">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span>;
+
         <span class="kw">let</span> <span class="ident">code</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="ident">await</span><span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="ident">await</span><span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">class</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="ident">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">message_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">message_len</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-
-        <span class="kw">let</span> <span class="ident">server_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">server</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">server_len</span>).<span class="ident">await</span><span class="question-mark">?</span>;
-
-        <span class="kw">let</span> <span class="ident">procedure_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u8</span>().<span class="ident">await</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">procedure</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">procedure_len</span>).<span class="ident">await</span><span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_us_varchar</span>().<span class="ident">await</span><span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">server</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_b_varchar</span>().<span class="ident">await</span><span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">procedure</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_b_varchar</span>().<span class="ident">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="ident">line</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">src</span>.<span class="ident">context</span>().<span class="ident">version</span>() <span class="op">&gt;</span> <span class="ident">FeatureLevel</span>::<span class="ident">SqlServer2005</span> {
             <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="ident">await</span><span class="question-mark">?</span>

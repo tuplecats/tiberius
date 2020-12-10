@@ -856,8 +856,14 @@
 <span id="853">853</span>
 <span id="854">854</span>
 <span id="855">855</span>
+<span id="856">856</span>
+<span id="857">857</span>
+<span id="858">858</span>
+<span id="859">859</span>
+<span id="860">860</span>
+<span id="861">861</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">read_varchar</span>, <span class="ident">Encode</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>};
+<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">Encode</span>, <span class="ident">FixedLenType</span>, <span class="ident">TypeInfo</span>, <span class="ident">VarLenType</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">Collation</span>, <span class="ident">DateTime</span>, <span class="ident">SmallDateTime</span>};
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;tds73&quot;</span>)]</span>
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">Date</span>, <span class="ident">DateTime2</span>, <span class="ident">DateTimeOffset</span>, <span class="ident">Time</span>};
@@ -1339,8 +1345,14 @@
             <span class="ident">src</span>.<span class="ident">read_i32_le</span>().<span class="ident">await</span><span class="question-mark">?</span>; <span class="comment">// days</span>
             <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="ident">await</span><span class="question-mark">?</span>; <span class="comment">// second fractions</span>
 
-            <span class="kw">let</span> <span class="ident">text_len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="ident">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">/</span> <span class="number">2</span>;
-            <span class="kw">let</span> <span class="ident">text</span> <span class="op">=</span> <span class="ident">read_varchar</span>(<span class="ident">src</span>, <span class="ident">text_len</span>).<span class="ident">await</span><span class="question-mark">?</span>;
+            <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u32_le</span>().<span class="ident">await</span><span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">/</span> <span class="number">2</span>;
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="number">0u16</span>; <span class="ident">len</span>];
+
+            <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">len</span> {
+                <span class="ident">buf</span>[<span class="ident">i</span>] <span class="op">=</span> <span class="ident">src</span>.<span class="ident">read_u16_le</span>().<span class="ident">await</span><span class="question-mark">?</span>;
+            }
+
+            <span class="kw">let</span> <span class="ident">text</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">from_utf16</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>[..])<span class="question-mark">?</span>;
 
             <span class="prelude-val">Ok</span>(<span class="ident">ColumnData</span>::<span class="ident">String</span>(<span class="prelude-val">Some</span>(<span class="ident">text</span>.<span class="ident">into</span>())))
         }
