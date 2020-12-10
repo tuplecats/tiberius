@@ -281,6 +281,7 @@
 <span id="278">278</span>
 <span id="279">279</span>
 <span id="280">280</span>
+<span id="281">281</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">mod</span> <span class="ident">ado_net</span>;
 <span class="kw">mod</span> <span class="ident">jdbc</span>;
@@ -524,6 +525,7 @@
         <span class="self">self</span>.<span class="ident">dict</span>()
             .<span class="ident">get</span>(<span class="string">&quot;database&quot;</span>)
             .<span class="ident">or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">dict</span>().<span class="ident">get</span>(<span class="string">&quot;initial catalog&quot;</span>))
+            .<span class="ident">or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">dict</span>().<span class="ident">get</span>(<span class="string">&quot;databasename&quot;</span>))
             .<span class="ident">map</span>(<span class="op">|</span><span class="ident">db</span><span class="op">|</span> <span class="ident">db</span>.<span class="ident">to_string</span>())
     }
 

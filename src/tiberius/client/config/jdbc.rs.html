@@ -324,6 +324,16 @@
 <span id="321">321</span>
 <span id="322">322</span>
 <span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">ConfigString</span>, <span class="ident">ServerDefinition</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">error</span>::<span class="ident">Error</span>;
@@ -420,6 +430,16 @@
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">database_parsing</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;jdbc:sqlserver://myserver.com:4200;database=Foo&quot;</span>;
+        <span class="kw">let</span> <span class="ident">jdbc</span>: <span class="ident">JdbcConfig</span> <span class="op">=</span> <span class="ident">test_str</span>.<span class="ident">parse</span>()<span class="question-mark">?</span>;
+
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="prelude-val">Some</span>(<span class="string">&quot;Foo&quot;</span>.<span class="ident">to_string</span>()), <span class="ident">jdbc</span>.<span class="ident">database</span>());
+
+        <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;jdbc:sqlserver://myserver.com:4200;databaseName=Foo&quot;</span>;
+        <span class="kw">let</span> <span class="ident">jdbc</span>: <span class="ident">JdbcConfig</span> <span class="op">=</span> <span class="ident">test_str</span>.<span class="ident">parse</span>()<span class="question-mark">?</span>;
+
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="prelude-val">Some</span>(<span class="string">&quot;Foo&quot;</span>.<span class="ident">to_string</span>()), <span class="ident">jdbc</span>.<span class="ident">database</span>());
+
+        <span class="kw">let</span> <span class="ident">test_str</span> <span class="op">=</span> <span class="string">&quot;jdbc:sqlserver://myserver.com:4200;Initial Catalog=Foo&quot;</span>;
         <span class="kw">let</span> <span class="ident">jdbc</span>: <span class="ident">JdbcConfig</span> <span class="op">=</span> <span class="ident">test_str</span>.<span class="ident">parse</span>()<span class="question-mark">?</span>;
 
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="prelude-val">Some</span>(<span class="string">&quot;Foo&quot;</span>.<span class="ident">to_string</span>()), <span class="ident">jdbc</span>.<span class="ident">database</span>());
