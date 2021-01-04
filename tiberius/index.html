@@ -62,7 +62,7 @@ needs to be wrapped in Tokio's <code>Compat</code> module.</p>
 <div class="example-wrap"><pre class="rust rust-example-rendered">
 <span class="kw">use</span> <span class="ident">tiberius</span>::{<span class="ident">Client</span>, <span class="ident">Config</span>, <span class="ident">AuthMethod</span>};
 <span class="kw">use</span> <span class="ident">tokio</span>::<span class="ident">net</span>::<span class="ident">TcpStream</span>;
-<span class="kw">use</span> <span class="ident">tokio_util</span>::<span class="ident">compat</span>::<span class="ident">Tokio02AsyncWriteCompatExt</span>;
+<span class="kw">use</span> <span class="ident">tokio_util</span>::<span class="ident">compat</span>::<span class="ident">TokioAsyncWriteCompatExt</span>;
 
 <span class="attribute">#[<span class="ident">tokio</span>::<span class="ident">main</span>]</span>
 <span class="ident">async</span> <span class="kw">fn</span> <span class="ident">main</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">anyhow</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
@@ -76,7 +76,7 @@ needs to be wrapped in Tokio's <code>Compat</code> module.</p>
     <span class="ident">tcp</span>.<span class="ident">set_nodelay</span>(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 
     <span class="comment">// To be able to use Tokio&#39;s tcp, we&#39;re using the `compat_write` from</span>
-    <span class="comment">// the `Tokio02AsyncWriteCompatExt` to get a stream compatible with the</span>
+    <span class="comment">// the `TokioAsyncWriteCompatExt` to get a stream compatible with the</span>
     <span class="comment">// traits from the `futures` crate.</span>
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">Client</span>::<span class="ident">connect</span>(<span class="ident">config</span>, <span class="ident">tcp</span>.<span class="ident">compat_write</span>()).<span class="ident">await</span><span class="question-mark">?</span>;
 
