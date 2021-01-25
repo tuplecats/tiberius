@@ -8,7 +8,6 @@ use crate::EncryptionLevel;
 use ado_net::*;
 use jdbc::*;
 
-#[derive(Clone, Debug)]
 /// The `Config` struct contains all configuration information
 /// required for connecting to the database with a [`Client`]. It also provides
 /// the server address when connecting to a `TcpStream` via the
@@ -21,14 +20,22 @@ use jdbc::*;
 /// [ADO.NET connection string]: https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/connection-strings
 /// [`from_ado_string`]: struct.Config.html#method.from_ado_string
 /// [`get_addr`]: struct.Config.html#method.get_addr
+#[derive(Clone, Debug)]
 pub struct Config {
-    pub(crate) host: Option<String>,
-    pub(crate) port: Option<u16>,
-    pub(crate) database: Option<String>,
-    pub(crate) instance_name: Option<String>,
-    pub(crate) encryption: EncryptionLevel,
-    pub(crate) trust_cert: bool,
-    pub(crate) auth: AuthMethod,
+    /// Hostname of the server, if set.
+    pub host: Option<String>,
+    /// The server port, if set.
+    pub port: Option<u16>,
+    /// The database name, if set.
+    pub database: Option<String>,
+    /// The instance name, if set.
+    pub instance_name: Option<String>,
+    /// The connection encryption level.
+    pub encryption: EncryptionLevel,
+    /// If set, allows invalid TLS certificates.
+    pub trust_cert: bool,
+    /// Authentication method to the server.
+    pub auth: AuthMethod,
 }
 
 impl Default for Config {
