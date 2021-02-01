@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["tiberius"] = [{"text":"impl&lt;'a&gt; Stream for QueryResult&lt;'a&gt;","synthetic":false,"types":[]}];
+implementors["tiberius"] = [{"text":"impl&lt;'a&gt; Stream for <a class=\"struct\" href=\"tiberius/struct.QueryResult.html\" title=\"struct tiberius::QueryResult\">QueryResult</a>&lt;'a&gt;","synthetic":false,"types":["tiberius::result::QueryResult"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
