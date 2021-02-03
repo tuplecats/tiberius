@@ -276,6 +276,7 @@
 <span id="273">273</span>
 <span id="274">274</span>
 <span id="275">275</span>
+<span id="276">276</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Encode</span>;
 <span class="kw">use</span> <span class="ident">bitflags</span>::<span class="ident">bitflags</span>;
@@ -372,6 +373,7 @@
 }
 
 <span class="doccomment">/// the login packet</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LoginMessage</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="doccomment">/// the highest TDS version the client supports</span>
     <span class="kw">pub</span> <span class="ident">tds_version</span>: <span class="ident">FeatureLevel</span>,

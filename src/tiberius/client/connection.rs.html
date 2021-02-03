@@ -485,6 +485,14 @@
 <span id="482">482</span>
 <span id="483">483</span>
 <span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::{
@@ -503,11 +511,11 @@
 };
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">any</span>(<span class="ident">target_os</span> <span class="op">=</span> <span class="string">&quot;macos&quot;</span>, <span class="ident">target_os</span> <span class="op">=</span> <span class="string">&quot;ios&quot;</span>)))]</span>
 <span class="kw">use</span> <span class="ident">async_native_tls</span>::<span class="ident">TlsConnector</span>;
+<span class="kw">use</span> <span class="ident">asynchronous_codec</span>::<span class="ident">Framed</span>;
 <span class="kw">use</span> <span class="ident">bytes</span>::<span class="ident">BytesMut</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">windows</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;integrated-auth-gssapi&quot;</span>))]</span>
 <span class="kw">use</span> <span class="ident">codec</span>::<span class="ident">TokenSSPI</span>;
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">ready</span>, <span class="ident">AsyncRead</span>, <span class="ident">AsyncWrite</span>, <span class="ident">SinkExt</span>, <span class="ident">Stream</span>, <span class="ident">TryStream</span>, <span class="ident">TryStreamExt</span>};
-<span class="kw">use</span> <span class="ident">asynchronous_codec</span>::<span class="ident">Framed</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;integrated-auth-gssapi&quot;</span>)]</span>
 <span class="kw">use</span> <span class="ident">libgssapi</span>::{
     <span class="ident">context</span>::{<span class="ident">ClientCtx</span>, <span class="ident">CtxFlags</span>},
@@ -535,7 +543,10 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// [`Client`]: struct.Encode.html</span>
 <span class="doccomment">/// [`Packet`]: ../protocol/codec/struct.Packet.html</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">Connection</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span> {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">Connection</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span>,
+{
     <span class="ident">transport</span>: <span class="ident">Framed</span><span class="op">&lt;</span><span class="ident">MaybeTlsStream</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>, <span class="ident">PacketCodec</span><span class="op">&gt;</span>,
     <span class="ident">flushed</span>: <span class="ident">bool</span>,
     <span class="ident">context</span>: <span class="ident">Context</span>,
@@ -579,7 +590,7 @@
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">connection</span> <span class="op">=</span> <span class="ident">connection</span>
-            .<span class="ident">login</span>(<span class="ident">config</span>.<span class="ident">auth</span>, <span class="ident">encryption</span>, <span class="ident">config</span>.<span class="ident">database</span>)
+            .<span class="ident">login</span>(<span class="ident">config</span>.<span class="ident">auth</span>, <span class="ident">encryption</span>, <span class="ident">config</span>.<span class="ident">database</span>, <span class="ident">config</span>.<span class="ident">host</span>)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="ident">connection</span>.<span class="ident">flush_done</span>().<span class="kw">await</span><span class="question-mark">?</span>;
@@ -717,11 +728,16 @@
         <span class="ident">auth</span>: <span class="ident">AuthMethod</span>,
         <span class="ident">encryption</span>: <span class="ident">EncryptionLevel</span>,
         <span class="ident">db</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+        <span class="ident">server_name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     ) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">LoginMessage</span>::<span class="ident">new</span>();
 
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">db</span>) <span class="op">=</span> <span class="ident">db</span> {
             <span class="ident">msg</span>.<span class="ident">db_name</span> <span class="op">=</span> <span class="ident">db</span>.<span class="ident">into</span>();
+        }
+
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">server_name</span>) <span class="op">=</span> <span class="ident">server_name</span> {
+            <span class="ident">msg</span>.<span class="ident">server_name</span> <span class="op">=</span> <span class="ident">server_name</span>.<span class="ident">into</span>();
         }
 
         <span class="kw">match</span> <span class="ident">auth</span> {
