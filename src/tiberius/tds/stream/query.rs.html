@@ -173,7 +173,7 @@
 <span id="170">170</span>
 <span id="171">171</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::{<span class="ident">codec</span>::<span class="ident">DoneStatus</span>, <span class="ident">stream</span>::<span class="ident">ReceivedToken</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">tds</span>::<span class="ident">stream</span>::<span class="ident">ReceivedToken</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">row</span>::<span class="ident">ColumnType</span>, <span class="ident">Column</span>, <span class="ident">Row</span>};
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">ready</span>, <span class="ident">stream</span>::<span class="ident">BoxStream</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{
@@ -318,7 +318,7 @@
                 <span class="ident">ReceivedToken</span>::<span class="ident">Done</span>(<span class="kw-2">ref</span> <span class="ident">done</span>)
                 <span class="op">|</span> <span class="ident">ReceivedToken</span>::<span class="ident">DoneProc</span>(<span class="kw-2">ref</span> <span class="ident">done</span>)
                 <span class="op">|</span> <span class="ident">ReceivedToken</span>::<span class="ident">DoneInProc</span>(<span class="kw-2">ref</span> <span class="ident">done</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                    <span class="kw">if</span> <span class="op">!</span><span class="ident">done</span>.<span class="ident">status</span>.<span class="ident">contains</span>(<span class="ident">DoneStatus</span>::<span class="ident">MORE</span>) {
+                    <span class="kw">if</span> <span class="op">!</span><span class="ident">done</span>.<span class="ident">has_more</span>() {
                         <span class="ident">this</span>.<span class="ident">state</span> <span class="op">=</span> <span class="ident">QueryStreamState</span>::<span class="ident">Done</span>;
                     } <span class="kw">else</span> {
                         <span class="comment">// Justification here: if there are no columns set this is because</span>

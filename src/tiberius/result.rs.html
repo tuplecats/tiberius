@@ -295,15 +295,10 @@
 <span id="292">292</span>
 <span id="293">293</span>
 <span id="294">294</span>
-<span id="295">295</span>
-<span id="296">296</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">client</span>::<span class="ident">Connection</span>,
-    <span class="ident">tds</span>::{
-        <span class="ident">codec</span>::<span class="ident">DoneStatus</span>,
-        <span class="ident">stream</span>::{<span class="ident">QueryStream</span>, <span class="ident">QueryStreamState</span>, <span class="ident">ReceivedToken</span>, <span class="ident">TokenStream</span>},
-    },
+    <span class="ident">tds</span>::<span class="ident">stream</span>::{<span class="ident">QueryStream</span>, <span class="ident">QueryStreamState</span>, <span class="ident">ReceivedToken</span>, <span class="ident">TokenStream</span>},
     <span class="ident">Column</span>, <span class="ident">Row</span>,
 };
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">stream</span>::<span class="ident">BoxStream</span>, <span class="ident">AsyncRead</span>, <span class="ident">AsyncWrite</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
@@ -531,14 +526,15 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">AsyncRead</span> <span class="op">+</span> <span class="ident">AsyncWrite</span> <span class="op">+</span> <span class="ident">Unpin</span> <span class="op">+</span> <span class="ident">Send</span><span class="op">&gt;</span>(
         <span class="ident">connection</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">Connection</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>,
     ) <span class="op">-</span><span class="op">&gt;</span> <span class="kw">crate</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;foo&quot;</span>);
         <span class="kw">let</span> <span class="ident">token_stream</span> <span class="op">=</span> <span class="ident">TokenStream</span>::<span class="ident">new</span>(<span class="ident">connection</span>).<span class="ident">try_unfold</span>();
 
         <span class="kw">let</span> <span class="ident">rows_affected</span> <span class="op">=</span> <span class="ident">token_stream</span>
             .<span class="ident">try_fold</span>(<span class="ident">Vec</span>::<span class="ident">new</span>(), <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">acc</span>, <span class="ident">token</span><span class="op">|</span> <span class="kw">async</span> <span class="kw">move</span> {
                 <span class="kw">match</span> <span class="ident">token</span> {
-                    <span class="ident">ReceivedToken</span>::<span class="ident">DoneProc</span>(<span class="ident">done</span>) <span class="kw">if</span> <span class="ident">done</span>.<span class="ident">status</span>.<span class="ident">contains</span>(<span class="ident">DoneStatus</span>::<span class="ident">FINAL</span>) <span class="op">=</span><span class="op">&gt;</span> (),
-                    <span class="ident">ReceivedToken</span>::<span class="ident">DoneProc</span>(<span class="ident">done</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">acc</span>.<span class="ident">push</span>(<span class="ident">done</span>.<span class="ident">done_rows</span>),
-                    <span class="ident">ReceivedToken</span>::<span class="ident">DoneInProc</span>(<span class="ident">done</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">acc</span>.<span class="ident">push</span>(<span class="ident">done</span>.<span class="ident">done_rows</span>),
+                    <span class="ident">ReceivedToken</span>::<span class="ident">DoneProc</span>(<span class="ident">done</span>) <span class="kw">if</span> <span class="ident">done</span>.<span class="ident">is_final</span>() <span class="op">=</span><span class="op">&gt;</span> (),
+                    <span class="ident">ReceivedToken</span>::<span class="ident">DoneProc</span>(<span class="ident">done</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">acc</span>.<span class="ident">push</span>(<span class="ident">done</span>.<span class="ident">rows</span>()),
+                    <span class="ident">ReceivedToken</span>::<span class="ident">DoneInProc</span>(<span class="ident">done</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">acc</span>.<span class="ident">push</span>(<span class="ident">done</span>.<span class="ident">rows</span>()),
                     <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> (),
                 }
                 <span class="prelude-val">Ok</span>(<span class="ident">acc</span>)

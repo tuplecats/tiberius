@@ -277,11 +277,47 @@
 <span id="274">274</span>
 <span id="275">275</span>
 <span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Encode</span>;
-<span class="kw">use</span> <span class="ident">bitflags</span>::<span class="ident">bitflags</span>;
 <span class="kw">use</span> <span class="ident">byteorder</span>::{<span class="ident">LittleEndian</span>, <span class="ident">WriteBytesExt</span>};
 <span class="kw">use</span> <span class="ident">bytes</span>::<span class="ident">BytesMut</span>;
+<span class="kw">use</span> <span class="ident">enumflags2</span>::<span class="ident">BitFlags</span>;
 <span class="kw">use</span> <span class="ident">io</span>::{<span class="ident">Cursor</span>, <span class="ident">Write</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow</span>::<span class="ident">Cow</span>, <span class="ident">io</span>};
 
@@ -300,65 +336,9 @@
     }
 }
 
-<span class="macro">bitflags</span><span class="macro">!</span> {
-    <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LoginOptionFlags1</span>: <span class="ident">u8</span> {
-        <span class="kw">const</span> <span class="ident">BIG_ENDIAN</span>           <span class="op">=</span> <span class="number">0b00000001</span>;
-        <span class="doccomment">/// Charset_EBDDIC, default/bit not set = Charset_ASCII</span>
-        <span class="kw">const</span> <span class="ident">CHARSET_EBDDIC</span>       <span class="op">=</span> <span class="number">0b00000010</span>;
-        <span class="doccomment">/// default float is IEEE_754</span>
-        <span class="kw">const</span> <span class="ident">FLOAT_VAX</span>            <span class="op">=</span> <span class="number">0b00000100</span>;
-        <span class="kw">const</span> <span class="ident">FLOAT_ND5000</span>         <span class="op">=</span> <span class="number">0b00001000</span>;
-        <span class="kw">const</span> <span class="ident">DUMPLOAD_ON</span>          <span class="op">=</span> <span class="number">0b00010000</span>;
-        <span class="doccomment">/// Set if the client requires warning messages on execution of the USE SQL</span>
-        <span class="doccomment">/// statement. If this flag is NOT SET, the server MUST NOT inform the client when the database</span>
-        <span class="doccomment">/// changes, and therefore the client will be unaware of any accompanying collation changes.</span>
-        <span class="kw">const</span> <span class="ident">USE_DB_NOTIFY</span>        <span class="op">=</span> <span class="number">0b00100000</span>;
-        <span class="doccomment">/// Set if the change to initial database needs to succeed if the connection is to succeed. (false: warn)</span>
-        <span class="kw">const</span> <span class="ident">INITIAL_DB_FATAL</span>     <span class="op">=</span> <span class="number">0b01000000</span>;
-        <span class="doccomment">/// Set if the client requires warning messages on execution of a language change statement.</span>
-        <span class="kw">const</span> <span class="ident">LANG_CHANGE_WARN</span>     <span class="op">=</span> <span class="number">0b10000000</span>;
-    }
-}
-<span class="macro">bitflags</span><span class="macro">!</span> {
-    <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LoginOptionFlags2</span>: <span class="ident">u8</span> {
-        <span class="doccomment">/// Set if the change to initial language needs to succeed if the connect is to succeed.</span>
-        <span class="kw">const</span> <span class="ident">INIT_LANG_FATAL</span>      <span class="op">=</span> <span class="number">0b00000001</span>;
-        <span class="doccomment">/// Set if the client is the ODBC driver. This causes the server to set ANSI_DEFAULTS=ON,</span>
-        <span class="doccomment">/// CURSOR_CLOSE_ON_COMMIT, IMPLICIT_TRANSACTIONS=OFF, TEXTSIZE=0x7FFFFFFF (2GB) (TDS 7.2 and earlier)</span>
-        <span class="doccomment">/// TEXTSIZE to infinite (TDS 7.3), and ROWCOUNT to infinite</span>
-        <span class="doccomment">/// (2.2.6.4)</span>
-        <span class="kw">const</span> <span class="ident">ODBC_DRIVER</span>          <span class="op">=</span> <span class="number">0b00000010</span>;
-        <span class="kw">const</span> <span class="ident">TRANS_BOUNDARY</span>       <span class="op">=</span> <span class="number">0b00000100</span>;
-        <span class="kw">const</span> <span class="ident">CACHE_CONNECT</span>        <span class="op">=</span> <span class="number">0b00001000</span>;
-        <span class="doccomment">/// reserved</span>
-        <span class="kw">const</span> <span class="ident">USER_TYPE_SERVER</span>     <span class="op">=</span> <span class="number">0b00010000</span>;
-        <span class="doccomment">/// Distributed Query login</span>
-        <span class="kw">const</span> <span class="ident">USER_TYPE_REM_USER</span>   <span class="op">=</span> <span class="number">0b00100000</span>;
-        <span class="doccomment">/// Replication login</span>
-        <span class="kw">const</span> <span class="ident">USER_TYPE_SQL_REPL</span>   <span class="op">=</span> <span class="number">0b00110000</span>;
-        <span class="kw">const</span> <span class="ident">INTEGRATED_SECURITY</span>  <span class="op">=</span> <span class="number">0b10000000</span>;
-    }
-}
-<span class="macro">bitflags</span><span class="macro">!</span> {
-    <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LoginTypeFlags</span>: <span class="ident">u8</span> {
-        <span class="doccomment">/// use TSQL insteadof DFLT</span>
-        <span class="kw">const</span> <span class="ident">SQL_TSQL</span>             <span class="op">=</span> <span class="number">0b00000001</span>;
-        <span class="doccomment">/// Set if the client is the OLEDB driver. This causes the server to set ANSI_DEFAULTS to ON ...</span>
-        <span class="kw">const</span> <span class="ident">OLEDB_DRIVER</span>         <span class="op">=</span> <span class="number">0b00010000</span>;
-        <span class="kw">const</span> <span class="ident">READ_ONLY_INTENT</span>     <span class="op">=</span> <span class="number">0b00100000</span>;
-    }
-}
-<span class="macro">bitflags</span><span class="macro">!</span> {
-    <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LoginOptionFlags3</span>: <span class="ident">u8</span> {
-        <span class="kw">const</span> <span class="ident">REQUEST_CHANGE_PWD</span>   <span class="op">=</span> <span class="number">0b00000001</span>;
-        <span class="doccomment">/// 1 if XML data type instances are returned as binary XML</span>
-        <span class="kw">const</span> <span class="ident">SEND_YUKON_BINARY</span>    <span class="op">=</span> <span class="number">0b00000010</span>;
-        <span class="doccomment">/// 1 if client is requesting separate process to be spawned as user instance</span>
-        <span class="kw">const</span> <span class="ident">SPAWN_USER_INSTANCE</span>  <span class="op">=</span> <span class="number">0b00000100</span>;
-        <span class="doccomment">/// 0 = The server MUST restrict the collations sent to a specific set of collations.</span>
-        <span class="doccomment">/// 1 = The server MAY send any collation that fits in the storage space.</span>
-        <span class="kw">const</span> <span class="ident">SUPPORT_UNKNOWN_COLL</span> <span class="op">=</span> <span class="number">0b00001000</span>;
-        <span class="comment">// TODO: fExtension?</span>
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">FeatureLevel</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span>::<span class="ident">SqlServerN</span>
     }
 }
 
@@ -372,63 +352,162 @@
     }
 }
 
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">BitFlags</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">OptionFlag1</span> {
+    <span class="doccomment">/// The byte order used by client for numeric and datetime data types.</span>
+    <span class="doccomment">/// (default: little-endian)</span>
+    <span class="ident">BigEndian</span> <span class="op">=</span> <span class="number">0x01</span>,
+    <span class="doccomment">/// The character set used on the client. (default: ASCII)</span>
+    <span class="ident">CharsetEBDDIC</span> <span class="op">=</span> <span class="number">0x02</span>,
+    <span class="doccomment">/// Use VAX floating point representation. (default: IEEE 754)</span>
+    <span class="ident">FloatVax</span> <span class="op">=</span> <span class="number">0x04</span>,
+    <span class="doccomment">/// Use ND5000 floating point representation. (default: IEEE 754)</span>
+    <span class="ident">FloatND5000</span> <span class="op">=</span> <span class="number">0x08</span>,
+    <span class="doccomment">/// Set is dump/load or BCP capabilities are needed by the client.</span>
+    <span class="doccomment">/// (default: ON)</span>
+    <span class="ident">BcpDumploadOff</span> <span class="op">=</span> <span class="number">0x10</span>,
+    <span class="doccomment">/// Set if the client requires warning messages on execution of the USE SQL</span>
+    <span class="doccomment">/// statement. If this flag is not set, the server MUST NOT inform the</span>
+    <span class="doccomment">/// client when the database changes, and therefore the client will be</span>
+    <span class="doccomment">/// unaware of any accompanying collation changes. (default: ON)</span>
+    <span class="ident">UseDbNotify</span> <span class="op">=</span> <span class="number">0x20</span>,
+    <span class="doccomment">/// Set if the change to initial database needs to succeed if the connection</span>
+    <span class="doccomment">/// is to succeed. (default: OFF)</span>
+    <span class="ident">InitDbFatal</span> <span class="op">=</span> <span class="number">0x40</span>,
+    <span class="doccomment">/// Set if the client requires warning messages on execution of a language</span>
+    <span class="doccomment">/// change statement. (default: OFF)</span>
+    <span class="ident">LangChangeWarn</span> <span class="op">=</span> <span class="number">0x80</span>,
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">BitFlags</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">OptionFlag2</span> {
+    <span class="doccomment">/// Set if the change to initial language needs to succeed if the connect is</span>
+    <span class="doccomment">/// to succeed.</span>
+    <span class="ident">InitLangFatal</span> <span class="op">=</span> <span class="number">0x01</span>,
+    <span class="doccomment">/// Set if the client is the ODBC driver. This causes the server to set</span>
+    <span class="doccomment">/// `ANSI_DEFAULTS=ON`, `CURSOR_CLOSE_ON_COMMIT`, `IMPLICIT_TRANSACTIONS=OFF`,</span>
+    <span class="doccomment">/// `TEXTSIZE=0x7FFFFFFF` (2GB) (TDS 7.2 and earlier) `TEXTSIZE` to infinite</span>
+    <span class="doccomment">/// (TDS 7.3), and `ROWCOUNT` to infinite.</span>
+    <span class="ident">OdbcDriver</span> <span class="op">=</span> <span class="number">0x02</span>,
+    <span class="doccomment">/// (not documented)</span>
+    <span class="ident">TransBoundary</span> <span class="op">=</span> <span class="number">0x04</span>,
+    <span class="doccomment">/// (not documented)</span>
+    <span class="ident">CacheConnect</span> <span class="op">=</span> <span class="number">0x08</span>,
+    <span class="doccomment">/// Reserved (not really documented)</span>
+    <span class="ident">UserTypeServer</span> <span class="op">=</span> <span class="number">0x10</span>,
+    <span class="doccomment">/// Distributed Query login</span>
+    <span class="ident">UserTypeRemUser</span> <span class="op">=</span> <span class="number">0x20</span>,
+    <span class="doccomment">/// Replication login</span>
+    <span class="ident">UserTypeSqlRepl</span> <span class="op">=</span> <span class="number">0x40</span>,
+    <span class="doccomment">/// Use integrated security in the client.</span>
+    <span class="ident">IntegratedSecurity</span> <span class="op">=</span> <span class="number">0x80</span>,
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">BitFlags</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">OptionFlag3</span> {
+    <span class="doccomment">/// Request to change login&#39;s password.</span>
+    <span class="ident">RequestChangePassword</span> <span class="op">=</span> <span class="number">0x01</span>,
+    <span class="doccomment">/// XML data type instances are returned as binary XML.</span>
+    <span class="ident">BinaryXML</span> <span class="op">=</span> <span class="number">0x02</span>,
+    <span class="doccomment">/// Client is requesting separate process to be spawned as user instance.</span>
+    <span class="ident">SpawnUserInstance</span> <span class="op">=</span> <span class="number">0x04</span>,
+    <span class="doccomment">/// This bit is used by the server to determine if a client is able to</span>
+    <span class="doccomment">/// properly handle collations introduced after TDS 7.2. TDS 7.2 and earlier</span>
+    <span class="doccomment">/// clients are encouraged to use this loginpacket bit. Servers MUST ignore</span>
+    <span class="doccomment">/// this bit when it is sent by TDS 7.3 or 7.4 clients.</span>
+    <span class="ident">UnknownCollationHandling</span> <span class="op">=</span> <span class="number">0x08</span>,
+    <span class="doccomment">/// ibExtension/cbExtension fields are used.</span>
+    <span class="ident">ExtensionUsed</span> <span class="op">=</span> <span class="number">0x10</span>,
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">BitFlags</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">LoginTypeFlag</span> {
+    <span class="doccomment">/// Use T-SQL syntax.</span>
+    <span class="ident">UseTSQL</span> <span class="op">=</span> <span class="number">0x01</span>,
+    <span class="doccomment">/// Set if the client is the OLEDB driver. This causes the server to set</span>
+    <span class="doccomment">/// ANSI_DEFAULTS to ON, CURSOR_CLOSE_ON_COMMIT and IMPLICIT_TRANSACTIONS to</span>
+    <span class="doccomment">/// OFF, TEXTSIZE to 0x7FFFFFFF (2GB) (TDS 7.2 and earlier), TEXTSIZE to</span>
+    <span class="doccomment">/// infinite (introduced in TDS 7.3), and ROWCOUNT to infinite.</span>
+    <span class="ident">UseOLEDB</span> <span class="op">=</span> <span class="number">0x10</span>,
+    <span class="doccomment">/// This bit was introduced in TDS 7.4; however, TDS 7.1, 7.2, and 7.3</span>
+    <span class="doccomment">/// clients can also use this bit in LOGIN7 to specify that the application</span>
+    <span class="doccomment">/// intent of the connection is read-only. The server SHOULD ignore this bit</span>
+    <span class="doccomment">/// if the highest TDS version supported by the server is lower than TDS 7.4.</span>
+    <span class="ident">ReadOnlyIntent</span> <span class="op">=</span> <span class="number">0x20</span>,
+}
+
 <span class="doccomment">/// the login packet</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Default</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LoginMessage</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="doccomment">/// the highest TDS version the client supports</span>
-    <span class="kw">pub</span> <span class="ident">tds_version</span>: <span class="ident">FeatureLevel</span>,
+    <span class="ident">tds_version</span>: <span class="ident">FeatureLevel</span>,
     <span class="doccomment">/// the requested packet size</span>
-    <span class="kw">pub</span> <span class="ident">packet_size</span>: <span class="ident">u32</span>,
+    <span class="ident">packet_size</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// the version of the interface library</span>
-    <span class="kw">pub</span> <span class="ident">client_prog_ver</span>: <span class="ident">u32</span>,
+    <span class="ident">client_prog_ver</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// the process id of the client application</span>
-    <span class="kw">pub</span> <span class="ident">client_pid</span>: <span class="ident">u32</span>,
+    <span class="ident">client_pid</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// the connection id of the primary server</span>
     <span class="doccomment">/// (used when connecting to an &quot;Always UP&quot; backup server)</span>
-    <span class="kw">pub</span> <span class="ident">connection_id</span>: <span class="ident">u32</span>,
-
-    <span class="kw">pub</span> <span class="ident">option_flags_1</span>: <span class="ident">LoginOptionFlags1</span>,
-    <span class="kw">pub</span> <span class="ident">option_flags_2</span>: <span class="ident">LoginOptionFlags2</span>,
-
+    <span class="ident">connection_id</span>: <span class="ident">u32</span>,
+    <span class="ident">option_flags_1</span>: <span class="ident">BitFlags</span><span class="op">&lt;</span><span class="ident">OptionFlag1</span><span class="op">&gt;</span>,
+    <span class="ident">option_flags_2</span>: <span class="ident">BitFlags</span><span class="op">&lt;</span><span class="ident">OptionFlag2</span><span class="op">&gt;</span>,
     <span class="doccomment">/// flag included in option_flags_2</span>
-    <span class="kw">pub</span> <span class="ident">integrated_security</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">type_flags</span>: <span class="ident">LoginTypeFlags</span>,
-    <span class="kw">pub</span> <span class="ident">option_flags_3</span>: <span class="ident">LoginOptionFlags3</span>,
-
-    <span class="kw">pub</span> <span class="ident">client_timezone</span>: <span class="ident">i32</span>,
-    <span class="kw">pub</span> <span class="ident">client_lcid</span>: <span class="ident">u32</span>,
-
-    <span class="kw">pub</span> <span class="ident">hostname</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">username</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">password</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">app_name</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">server_name</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
+    <span class="ident">integrated_security</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">type_flags</span>: <span class="ident">BitFlags</span><span class="op">&lt;</span><span class="ident">LoginTypeFlag</span><span class="op">&gt;</span>,
+    <span class="ident">option_flags_3</span>: <span class="ident">BitFlags</span><span class="op">&lt;</span><span class="ident">OptionFlag3</span><span class="op">&gt;</span>,
+    <span class="ident">client_timezone</span>: <span class="ident">i32</span>,
+    <span class="ident">client_lcid</span>: <span class="ident">u32</span>,
+    <span class="ident">hostname</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
+    <span class="ident">username</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
+    <span class="ident">password</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
+    <span class="ident">app_name</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
+    <span class="ident">server_name</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
     <span class="doccomment">/// the default database to connect to</span>
-    <span class="kw">pub</span> <span class="ident">db_name</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
+    <span class="ident">db_name</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">LoginMessage</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">LoginMessage</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-        <span class="ident">LoginMessage</span> {
-            <span class="ident">tds_version</span>: <span class="ident">FeatureLevel</span>::<span class="ident">SqlServerN</span>,
+        <span class="self">Self</span> {
             <span class="ident">packet_size</span>: <span class="number">4096</span>,
-            <span class="ident">client_prog_ver</span>: <span class="number">0</span>,
-            <span class="ident">client_pid</span>: <span class="number">0</span>,
-            <span class="ident">connection_id</span>: <span class="number">0</span>,
-            <span class="ident">option_flags_1</span>: <span class="ident">LoginOptionFlags1</span>::<span class="ident">USE_DB_NOTIFY</span> <span class="op">|</span> <span class="ident">LoginOptionFlags1</span>::<span class="ident">INITIAL_DB_FATAL</span>,
-            <span class="ident">option_flags_2</span>: <span class="ident">LoginOptionFlags2</span>::<span class="ident">INIT_LANG_FATAL</span> <span class="op">|</span> <span class="ident">LoginOptionFlags2</span>::<span class="ident">ODBC_DRIVER</span>,
-            <span class="ident">integrated_security</span>: <span class="prelude-val">None</span>,
-            <span class="ident">type_flags</span>: <span class="ident">LoginTypeFlags</span>::<span class="ident">empty</span>(),
-            <span class="ident">option_flags_3</span>: <span class="ident">LoginOptionFlags3</span>::<span class="ident">SUPPORT_UNKNOWN_COLL</span>,
-            <span class="ident">client_timezone</span>: <span class="number">0</span>, <span class="comment">//TODO</span>
-            <span class="ident">client_lcid</span>: <span class="number">0</span>,     <span class="comment">// TODO</span>
-            <span class="ident">hostname</span>: <span class="string">&quot;&quot;</span>.<span class="ident">into</span>(),
-            <span class="ident">username</span>: <span class="string">&quot;&quot;</span>.<span class="ident">into</span>(),
-            <span class="ident">password</span>: <span class="string">&quot;&quot;</span>.<span class="ident">into</span>(),
-            <span class="ident">app_name</span>: <span class="string">&quot;&quot;</span>.<span class="ident">into</span>(),
-            <span class="ident">server_name</span>: <span class="string">&quot;&quot;</span>.<span class="ident">into</span>(),
-            <span class="ident">db_name</span>: <span class="string">&quot;&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">option_flags_1</span>: <span class="ident">OptionFlag1</span>::<span class="ident">UseDbNotify</span> <span class="op">|</span> <span class="ident">OptionFlag1</span>::<span class="ident">InitDbFatal</span>,
+            <span class="ident">option_flags_2</span>: <span class="ident">OptionFlag2</span>::<span class="ident">InitLangFatal</span> <span class="op">|</span> <span class="ident">OptionFlag2</span>::<span class="ident">OdbcDriver</span>,
+            <span class="ident">option_flags_3</span>: <span class="ident">BitFlags</span>::<span class="ident">from_flag</span>(<span class="ident">OptionFlag3</span>::<span class="ident">UnknownCollationHandling</span>),
+            <span class="ident">app_name</span>: <span class="string">&quot;tiberius&quot;</span>.<span class="ident">into</span>(),
+            ..<span class="ident">Default</span>::<span class="ident">default</span>()
         }
+    }
+
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">all</span>(<span class="ident">unix</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;integrated-auth-gssapi&quot;</span>), <span class="ident">windows</span>))]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">integrated_security</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">bytes</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
+        <span class="kw">if</span> <span class="ident">bytes</span>.<span class="ident">is_some</span>() {
+            <span class="self">self</span>.<span class="ident">option_flags_2</span>.<span class="ident">insert</span>(<span class="ident">OptionFlag2</span>::<span class="ident">IntegratedSecurity</span>);
+        } <span class="kw">else</span> {
+            <span class="self">self</span>.<span class="ident">option_flags_2</span>.<span class="ident">remove</span>(<span class="ident">OptionFlag2</span>::<span class="ident">IntegratedSecurity</span>);
+        }
+
+        <span class="self">self</span>.<span class="ident">integrated_security</span> <span class="op">=</span> <span class="ident">bytes</span>;
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">db_name</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">db_name</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
+        <span class="self">self</span>.<span class="ident">db_name</span> <span class="op">=</span> <span class="ident">db_name</span>.<span class="ident">into</span>();
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">server_name</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">server_name</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
+        <span class="self">self</span>.<span class="ident">server_name</span> <span class="op">=</span> <span class="ident">server_name</span>.<span class="ident">into</span>();
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">user_name</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">user_name</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
+        <span class="self">self</span>.<span class="ident">username</span> <span class="op">=</span> <span class="ident">user_name</span>.<span class="ident">into</span>();
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">password</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">password</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
+        <span class="self">self</span>.<span class="ident">password</span> <span class="op">=</span> <span class="ident">password</span>.<span class="ident">into</span>();
     }
 }
 
@@ -439,13 +518,6 @@
         <span class="comment">// Space for the length</span>
         <span class="ident">cursor</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="number">0</span>)<span class="question-mark">?</span>;
 
-        <span class="comment">// ignore the specified value for integrated security since we determine that by the struct field</span>
-        <span class="kw">let</span> <span class="ident">option_flags2</span> <span class="op">=</span> <span class="kw">if</span> <span class="self">self</span>.<span class="ident">integrated_security</span>.<span class="ident">is_some</span>() {
-            <span class="self">self</span>.<span class="ident">option_flags_2</span> <span class="op">|</span> <span class="ident">LoginOptionFlags2</span>::<span class="ident">INTEGRATED_SECURITY</span>
-        } <span class="kw">else</span> {
-            <span class="self">self</span>.<span class="ident">option_flags_2</span> <span class="op">&amp;</span> <span class="op">!</span><span class="ident">LoginOptionFlags2</span>::<span class="ident">INTEGRATED_SECURITY</span>
-        };
-
         <span class="ident">cursor</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">tds_version</span> <span class="kw">as</span> <span class="ident">u32</span>)<span class="question-mark">?</span>;
         <span class="ident">cursor</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">packet_size</span>)<span class="question-mark">?</span>;
         <span class="ident">cursor</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">client_prog_ver</span>)<span class="question-mark">?</span>;
@@ -453,7 +525,7 @@
         <span class="ident">cursor</span>.<span class="ident">write_u32</span>::<span class="op">&lt;</span><span class="ident">LittleEndian</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">connection_id</span>)<span class="question-mark">?</span>;
 
         <span class="ident">cursor</span>.<span class="ident">write_u8</span>(<span class="self">self</span>.<span class="ident">option_flags_1</span>.<span class="ident">bits</span>())<span class="question-mark">?</span>;
-        <span class="ident">cursor</span>.<span class="ident">write_u8</span>(<span class="ident">option_flags2</span>.<span class="ident">bits</span>())<span class="question-mark">?</span>;
+        <span class="ident">cursor</span>.<span class="ident">write_u8</span>(<span class="self">self</span>.<span class="ident">option_flags_2</span>.<span class="ident">bits</span>())<span class="question-mark">?</span>;
         <span class="ident">cursor</span>.<span class="ident">write_u8</span>(<span class="self">self</span>.<span class="ident">type_flags</span>.<span class="ident">bits</span>())<span class="question-mark">?</span>;
         <span class="ident">cursor</span>.<span class="ident">write_u8</span>(<span class="self">self</span>.<span class="ident">option_flags_3</span>.<span class="ident">bits</span>())<span class="question-mark">?</span>;
 
