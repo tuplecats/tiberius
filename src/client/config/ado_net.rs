@@ -27,7 +27,7 @@ impl ConfigString for AdoNetConfig {
 
             let definition = if parts[0].contains('\\') {
                 let port = if parts.len() == 1 {
-                    1434
+                    1433
                 } else {
                     parts[1].parse::<u16>()?
                 };
