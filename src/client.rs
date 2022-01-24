@@ -261,12 +261,14 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send> Client<S> {
             if i > 0 {
                 param_str.push(',')
             }
-            param_str.push_str(&format!("@P{} ", i + 1));
+
+            let param_var = format!("@P{} ", i + 1);
+            param_str.push_str(&param_var);
             let param_data = param.to_sql();
             param_str.push_str(&param_data.type_name());
 
             rpc_params.push(RpcParam {
-                name: Cow::Owned(format!("@P{}", i + 1)),
+                name: Cow::Owned(param_var),
                 flags: BitFlags::empty(),
                 value: param_data,
             });
